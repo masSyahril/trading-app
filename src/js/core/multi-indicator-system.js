@@ -871,7 +871,49 @@ class MultiIndicatorSystem {
         minPeriod: 10,
         compute: (data, params) => this.computeZeroLagHullMAIndicator(data, params.day1, params.day2, params.esp),
         render: (chart, data, colors, seriesMap) => this.renderZeroLagHullMA(chart, data, colors, seriesMap)
-      }
+      },
+      StochasticSMI: {
+        name: 'Stochastic SMI',
+        type: 'trend',
+        defaultParams: { lookback: 13, firstSmooth: 25, secondSmooth: 2, signalLine: 9 },
+        paramLabels: { lookback: 'Lookback', firstSmooth: 'First Smooth', secondSmooth: 'Second Smooth', signalLine: 'Signal Line' },
+        minPeriod: 13,
+        compute: (data, params) => this.computeStochasticSMIIndicator(data, params.lookback || 13, params.firstSmooth || 25, params.secondSmooth || 2, params.signalLine || 9),
+        render: (chart, data, colors, seriesMap) => this.renderStochasticSMI(chart, data, colors, seriesMap)
+      },
+      BalanceOfPower:{
+        name: 'Balance of Power',
+        type: 'oscillator',
+        defaultParams: {day : 10, esp: 9},
+        paramLabels: {day: 'Period', esp: 'esp'},
+        minPeriod: 10,
+        compute: (data, params) => this.computeBalanceOfPowerIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderBalanceOfPower(chart, data, colors, seriesMap)
+      },
+      RiseFallRatioCOG: {
+        name: 'Rise Fall Ratio COG',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'day', esp: 'esp' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeRiseFallRatioCOGIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderRiseFallRatioCOG(chart, data, colors, seriesMap)
+      },
+
+      GravityOsc_COG: {
+        name: 'Gravity Osc COG',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'day', esp: 'esp' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeGravityOscCOGIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderGravityOscCOG(chart, data, colors, seriesMap)
+       }, 
+    
+
+
+
+    // last definition 
     };
   }
 
@@ -4113,7 +4155,222 @@ computeZeroLagHullMAIndicator(data, day1 = 10, day2 = 15, esp = 9) {
   return { zeroLagHMA, hma, eHMA, zeroLagHullMA: zeroLagHMA };
 }
 
-// LAST COMPUTED INDICATORS:
+computeBalanceOfPowerIndicator(data, day = 10, esp = 9) {
+  const opens = data.map(d => d.open);
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const bop = new Array(len).fill(null);
+  const eBOP = new Array(len).fill(null);
+  if (len === 0) return { bop: [], eBOP: [] };
+
+  const fn = (typeof window !== 'undefined' && window.BalanceOfPower)
+    ? window.BalanceOfPower
+    : null;
+  if (!fn) return { bop, eBOP };
+
+  const out = fn(opens, highs, lows, closes, day, esp);
+  const srcBOP = out && out.BOP_SMA ? out.BOP_SMA : [];
+  const srcEBOP = out && out.BOP_esp ? out.BOP_esp : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcBOP[i] || null ;
+    bop[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcEBOP[i] || null ;
+    eBOP[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { bop, eBOP };
+}
+
+
+computeStochasticSMIIndicator(data, day = 13, rr = 25, ss = 2, esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const SMI = new Array(len).fill(null);
+  const SignalLine = new Array(len).fill(null);
+  if (len === 0) return { SMI: [], SignalLine: [] };
+
+  const fn = (typeof window !== 'undefined' && window.StochasticSMI)
+    ? window.StochasticSMI
+    : null;
+  if (!fn) return { SMI, SignalLine };
+
+  const out = fn(highs, lows, closes, day, rr, ss, esp);
+  const srcSMI = out && out.SMI ? out.SMI : [];
+  const srcSignalLine = out && out.SignalLine ? out.SignalLine : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcSMI[i];
+    SMI[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcSignalLine[i];
+    SignalLine[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { SMI, SignalLine };
+}
+
+computeRiseFallRatioCOGIndicator(data, day = 10, esp = 9) { 
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const riseFallRatio = new Array(len).fill(null);
+  const eRiseFallRatioCOG = new Array(len).fill(null);
+  if (len === 0) return { riseFallRatio: [], eRiseFallRatio: [] };
+
+  const fn = (typeof window !== 'undefined' && window.RiseFallRatioCOG)
+    ? window.RiseFallRatioCOG
+    : null;
+  if (!fn) return { riseFallRatio, eRiseFallRatio };
+
+  const out = fn(closes, day, esp);
+  const srcRiseFallRatio = out && out.RiseFallRatioCOG ? out.RiseFallRatioCOG : [];
+  const srceRiseFallRatioCOG = out && out.eRiseFallRatioCOG ? out.eRiseFallRatioCOG : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcRiseFallRatio[i];
+    riseFallRatio[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceRiseFallRatioCOG[i];
+    eRiseFallRatioCOG[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { riseFallRatio, eRiseFallRatioCOG };
+}
+
+computeGravityOscCOGIndicator(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const COG = new Array(len).fill(null);
+  const eCOG = new Array(len).fill(null);
+  if (len === 0) return { COG: [], eCOG: [] };
+
+  const fn = (typeof window !== 'undefined' && window.GravityOsc_COG)
+    ? window.GravityOsc_COG
+    : null;
+  if (!fn) return { COG, eCOG };
+
+  const out = fn(closes, day, esp);
+  const srcCOG = out && out.COG ? out.COG : [];
+  const srceCOG = out && out.eCOG ? out.eCOG : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcCOG[i];
+    COG[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceCOG[i];
+    eCOG[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { COG, eCOG };
+}
+
+
+
+// ===================================LAST COMPUTED INDICATORS:===============================
+
+renderGravityOscCOG(chart, data, colors, seriesMap) {
+  if (!data || !data.COG || !data.eCOG) return;
+  if (!seriesMap.has('COG')) {
+    seriesMap.set('COG', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'COG',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eCOG')) {
+    seriesMap.set('eCOG', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eGravity Osc COG',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const COG = this.seriesWithLeadInPadding(data.COG, (v) => (v == null || isNaN(v) ? null : v));
+  const eCOGData = this.seriesWithLeadInPadding(data.eCOG, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('COG').setData(COG);
+  seriesMap.get('eCOG').setData(eCOGData);
+} 
+
+
+renderRiseFallRatioCOG(chart, data, colors, seriesMap) {
+  if (!data || !data.riseFallRatio || !data.eRiseFallRatioCOG) return;
+  if (!seriesMap.has('riseFallRatio')) {
+    seriesMap.set('riseFallRatio', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Rise/Fall Ratio',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eRiseFallRatioCOG')) {
+    seriesMap.set('eRiseFallRatioCOG', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eRise/Fall Ratio COG',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const riseFallRatioData = this.seriesWithLeadInPadding(data.riseFallRatio, (v) => (v == null || isNaN(v) ? null : v));
+  const eRiseFallRatioData = this.seriesWithLeadInPadding(data.eRiseFallRatioCOG, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('riseFallRatio').setData(riseFallRatioData);
+  seriesMap.get('eRiseFallRatioCOG').setData(eRiseFallRatioData);
+} 
+
+
+renderBalanceOfPower(chart, data, colors, seriesMap) {
+  if (!data || !data.bop || !data.eBOP) return;
+  if (!seriesMap.has('bop')) {
+    seriesMap.set('bop', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'BOP',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eBOP')) {
+    seriesMap.set('eBOP', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eBOP',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const bopData = this.seriesWithLeadInPadding(data.bop, (v) => (v == null || isNaN(v) ? null : v));
+  const eBOPData = this.seriesWithLeadInPadding(data.eBOP, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('bop').setData(bopData);
+  seriesMap.get('eBOP').setData(eBOPData);
+}
+
+renderStochasticSMI(chart, data, colors, seriesMap) {
+  if (!data || !data.SMI || !data.SignalLine) return;
+  if (!seriesMap.has('SMI')) {
+    seriesMap.set('SMI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'SMI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('SignalLine')) {
+    seriesMap.set('SignalLine', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'SignalLine',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const SMIData = this.seriesWithLeadInPadding(data.SMI, (v) => (v == null || isNaN(v) ? null : v));
+  const SignalLineData = this.seriesWithLeadInPadding(data.SignalLine, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('SMI').setData(SMIData);
+  seriesMap.get('SignalLine').setData(SignalLineData);
+}
+
 
 renderZeroLagHullMA(chart, data, colors, seriesMap) {
   if (!data || !data.zeroLagHMA || !data.hma || !data.eHMA) return;

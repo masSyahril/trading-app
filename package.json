@@ -1,0 +1,27 @@
+{
+  "name": "trading-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Wang_design_DEMA_2026-03-14_Σ┐«µö╣.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/masSyahril/trading-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/masSyahril/trading-app/issues"
+  },
+  "homepage": "https://github.com/masSyahril/trading-app#readme",
+  "dependencies": {
+    "mathjs": "^15.2.0"
+  }
+}
