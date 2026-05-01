@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>TradeFlow - Crypto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="stylesheet" href="../src/css/multi-indicator-styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { slate: { 950: '#020617' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Crypto layout: fixed main chart + predictable indicator panel heights; scroll inside #indicators-container */
+        :root {
+            --crypto-main-chart-height: 300px;
+            --crypto-indicator-chart-height: 156px;
+            --crypto-touch-min: 44px;
+        }
+        /* Android / mobile: dynamic viewport + legacy Chrome fallback (address bar) */
+        html {
+            height: 100%;
+            height: -webkit-fill-available;
+        }
+        body {
+            min-height: 100%;
+            min-height: 100dvh;
+            min-height: -webkit-fill-available;
+            background-color: #020617;
+            color: #e2e8f0;
+            padding-left: env(safe-area-inset-left, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .indicator-panel { transition: all 0.3s ease-in-out; }
+        #chart {
+            height: var(--crypto-main-chart-height) !important;
+            min-height: var(--crypto-main-chart-height) !important;
+            max-height: var(--crypto-main-chart-height) !important;
+            flex-shrink: 0 !important;
+            box-sizing: border-box;
+            width: 100%;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        /* Fills remaining space under the chart; no vh/min-height fights */
+        #indicators-section {
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            height: auto !important;
+            overflow: hidden !important;
+            overscroll-behavior-y: contain;
+        }
+        @media (max-width: 768px) {
+            :root {
+                /* Shorter phones: cap chart with dvh so indicators keep room */
+                --crypto-main-chart-height: min(240px, 32dvh);
+                --crypto-indicator-chart-height: 120px;
+            }
+            #indicators-section {
+                flex: 1 1 0 !important;
+                min-height: 0 !important;
+                max-height: none !important;
+            }
+        }
+        @media (max-width: 480px) {
+            :root {
+                --crypto-main-chart-height: min(220px, 30dvh);
+                --crypto-indicator-chart-height: 112px;
+            }
+        }
+        /* Landscape phone: leave vertical room for indicators */
+        @media (max-height: 500px) and (orientation: landscape) {
+            :root {
+                --crypto-main-chart-height: min(180px, 38vh);
+                --crypto-indicator-chart-height: 100px;
+            }
+        }
+        #indicators-container {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            box-sizing: border-box;
+            scrollbar-gutter: stable;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+        }
+        #sidebar { width: 200px !important; }
+        /* Mobile order rail: bounded height + internal scroll (Android stack layout) */
+        .crypto-order-rail {
+            flex-shrink: 0;
+        }
+        @media (max-width: 1023px) {
+            .crypto-order-rail {
+                max-height: min(38dvh, 300px);
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-y: contain;
+            }
+        }
+        @media (max-width: 1023px) {
+            .crypto-touch-target {
+                min-height: var(--crypto-touch-min);
+                min-width: var(--crypto-touch-min);
+                touch-action: manipulation;
+            }
+            .crypto-chart-toolbar-mobile button.tab-btn,
+            .crypto-chart-toolbar-mobile button[type="button"] {
+                min-height: 36px;
+                min-width: 36px;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+                font-size: 11px;
+            }
+        }
+        /* Panels stack at natural height; scroll the container (override shared multi-indicator flex-grow) */
+        #indicators-container .indicator-panel:not(.minimized) {
+            flex: 0 0 auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+        }
+        #indicators-container .indicator-panel:not(.minimized) .indicator-chart {
+            height: var(--crypto-indicator-chart-height) !important;
+            min-height: var(--crypto-indicator-chart-height) !important;
+            max-height: var(--crypto-indicator-chart-height) !important;
+            flex: 0 0 auto !important;
+        }
+        .indicator-panel.minimized {
+            flex: 0 0 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+            height: 40px !important;
+        }
+        #chart-toolbar { transition: opacity 0.2s ease; }
+        #chart-toolbar:hover {
+            background: rgba(15, 23, 42, 0.95) !important;
+        }
+        #chart-toolbar button {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .crypto-orders-scroll { max-height: 140px; overflow-y: auto; }
+        @media (max-width: 1023px) {
+            .crypto-orders-scroll { max-height: 120px; }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-0 h-[100dvh] max-h-[100dvh] overflow-hidden font-sans antialiased">
+    <header class="bg-slate-900 text-white min-h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 pt-[env(safe-area-inset-top,0px)] border-b border-slate-700 shrink-0 z-50">
+        <div class="flex items-center gap-2 sm:gap-4">
+            <button id="menu-btn" type="button" class="crypto-touch-target lg:hidden p-2 hover:bg-slate-800 rounded-lg flex items-center justify-center" aria-label="Open menu">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2 font-bold text-xl tracking-tight text-emerald-400">
+                <i data-lucide="coins" class="w-6 h-6"></i>
+                <span>TradeFlow</span>
+                <span class="text-slate-500 font-normal text-sm hidden sm:inline">Crypto</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-1 sm:gap-4">
+            <div class="hidden md:flex items-center gap-2">
+                <input id="symbol-input" type="text" placeholder="BTCUSDT…" class="bg-slate-800 border border-slate-600 text-white text-sm px-3 py-1.5 rounded focus:outline-none focus:border-emerald-500 w-36">
+                <button id="add-symbol" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">Add</button>
+            </div>
+            <div class="flex md:hidden items-center gap-1">
+                <input id="symbol-input-mobile" type="text" inputmode="text" autocomplete="off" placeholder="Symbol" aria-label="Trading pair" class="bg-slate-800 border border-slate-600 text-white text-sm px-2 py-2 rounded-lg focus:outline-none focus:border-emerald-500 w-[7.5rem] max-w-[40vw]">
+                <button id="add-symbol-mobile" type="button" class="crypto-touch-target bg-emerald-600 hover:bg-emerald-500 text-white px-3 rounded-lg text-xs font-semibold">Add</button>
+            </div>
+            <span class="hidden sm:inline-flex text-xs font-semibold text-emerald-400 bg-emerald-500/15 px-2 py-1 rounded" title="Binance feed">24/7</span>
+            <button id="reset-data" type="button" class="crypto-touch-target p-2 hover:bg-slate-800 rounded-full flex items-center justify-center shrink-0" title="Reset Data">
+                <i data-lucide="refresh-cw" class="w-5 h-5 text-slate-300"></i>
+            </button>
+            <a href="../pages/utilities/recover_bitcoin_data.html" class="hidden sm:flex crypto-touch-target p-2 hover:bg-slate-800 rounded-full items-center justify-center" title="Recovery tools">
+                <i data-lucide="wrench" class="w-5 h-5 text-slate-300"></i>
+            </a>
+            <a href="../stock-market/" class="hidden sm:flex crypto-touch-target p-2 hover:bg-slate-800 rounded-full items-center justify-center" title="Stock market">
+                <i data-lucide="line-chart" class="w-5 h-5 text-slate-300"></i>
+            </a>
+            <a href="../" class="crypto-touch-target p-2 hover:bg-slate-800 rounded-full flex items-center justify-center shrink-0" title="Hub">
+                <i data-lucide="home" class="w-5 h-5 text-slate-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="flex flex-1 min-h-0 overflow-hidden relative">
+        <aside id="sidebar" class="absolute lg:static inset-y-0 left-0 w-[220px] bg-slate-900 border-r border-slate-700 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-40 flex flex-col">
+            <div class="p-3 border-b border-slate-700 flex justify-between items-center shrink-0">
+                <h2 class="font-semibold text-slate-200 text-sm">Watchlist</h2>
+                <button id="close-sidebar" type="button" class="crypto-touch-target lg:hidden text-slate-400 p-2 rounded-lg flex items-center justify-center" aria-label="Close menu"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <ul id="watchlist" class="flex-1 overflow-y-auto no-scrollbar min-h-0"></ul>
+            <div class="crypto-order-rail">
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Order</div>
+                    <div class="flex rounded-lg overflow-hidden border border-slate-600 mb-2">
+                        <button type="button" id="side-buy" class="crypto-touch-target flex-1 py-3 sm:py-1.5 text-sm sm:text-xs font-semibold bg-emerald-600 text-white">BUY</button>
+                        <button type="button" id="side-sell" class="crypto-touch-target flex-1 py-3 sm:py-1.5 text-sm sm:text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">SELL</button>
+                    </div>
+                    <input id="order-qty" type="number" inputmode="decimal" placeholder="Quantity" step="0.001" class="w-full bg-slate-800 border border-slate-600 text-white text-base sm:text-sm px-3 py-3 sm:py-1.5 sm:px-2 rounded-lg mb-2 focus:outline-none focus:border-emerald-500 min-h-[44px] sm:min-h-0">
+                    <button type="button" id="place-order" class="crypto-touch-target w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-semibold py-3 sm:py-2 rounded-lg transition-colors">Place Order</button>
+                </div>
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3 flex-1 min-h-0 flex flex-col">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Positions</div>
+                    <div class="crypto-orders-scroll text-xs">
+                        <table class="w-full text-left text-slate-300" id="positions-table">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1 pr-1">Sym</th>
+                                    <th class="py-1 pr-1">Qty</th>
+                                    <th class="py-1 pr-1">Avg</th>
+                                    <th class="py-1 pr-1">Mark</th>
+                                    <th class="py-1">PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Recent orders</div>
+                    <div class="crypto-orders-scroll text-xs">
+                        <table class="w-full text-left text-slate-300" id="orders-table">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1 pr-1">Time</th>
+                                    <th class="py-1 pr-1">Sym</th>
+                                    <th class="py-1 pr-1">Side</th>
+                                    <th class="py-1 pr-1">Qty</th>
+                                    <th class="py-1 pr-1">Px</th>
+                                    <th class="py-1">St</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="p-2 border-t border-slate-800 text-[10px] text-slate-500 shrink-0">Binance · Demo</div>
+        </aside>
+
+        <div id="backdrop" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+        <div class="flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row">
+            <main class="flex-1 flex flex-col min-w-0 min-h-0 bg-slate-950">
+                <div class="px-3 py-2 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-950">
+                    <div class="min-w-0 flex-1">
+                        <h2 id="symbol-title" class="text-base sm:text-lg font-semibold text-white leading-tight truncate">BTCUSDT</h2>
+                        <div class="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                            <span id="last-price" class="text-white font-mono text-sm sm:text-base">—</span>
+                            <span id="price-change" class="text-xs text-slate-400">—</span>
+                            <div class="mt-2 hidden sm:flex flex-wrap items-center gap-2">
+                                <!-- <button type="button" id="btn-export-csv-header" class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 transition-colors touch-manipulation" title="Download all available 1-minute OHLCV from Binance (oldest in history through now), merged with live feed when chart is on 1m. While exporting: Cancel button below or Esc stops (no file).">Export 1m OHLCV (CSV)</button>
+                                <button type="button" id="btn-live-minute-capture" class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 transition-colors touch-manipulation" title="Loads up to 1000 closed 1m bars from Binance REST, then appends each new closed minute via WebSocket. Stop downloads CSV (UTF‑8 BOM). Changing symbol re-seeds history for that pair.">Record 1m CSV</button>
+                                <button type="button" id="btn-cancel-csv-export" class="hidden text-xs font-medium px-2.5 py-1.5 rounded-lg border border-red-500/50 text-red-400 hover:bg-red-500/10 transition-colors touch-manipulation" title="Stop fetching (no file downloaded)">Cancel export</button> -->
+                            </div>
+                            <div class="mt-2 flex sm:hidden flex-wrap items-center gap-1.5">
+                                <button type="button" id="btn-export-csv-header-mobile" class="text-[11px] font-medium px-2 py-2 rounded-lg border border-emerald-500/50 text-emerald-400 active:bg-emerald-500/15 touch-manipulation min-h-[40px]" title="Export 1m CSV">Export CSV</button>
+                                <button type="button" id="btn-live-minute-capture-mobile" class="text-[11px] font-medium px-2 py-2 rounded-lg border border-amber-500/50 text-amber-400 active:bg-amber-500/15 touch-manipulation min-h-[40px]" title="Record 1m">Record</button>
+                                <button type="button" id="btn-cancel-csv-export-mobile" class="hidden text-[11px] font-medium px-2 py-2 rounded-lg border border-red-500/50 text-red-400 active:bg-red-500/15 touch-manipulation min-h-[40px]" title="Cancel">Cancel</button>
+                            </div>
+                        </div>
+                       
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col min-h-0">
+                    <div id="chart" class="w-full bg-slate-950 border-b border-slate-800 relative shrink-0">
+                        <div id="chart-toolbar" class="crypto-chart-toolbar-mobile absolute top-1 right-32 z-10 bg-slate-900/90 backdrop-blur-sm border border-slate-700/50 rounded-lg flex flex-wrap items-center px-1 py-0.5 gap-0.5 shadow-lg max-lg:scale-95 origin-top-right max-w-[min(100%,calc(100vw-1rem))]">
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-blue-400 bg-slate-700/50 rounded font-bold active" data-tf="1m">1m</button>
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-slate-400 hover:text-white rounded transition-colors" data-tf="5m">5m</button>
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-slate-400 hover:text-white rounded transition-colors" data-tf="15m">15m</button>
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-slate-400 hover:text-white rounded transition-colors" data-tf="1h">1h</button>
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-slate-400 hover:text-white rounded transition-colors" data-tf="4h">4h</button>
+                            <button type="button" class="tab-btn px-1.5 py-0.5 text-[18px] text-slate-400 hover:text-white rounded transition-colors" data-tf="1d">1d</button>
+                            <div class="w-px h-3 bg-slate-600 mx-0.5"></div>
+                            <div class="flex items-center gap-0.5">
+                                <button type="button" id="btn-pan-left" class="px-1 py-0.5 text-[18px] text-slate-300 hover:text-white hover:bg-slate-700/50 rounded transition-colors" title="Pan Left">←</button>
+                                <button type="button" id="btn-pan-right" class="px-1 py-0.5 text-[18px] text-slate-300 hover:text-white hover:bg-slate-700/50 rounded transition-colors" title="Pan Right">→</button>
+                                <button type="button" id="btn-reset-view" class="px-1 py-0.5 text-[18px] text-slate-300 hover:text-white hover:bg-slate-700/50 rounded transition-colors" title="Reset">Reset</button>
+                                <div class="w-px h-3 bg-slate-600 mx-0.5"></div>
+                                <button type="button" id="btn-jump-first" class="px-1 py-0.5 text-[18px] text-slate-300 hover:text-white hover:bg-slate-700/50 rounded transition-colors" title="Jump to First">&lt;&lt;</button>
+                                <button type="button" id="btn-jump-last" class="px-1 py-0.5 text-[18px] text-slate-300 hover:text-white hover:bg-slate-700/50 rounded transition-colors" title="Jump to Last">&gt;&gt;</button>
+                                <div class="w-px h-3 bg-slate-600 mx-0.5"></div>
+                                <!-- <button type="button" id="btn-export-csv" class="px-1.5 py-0.5 text-[18px] text-emerald-400 hover:text-emerald-300 hover:bg-slate-700/50 rounded font-medium transition-colors" title="Download all available 1m OHLCV (Binance history through now). While running: Esc or Cancel export (under symbol) stops — no file.">CSV</button> -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="indicators-section" class="flex flex-col bg-slate-900 border-t-4 border-slate-800 overflow-hidden min-h-0 flex-1">
+                        <div class="bg-slate-600 min-h-10 h-10 sm:h-8 flex items-center px-2 justify-between shrink-0 select-none">
+                            <span id="indicator-count" class="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate pr-2">Indicators (3)</span>
+                            <button type="button" id="add-indicator-btn" class="crypto-touch-target flex items-center gap-1 text-xs bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white px-3 py-2 sm:py-0.5 sm:px-2 rounded-lg transition-colors shrink-0">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Add
+                            </button>
+                        </div>
+                        <div id="indicators-container" class="flex flex-col flex-1 overflow-y-auto w-full" style="min-height: 0;"></div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- <aside class="crypto-order-rail w-full lg:w-56 xl:w-60 shrink-0 border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900 flex flex-col gap-2 p-2 sm:p-3 lg:overflow-y-auto lg:max-h-none">
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Order</div>
+                    <div class="flex rounded-lg overflow-hidden border border-slate-600 mb-2">
+                        <button type="button" id="side-buy" class="crypto-touch-target flex-1 py-3 sm:py-1.5 text-sm sm:text-xs font-semibold bg-emerald-600 text-white">BUY</button>
+                        <button type="button" id="side-sell" class="crypto-touch-target flex-1 py-3 sm:py-1.5 text-sm sm:text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">SELL</button>
+                    </div>
+                    <input id="order-qty" type="number" inputmode="decimal" placeholder="Quantity" step="0.001" class="w-full bg-slate-800 border border-slate-600 text-white text-base sm:text-sm px-3 py-3 sm:py-1.5 sm:px-2 rounded-lg mb-2 focus:outline-none focus:border-emerald-500 min-h-[44px] sm:min-h-0">
+                    <button type="button" id="place-order" class="crypto-touch-target w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-sm font-semibold py-3 sm:py-2 rounded-lg transition-colors">Place Order</button>
+                </div>
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3 flex-1 min-h-0 flex flex-col">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Positions</div>
+                    <div class="crypto-orders-scroll text-xs">
+                        <table class="w-full text-left text-slate-300" id="positions-table">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1 pr-1">Sym</th>
+                                    <th class="py-1 pr-1">Qty</th>
+                                    <th class="py-1 pr-1">Avg</th>
+                                    <th class="py-1 pr-1">Mark</th>
+                                    <th class="py-1">PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-3">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Recent orders</div>
+                    <div class="crypto-orders-scroll text-xs">
+                        <table class="w-full text-left text-slate-300" id="orders-table">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-slate-700">
+                                    <th class="py-1 pr-1">Time</th>
+                                    <th class="py-1 pr-1">Sym</th>
+                                    <th class="py-1 pr-1">Side</th>
+                                    <th class="py-1 pr-1">Qty</th>
+                                    <th class="py-1 pr-1">Px</th>
+                                    <th class="py-1">St</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-600 px-1">Binance public API · Demo only · Not advice.</p>
+            </aside> -->
+        </div>
+    </div>
+
+    <script src="../src/js/utils/script-loader.js"></script>
+    <script>
+        /* Same indicator stack as stock-market/index.html; app entry last. */
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await ScriptLoader.loadTradingScripts([
+                    { name: 'utils', src: '../src/js/core/utils.js', description: 'Core Utilities' },
+                    { name: 'indicators', src: '../src/js/utils/indicators.js', description: 'Chart Indicators' },
+                    { name: 'technical-indicators', src: '../src/js/core/technical-indicators.js', description: 'Technical Analysis' },
+                    { name: 'HullMA', src: '../src/js/core/Wang_design__HullMA%20_2026-01-18.js', description: 'Prof. Wang Hull MA (window.computeHullMA)' },
+                    { name: 'DEMA', src: '../src/js/core/Wang_design_DEMA_2026-03-14.js', description: 'Prof. Wang DEMA (window.computeDEMA)' },
+                    { name: 'technical-indicators-wang', src: '../src/js/core/technical-indicators-wang.js', description: 'Prof. Wang Indicators' },
+                    { name: 'technical-indicators-wang-prods', src:'../src/js/core/technical-indicators.prods__Wang__2026-04-30.js', description:'Prof. Wang Indicators (prod bundle)' },
+                    { name: 'multi-indicator-system', src: '../src/js/core/multi-indicator-system.js', description: 'Multi-Panel System' },
+                    { name: 'RWI', src: '../src/js/core/Wang_design_new_indicators__RandomWalkIndex _2026-01-20.js', description: 'RWI indicator' },
+                    { name: 'MAoneMAtwo', src: '../src/js/core/Wang_design__MAoneMAtwor_2026-04-06.js', description: 'MAoneMAtwo indicator' },
+                    { name: 'crypto-app', src: 'crypto-app.prod.js', description: 'Crypto Platform' },
+                ]);
+                lucide.createIcons();
+            } catch (error) {
+                console.error('Script loading failed:', error);
+            }
+        });
+
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('backdrop');
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            if (isClosed) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            } 
+        }
+        document.getElementById('menu-btn')?.addEventListener('click', toggleSidebar);
+        document.getElementById('close-sidebar')?.addEventListener('click', toggleSidebar);
+        backdrop?.addEventListener('click', toggleSidebar);
+    </script>
+</body>
+</html>

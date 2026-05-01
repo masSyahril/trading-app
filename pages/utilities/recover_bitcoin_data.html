@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Data Recovery Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #0b0f14;
+            color: #e6edf3;
+        }
+        .container {
+            background: #1c2128;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2ea043;
+        }
+        button.danger {
+            background: #da3633;
+        }
+        button.danger:hover {
+            background: #e74c3c;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #0d4922;
+            border-left: 4px solid #238636;
+        }
+        .error {
+            background: #4c1519;
+            border-left: 4px solid #da3633;
+        }
+        .info {
+            background: #0c2d6b;
+            border-left: 4px solid #1f6feb;
+        }
+        pre {
+            background: #161b22;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .data-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Bitcoin Data Recovery Tool</h1>
+    
+    <div class="container">
+        <h2>Current State</h2>
+        <div id="currentState">Loading...</div>
+        <button onclick="checkCurrentState()">Refresh State</button>
+    </div>
+
+    <div class="container">
+        <h2>Quick Recovery Options</h2>
+        <button onclick="resetToDefaults()">Reset to Default Crypto Symbols</button>
+        <button onclick="fetchFreshBitcoinData()">Fetch Fresh Bitcoin Data (24h)</button>
+        <button onclick="fetchExtendedBitcoinData()">Fetch Extended Bitcoin Data (30 days)</button>
+        <button class="danger" onclick="clearAllData()">Clear All Data (Reset Everything)</button>
+    </div>
+
+    <div class="container">
+        <h2>Data Recovery</h2>
+        <button onclick="recoverFromBinance()">Recover Bitcoin Historical Data</button>
+        <button onclick="exportCurrentData()">Export Current Data (Backup)</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+        <button onclick="document.getElementById('importFile').click()">Import Data from Backup</button>
+    </div>
+
+    <div class="container">
+        <h2>Status & Logs</h2>
+        <div id="statusLog"></div>
+    </div>
+
+    <div class="container">
+        <h2>Data Preview</h2>
+        <div id="dataPreview" class="data-preview"></div>
+    </div>
+
+    <script>
+        const LS_KEYS = {
+            watchlist: "tl_watchlist",
+            positions: "tl_positions", 
+            orders: "tl_orders",
+            localCandles: "tl_local_candles"
+        };
+
+        const DEFAULT_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"];
+
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('statusLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `status ${type}`;
+            logEntry.innerHTML = `<strong>${timestamp}:</strong> ${message}`;
+            statusLog.insertBefore(logEntry, statusLog.firstChild);
+        }
+
+        function checkCurrentState() {
+            const watchlist = loadLS(LS_KEYS.watchlist, []);
+            const positions = loadLS(LS_KEYS.positions, {});
+            const orders = loadLS(LS_KEYS.orders, []);
+            const localCandles = loadLS(LS_KEYS.localCandles, {});
+
+            const state = {
+                watchlist_count: watchlist.length,
+                watchlist_symbols: watchlist,
+                positions_count: Object.keys(positions).length,
+                orders_count: orders.length,
+                candle_symbols: Object.keys(localCandles),
+                candle_data_points: Object.values(localCandles).reduce((sum, arr) => sum + (arr?.length || 0), 0)
+            };
+
+            document.getElementById('currentState').innerHTML = `
+                <pre>${JSON.stringify(state, null, 2)}</pre>
+            `;
+
+            updateDataPreview();
+        }
+
+        function resetToDefaults() {
+            saveLS(LS_KEYS.watchlist, DEFAULT_SYMBOLS);
+            log("Watchlist reset to default crypto symbols: " + DEFAULT_SYMBOLS.join(", "), 'success');
+            checkCurrentState();
+        }
+
+        function clearAllData() {
+            if (!confirm("Are you sure you want to clear ALL trading data? This cannot be undone!")) {
+                return;
+            }
+            
+            localStorage.removeItem(LS_KEYS.watchlist);
+            localStorage.removeItem(LS_KEYS.positions);
+            localStorage.removeItem(LS_KEYS.orders);
+            localStorage.removeItem(LS_KEYS.localCandles);
+            
+            log("All trading data has been cleared!", 'error');
+            checkCurrentState();
+        }
+
+        async function fetchFreshBitcoinData() {
+            try {
+                log("Fetching fresh Bitcoin data from Binance...", 'info');
+                
+                const symbol = 'BTCUSDT';
+                const interval = '1h';
+                const limit = 24; // 24 hours
+                
+                const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const candles = data.map(k => ({
+                    time: Math.floor(k[0] / 1000),
+                    open: parseFloat(k[1]),
+                    high: parseFloat(k[2]),
+                    low: parseFloat(k[3]),
+                    close: parseFloat(k[4]),
+                    volume: parseFloat(k[5])
+                }));
+
+                const localCandles = loadLS(LS_KEYS.localCandles, {});
+                localCandles[symbol] = candles;
+                saveLS(LS_KEYS.localCandles, localCandles);
+
+                // Also ensure symbol is in watchlist
+                const watchlist = loadLS(LS_KEYS.watchlist, []);
+                if (!watchlist.includes(symbol)) {
+                    watchlist.unshift(symbol);
+                    saveLS(LS_KEYS.watchlist, watchlist);
+                }
+
+                log(`Successfully fetched ${candles.length} Bitcoin candles (24h)`, 'success');
+                checkCurrentState();
+                
+            } catch (error) {
+                log(`Error fetching Bitcoin data: ${error.message}`, 'error');
+            }
+        }
+
+        async function fetchExtendedBitcoinData() {
+            try {
+                log("Fetching extended Bitcoin data (30 days)...", 'info');
+                
+                const symbol = 'BTCUSDT';
+                const interval = '4h';
+                const limit = 180; // 30 days of 4h candles
+                
+                const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const candles = data.map(k => ({
+                    time: Math.floor(k[0] / 1000),
+                    open: parseFloat(k[1]),
+                    high: parseFloat(k[2]),
+                    low: parseFloat(k[3]),
+                    close: parseFloat(k[4]),
+                    volume: parseFloat(k[5])
+                }));
+
+                const localCandles = loadLS(LS_KEYS.localCandles, {});
+                localCandles[symbol] = candles;
+                saveLS(LS_KEYS.localCandles, localCandles);
+
+                // Also ensure symbol is in watchlist
+                const watchlist = loadLS(LS_KEYS.watchlist, []);
+                if (!watchlist.includes(symbol)) {
+                    watchlist.unshift(symbol);
+                    saveLS(LS_KEYS.watchlist, watchlist);
+                }
+
+                log(`Successfully fetched ${candles.length} Bitcoin 4h candles (30 days)`, 'success');
+                checkCurrentState();
+                
+            } catch (error) {
+                log(`Error fetching extended Bitcoin data: ${error.message}`, 'error');
+            }
+        }
+
+        async function recoverFromBinance() {
+            try {
+                log("Starting comprehensive Bitcoin data recovery...", 'info');
+
+                // Fetch data for all major crypto symbols
+                const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT'];
+                const localCandles = {};
+
+                for (const symbol of symbols) {
+                    log(`Fetching data for ${symbol}...`, 'info');
+                    
+                    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=168`; // 7 days hourly
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        localCandles[symbol] = data.map(k => ({
+                            time: Math.floor(k[0] / 1000),
+                            open: parseFloat(k[1]),
+                            high: parseFloat(k[2]),
+                            low: parseFloat(k[3]),
+                            close: parseFloat(k[4]),
+                            volume: parseFloat(k[5])
+                        }));
+                        log(`✓ ${symbol}: ${localCandles[symbol].length} candles`, 'success');
+                    } else {
+                        log(`✗ Failed to fetch ${symbol}`, 'error');
+                    }
+                    
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+                // Save all data
+                saveLS(LS_KEYS.localCandles, localCandles);
+                saveLS(LS_KEYS.watchlist, symbols);
+
+                log("Bitcoin data recovery completed!", 'success');
+                checkCurrentState();
+
+            } catch (error) {
+                log(`Error during recovery: ${error.message}`, 'error');
+            }
+        }
+
+        function exportCurrentData() {
+            const data = {
+                watchlist: loadLS(LS_KEYS.watchlist, []),
+                positions: loadLS(LS_KEYS.positions, {}),
+                orders: loadLS(LS_KEYS.orders, []),
+                localCandles: loadLS(LS_KEYS.localCandles, {}),
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `trading-app-backup-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            log("Data exported to file", 'success');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (data.watchlist) saveLS(LS_KEYS.watchlist, data.watchlist);
+                    if (data.positions) saveLS(LS_KEYS.positions, data.positions);
+                    if (data.orders) saveLS(LS_KEYS.orders, data.orders);
+                    if (data.localCandles) saveLS(LS_KEYS.localCandles, data.localCandles);
+
+                    log(`Data imported from backup (created: ${data.exportDate || 'unknown'})`, 'success');
+                    checkCurrentState();
+
+                } catch (error) {
+                    log(`Error importing data: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updateDataPreview() {
+            const localCandles = loadLS(LS_KEYS.localCandles, {});
+            let preview = "<h3>Available Chart Data:</h3>";
+            
+            for (const [symbol, candles] of Object.entries(localCandles)) {
+                if (candles && candles.length > 0) {
+                    const first = candles[0];
+                    const last = candles[candles.length - 1];
+                    preview += `<div><strong>${symbol}:</strong> ${candles.length} candles, 
+                               ${new Date(first.time * 1000).toLocaleDateString()} to 
+                               ${new Date(last.time * 1000).toLocaleDateString()}, 
+                               Latest: $${last.close}</div>`;
+                }
+            }
+            
+            if (Object.keys(localCandles).length === 0) {
+                preview += "<div><em>No chart data available</em></div>";
+            }
+
+            document.getElementById('dataPreview').innerHTML = preview;
+        }
+
+        // Utility functions
+        function saveLS(key, val) {
+            try { 
+                localStorage.setItem(key, JSON.stringify(val)); 
+            } catch (e) {
+                log(`Error saving to localStorage: ${e.message}`, 'error');
+            }
+        }
+
+        function loadLS(key, fallback) {
+            try {
+                const s = localStorage.getItem(key);
+                if (!s) return fallback;
+                return JSON.parse(s);
+            } catch {
+                return fallback;
+            }
+        }
+
+        // Initialize
+        checkCurrentState();
+        log("Bitcoin Data Recovery Tool loaded", 'success');
+    </script>
+</body>
+</html>
