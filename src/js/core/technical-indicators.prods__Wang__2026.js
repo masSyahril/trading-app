@@ -5150,8 +5150,11 @@ function Vortex(K_high, K_low, K_close, day) {
     TR[i] = Math.max(temp1, temp2, temp3);  // 2 to 2000
   }  
   //Calculate first values, =2 to 11(2+10-1=2+day-1)
-  const pVI=[], nVI=[];
-  let sum_pVM, sum_nVM, sum_TR;   //加總用
+  const pVI=[]
+  const nVI=[];
+  // ========made by FAMI, 2026-05-08======================
+  // let sum_pVM, sum_nVM, sum_TR;   //加總用 old 
+  let sum_pVM = 0, sum_nVM = 0, sum_TR = 0;  // new
   for(let i=2; i<=day+1; i++) {   // i=2 to 11
     sum_pVM=sum_pVM+pVM[i];
     sum_nVM=sum_nVM+nVM[i];
@@ -5250,6 +5253,7 @@ function TDI(K_close, RSI_day) {
   // 較長週期平滑=Market Base Line(黃線)=MBL=SMA(RSI,34) 
   // if RSI_day=10 then RSI[]=11,12,...,2000.
   let N20=20;    //Market Base Line(黃線)=MBL=SMA(RSI,34), 此處取=20
+  // 20 number or 20 data ?? 
   let sum=0;
   const MBL=[]; //Market Base Line(黃線)=MBL=SMA(RSI,34)=>中線Mid=SMA(RSI,34)
   const Mu=[];  //Population Mean母體平均數, =30 to 2000
@@ -5278,11 +5282,13 @@ function TDI(K_close, RSI_day) {
     Upper[i]= MBL[i]+1.6185*Sigma[i]; //上軌
     Lower[i]= MBL[i]-1.6185*Sigma[i]; //下軌
   }
-  return { RSI, PriceLine, SignalLine, MBL, Upper, Lower };
+  return { RSI, MBL, Upper, Lower }; // for small windows, only return RSI, MBL, Upper, Lower
+  // return { RSI, PriceLine, SignalLine, MBL, Upper, Lower }; // for K_Line area, return all indicators
   //if RSI_day=10 then RSI[], PriceLine[], SignalLine[]=11,12,...,2000.
   //if RSI_day=10, N20=20 then MBL[], Mu[], Upper[], Lower[]=30,...,2000.
   //Normally drawing these figures in the K_Line area.
   //drawing these figures in the small windows.
+  // 
 }
 window.TDI = TDI;
 //----------------------------------------------------------------------

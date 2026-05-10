@@ -937,7 +937,7 @@ class MultiIndicatorSystem {
         compute: (data, params) => this.computeGaussianFilterIndicator(data, params.day, Math.min(params.sigma, 5), params.esp),
         render: (chart, data, colors, seriesMap) => this.renderGaussianFilter(chart, data, colors, seriesMap)
        },
-       DVO : {
+       DVO : { // not finish
         name: 'DVO (Detrended Volume Osc)',
         type: 'volume',
         defaultParams: { day: 10, esp: 9 },
@@ -945,7 +945,16 @@ class MultiIndicatorSystem {
         minPeriod: 10,
         compute: (data, params) => this.computeDVOIndicator(data, params.day, params.esp),
         render: (chart, data, colors, seriesMap) => this.renderDVO(chart, data, colors, seriesMap)
-       }
+       }, 
+       Vortex: { 
+        name: 'Vortex Indicator',
+        type: 'trend',
+        defaultParams: { day: 10 },
+        paramLabels: { day: 'Period' },
+        minPeriod: 14,
+        compute: (data, params) => this.computeVortexIndicator(data, params.day),
+        render: (chart, data, colors, seriesMap) => this.renderVortex(chart, data, colors, seriesMap)
+       },
 
 
 
@@ -4372,7 +4381,59 @@ computeGaussianFilterIndicator(data, day = 10, sigma = 3, esp = 9) {
   return { GaussianMA, eGaussianMA };
  }
 
+
+ computeVortexIndicator(data, day = 10) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const pVI = new Array(len).fill(null);
+  const nVI = new Array(len).fill(null);
+  if (len === 0) return { pVI: [], nVI: [] };
+
+  const fn = (typeof window !== 'undefined' && window.Vortex) ? window.Vortex : null;
+  if (!fn) return { pVI, nVI };
+
+  const out = fn(highs, lows, closes, day);
+  const srcPVI = out && out.pVI ? out.pVI : [];
+  const srcNVI = out && out.nVI ? out.nVI : [];
+  // Preserve the source index alignment from the Vortex function.
+  for (let i = 0; i < len; i++) {
+    const w1 = srcPVI[i];
+    pVI[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcNVI[i];
+    nVI[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { pVI, nVI };
+
+ }
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+renderVortex(chart, data, colors, seriesMap) {
+  if (!data || !data.pVI || !data.nVI) return;
+  if (!seriesMap.has('pVI')) {
+    seriesMap.set('pVI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Positive Vortex Indicator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('nVI')) {
+    seriesMap.set('nVI', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'Negative Vortex Indicator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  const pVIData = this.seriesWithLeadInPadding(data.pVI, (v) => (v == null || isNaN(v) ? null : v));
+  const nVIData = this.seriesWithLeadInPadding(data.nVI, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('pVI').setData(pVIData);
+  seriesMap.get('nVI').setData(nVIData);
+}
 
 renderGaussianFilter(chart, data, colors,  seriesMap) {
   if (!data || !data.GaussianMA || !data.eGaussianMA) return;
