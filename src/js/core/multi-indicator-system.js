@@ -613,10 +613,10 @@ class MultiIndicatorSystem {
       ADR: {
         name: 'ADR (Advance/Decline Ratio)',
         type: 'momentum',
-        defaultParams: { period: 20 },
-        paramLabels: { period: 'Period' },
+        defaultParams: { day: 20, esp: 10 },
+        paramLabels: { day: 'day', esp: 'Smooth' },
         minPeriod: 5,
-        compute: (data, params) => this.computeADRIndicator(data, params.period),
+        compute: (data, params) => this.computeADRIndicator(data, params.day, params.esp),
         render: (chart, data, colors, seriesMap) => this.renderADR(chart, data, colors, seriesMap)
       },
       VRMA: {
@@ -909,7 +909,43 @@ class MultiIndicatorSystem {
         compute: (data, params) => this.computeGravityOscCOGIndicator(data, params.day, params.esp),
         render: (chart, data, colors, seriesMap) => this.renderGravityOscCOG(chart, data, colors, seriesMap)
        }, 
-    
+
+       PGO: {
+        name: 'PGO (Price Growth Osc)',
+        type: 'momentum', 
+        defaultParams: { day: 10, n_periods: 14, esp: 9 },
+        paramLabels: { day: 'MA_Day', n_periods: 'Growth Periods', esp: 'Smooth' },
+        minPeriod: 14,
+        compute: (data, params) => this.computePGOIndicator(data, params.day, params.n_periods, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderPGO(chart, data, colors, seriesMap)
+       },
+       KairiRI: {
+        name: 'Kairi RI (Kairi Rate of Change)',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeKairiRIIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderKairiRI(chart, data, colors, seriesMap)
+       },
+       Gaussian: {
+        name: 'Gaussian Filter',
+        type: 'trend',
+        defaultParams: { day:5, sigma:3, esp: 9 },
+        paramLabels: { day: 'Period', sigma: 'Sigma', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeGaussianFilterIndicator(data, params.day, Math.min(params.sigma, 5), params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderGaussianFilter(chart, data, colors, seriesMap)
+       },
+       DVO : {
+        name: 'DVO (Detrended Volume Osc)',
+        type: 'volume',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeDVOIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderDVO(chart, data, colors, seriesMap)
+       }
 
 
 
@@ -3635,33 +3671,7 @@ class MultiIndicatorSystem {
     return { adi, adis };
   }
 
-  // ADR (Advance/Decline Ratio) Indicator Computation
-  computeADRIndicator(data, period = 20) {
-    const closes = data.map(d => d.close);
-    if (typeof computeADRRef === 'function') {
-      const adr = computeADRRef(closes, period);
-      return { adr };
-    }
-    // Inline fallback: same logic as computeADRRef
-    const adr = new Array(closes.length).fill(null);
-    let upDays = 0;
-    let dnDays = 0;
-    if (closes.length < period) return { adr };
-    for (let i = 1; i < period; i++) {
-      if (closes[i] > closes[i - 1]) upDays += 1;
-      else if (closes[i] < closes[i - 1]) dnDays += 1;
-    }
-    adr[period - 1] = dnDays === 0 ? period : upDays / dnDays;
-    for (let i = period; i < closes.length; i++) {
-      const oldIdx = i - period + 1;
-      if (closes[oldIdx] > closes[oldIdx - 1]) upDays -= 1;
-      else if (closes[oldIdx] < closes[oldIdx - 1]) dnDays -= 1;
-      if (closes[i] > closes[i - 1]) upDays += 1;
-      else if (closes[i] < closes[i - 1]) dnDays += 1;
-      adr[i] = dnDays === 0 ? period : upDays / dnDays;
-    }
-    return { adr };
-  }
+ 
 
   // ADO Indicator Computation
   computeADOIndicator(data) {
@@ -4130,8 +4140,7 @@ computeZeroLagHullMAIndicator(data, day1 = 10, day2 = 15, esp = 9) {
     : null;
   if (!fn) return { zeroLagHMA, hma, eHMA };
 
-  // Prof. Wang code uses 1-based indexing and relies on `.length` in loops.
-  // Use an array-like object with keys 1..len and length=len.
+
   const closes1 = { length: len };
   for (let i = 1; i <= len; i++) closes1[i] = closes[i - 1];
 
@@ -4261,9 +4270,226 @@ computeGravityOscCOGIndicator(data, day = 10, esp = 9) {
   return { COG, eCOG };
 }
 
+ // ADR (Advance/Decline Ratio) Indicator Computation
+  computeADRIndicator(data, day = 20, esp = 10) {
+    const highs = data.map(d => d.high);
+    const lows = data.map(d => d.low);
+    const closes = data.map(d => d.close);
+    const len = closes.length;
+    const ADR = new Array(closes.length).fill(null);
+    const eADR = new Array(closes.length).fill(null);
+    if (len === 0) return {ADR:[], eADR:[]};
+    
+    if (!window.ADR || !window.ADR) {
+      console.error('WangIndicators.ADR not available');
+      return { ADR: [], eADR: [] };
+    }
+    const fn = (typeof window !== 'undefined' && window.ADR) ? window.ADR : null;
+    if (!fn) {
+      return { ADR, eADR };
+    }
 
+    const out = fn(closes, day, esp);
+    const srcADR = out && out.ADR ? out.ADR : [];
+    const srceADR = out && out.eADR ? out.eADR : [];
+
+    for (let i = 0; i < len; i++) {
+      const w1 = srcADR[i];
+      ADR[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+      const w2 = srceADR[i];
+      eADR[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+    }
+    return { ADR, eADR };
+  }
+computePGOIndicator(data, day = 10, n_period = 14, esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const PGO = new Array(len).fill(null);
+  const ePGO = new Array(len).fill(null);
+  if (len === 0) return { PGO: [], ePGO: [] };
+
+  const fn = (typeof window !== 'undefined' && window.PGO) ? window.PGO : null;
+  if (!fn) return { PGO, ePGO };
+
+  const out = fn(highs, lows, closes, day, n_period, esp);
+  const srcPGO = out && out.PGO ? out.PGO : [];
+  const srcePGO = out && out.ePGO ? out.ePGO : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcPGO[i];
+    PGO[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcePGO[i];
+    ePGO[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { PGO, ePGO };
+}
+
+computeKairiRIIndicator(data, day = 10, esp = 9) {
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const KRI = new Array(len).fill(null);
+  const eKRI = new Array(len).fill(null);
+  if (len === 0) return { KRI: [], eKRI: [] };
+
+  const fn = (typeof window !== 'undefined' && window.KairiRI) ? window.KairiRI : null;
+  if (!fn) return { KRI, eKRI };
+
+  const out = fn(closes, day, esp);
+  const srcKRI = out && out.KRI ? out.KRI : [];
+  const srceKRI = out && out.eKRI ? out.eKRI : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcKRI[i];
+    KRI[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceKRI[i];
+    eKRI[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { KRI, eKRI };
+}
+
+
+
+computeGaussianFilterIndicator(data, day = 10, sigma = 3, esp = 9) {
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const GaussianMA = new Array(len).fill(null);
+  const eGaussianMA = new Array(len).fill(null);
+  if (len === 0) return { GaussianMA: [], eGaussianMA: [] };
+
+  const fn = (typeof window !== 'undefined' && window.Gaussian) ? window.Gaussian : null;
+  if (!fn) return { GaussianMA, eGaussianMA };
+  sigma = Math.min(sigma, 5);
+  
+  const out = fn(closes, day, sigma, esp);
+  const srcGaussianMA = out && out.GaussianMA ? out.GaussianMA : [];
+  const srceGaussianMA = out && out.eGaussianMA ? out.eGaussianMA : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcGaussianMA[i];
+    GaussianMA[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceGaussianMA[i];
+    eGaussianMA[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { GaussianMA, eGaussianMA };
+ }
 
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+renderGaussianFilter(chart, data, colors,  seriesMap) {
+  if (!data || !data.GaussianMA || !data.eGaussianMA) return;
+  if (!seriesMap.has('GaussianMA')) {
+    seriesMap.set('GaussianMA', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Gaussian Filter',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eGaussianMA')) {
+    seriesMap.set('eGaussianMA', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eGaussian Filter',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  if(!seriesMap.get('closes')) {
+    seriesMap.set('closes', chart.addLineSeries({
+      color: '#ff01e6',
+      lineWidth: 1,
+      title: 'Close Price',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+   const closesData = this.seriesWithLeadInPadding(data.closes, (v) => (v == null || isNaN(v) ? null : v));
+   seriesMap.get('closes').setData(closesData);
+  const GaussianMAData = this.seriesWithLeadInPadding(data.GaussianMA, (v) => (v == null || isNaN(v) ? null : v));
+  const eGaussianMAData = this.seriesWithLeadInPadding(data.eGaussianMA, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('GaussianMA').setData(GaussianMAData);
+  seriesMap.get('eGaussianMA').setData(eGaussianMAData);  
+
+}
+
+renderKairiRI(chart, data, colors, seriesMap) {
+  if (!data || !data.KRI || !data.eKRI) return;
+  if (!seriesMap.has('KRI')) {
+    seriesMap.set('KRI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Kairi RI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eKRI')) {
+    seriesMap.set('eKRI', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eKairi RI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  const KRIData = this.seriesWithLeadInPadding(data.KRI, (v) => (v == null || isNaN(v) ? null : v));
+  const eKRIData = this.seriesWithLeadInPadding(data.eKRI, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('KRI').setData(KRIData);
+  seriesMap.get('eKRI').setData(eKRIData);
+}
+
+renderPGO(chart, data, colors, seriesMap) {
+  if (!data || !data.PGO || !data.ePGO) return;
+  if (!seriesMap.has('PGO')) {
+    seriesMap.set('PGO', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'PGO',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('ePGO')) {
+    seriesMap.set('ePGO', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'ePGO',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  const PGOData = this.seriesWithLeadInPadding(data.PGO, (v) => (v == null || isNaN(v) ? null : v));
+  const ePGOData = this.seriesWithLeadInPadding(data.ePGO, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('PGO').setData(PGOData);
+  seriesMap.get('ePGO').setData(ePGOData);
+} 
+
+renderADR(chart, data, colors, seriesMap) {
+  if (!data || !data.ADR || !data.eADR) return;
+  if (!seriesMap.has('ADR')) {
+    seriesMap.set('ADR', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'ADR',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eADR')) {
+    seriesMap.set('eADR', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eADR',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  const ADRData = this.seriesWithLeadInPadding(data.ADR, (v) => (v == null || isNaN(v) ? null : v));
+  const eADRData = this.seriesWithLeadInPadding(data.eADR, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('ADR').setData(ADRData);
+  seriesMap.get('eADR').setData(eADRData);
+}
+
 
 renderGravityOscCOG(chart, data, colors, seriesMap) {
   if (!data || !data.COG || !data.eCOG) return;
@@ -5968,20 +6194,7 @@ renderBollingerBands4SD(chart, data, colors, seriesMap) {
     seriesMap.get('ema').setData(emaData);
   }
 
-  renderADR(chart, data, colors, seriesMap) {
-    if (!data || !data.adr) return;
-    if (!seriesMap.has('adr')) {
-      seriesMap.set('adr', chart.addLineSeries({
-        color: colors.LINE1,
-        lineWidth: 2,
-        title: '',
-        crosshairMarkerVisible: false,
-        priceLineVisible: false
-      }));
-    }
-    const adrData = this.seriesWithLeadInPadding(data.adr, (v) => (v != null && !isNaN(v) ? v : null));
-    seriesMap.get('adr').setData(adrData);
-  }
+  
 
   renderVRMA(chart, data, colors, seriesMap) {
     if (!data || (!data.vrma1 && !data.vrma2)) return;
