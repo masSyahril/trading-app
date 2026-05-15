@@ -7,6 +7,72 @@
   const BINANCE_WS_STREAM = 'wss://stream.binance.com:9443/stream';
   const BINANCE_WS_KLINE = 'wss://stream.binance.com:9443/ws';
 
+  // API helpers — all calls are fire-and-forget with localStorage as primary cache
+  const API_BASE = '../api';
+  let userBalance = 100000;
+
+  function apiGet(path) {
+    return fetch(API_BASE + path, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  function apiPost(path, data) {
+    return fetch(API_BASE + path, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(r => r.json()).catch(() => null);
+  }
+  function apiDelete(path) {
+    return fetch(API_BASE + path, { method: 'DELETE', credentials: 'include' })
+      .then(r => r.json()).catch(() => null);
+  }
+  function updateBalanceDisplay(bal) {
+    userBalance = bal;
+    const el = document.getElementById('balance-display');
+    if (el) el.textContent = '$' + bal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  async function loadDataFromAPI() {
+    const [wlData, posData, ordData] = await Promise.all([
+      apiGet('/user/watchlist.php'),
+      apiGet('/user/positions.php'),
+      apiGet('/user/orders.php?limit=50'),
+    ]);
+
+    if (wlData?.watchlist?.length) {
+      watchlist = wlData.watchlist.map(w => w.symbol);
+      saveLS(CRYPTO_LS_KEYS.watchlist, watchlist);
+    }
+
+    if (posData?.positions) {
+      positions = {};
+      posData.positions.forEach(p => {
+        if (p.is_open) {
+          positions[p.symbol] = {
+            qty: parseFloat(p.quantity),
+            avg: parseFloat(p.avg_entry_price),
+            realized: parseFloat(p.realized_pnl),
+          };
+        }
+      });
+      saveLS(CRYPTO_LS_KEYS.positions, positions);
+      if (posData.balance != null) updateBalanceDisplay(posData.balance);
+    }
+
+    if (ordData?.orders?.length) {
+      orders = ordData.orders.map(o => ({
+        id: o.id,
+        ts: new Date(o.created_at + 'Z').getTime(),
+        symbol: o.symbol,
+        side: o.side.toUpperCase(),
+        qty: parseFloat(o.quantity),
+        price: parseFloat(o.price),
+        status: 'Filled',
+      }));
+      saveLS(CRYPTO_LS_KEYS.orders, orders);
+    }
+  }
+
   // Crypto-specific configuration
   const DEFAULT_CRYPTO_SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "ADAUSDT", "XRPUSDT"];
   const DEFAULT_TIMEFRAME = "1m";
@@ -95,13 +161,16 @@
 
   function init() {
     // Wait a bit more to ensure DOM is fully rendered
-    setTimeout(() => {
+    setTimeout(async () => {
       initializeDOMElements();
-      
+
       if (!validateDOMElements()) {
         console.error('❌ Critical DOM elements not found!');
         return;
       }
+
+      // Load persisted data from DB (overrides localStorage defaults)
+      await loadDataFromAPI();
 
       renderWatchlist();
     setupChart();
@@ -225,6 +294,7 @@
 
     watchlist.push(raw);
     saveLS(CRYPTO_LS_KEYS.watchlist, watchlist);
+    apiPost('/user/watchlist.php', { symbol: raw, market_type: 'crypto' });
     renderWatchlist();
     connectWatchlistStream();
     focusSymbol(raw);
@@ -352,7 +422,8 @@
   function removeFromWatchlist(sym) {
     watchlist = watchlist.filter((s) => s !== sym);
     saveLS(CRYPTO_LS_KEYS.watchlist, watchlist);
-    
+    apiDelete('/user/watchlist.php?symbol=' + encodeURIComponent(sym));
+
     if (currentSymbol === sym) {
       currentSymbol = watchlist[0] || "BTCUSDT";
       syncSymbolHeader();
@@ -1350,7 +1421,17 @@
 
     saveLS(CRYPTO_LS_KEYS.orders, orders);
     saveLS(CRYPTO_LS_KEYS.positions, positions);
-    
+    apiPost('/user/orders.php', {
+      symbol: currentSymbol,
+      side: orderSide,
+      quantity: qty,
+      price,
+      order_type: 'market',
+      market_type: 'crypto',
+    }).then(data => {
+      if (data?.new_balance != null) updateBalanceDisplay(data.new_balance);
+    });
+
     renderOrders();
     renderPositions();
     

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — TradingApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="../src/js/admin-guard.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0a0e14;
+      --surface:   #111722;
+      --surface2:  #162032;
+      --border:    #1e2a3a;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --accent:    #6366f1;
+      --green:     #10b981;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: .875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .logo { display: flex; align-items: center; gap: .6rem; font-size: 1.1rem; font-weight: 700; }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .9rem; }
+    .badge-admin { background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.3); color: #a5b4fc; font-size: .7rem; font-weight: 600; padding: .15rem .5rem; border-radius: 4px; margin-left: .5rem; text-transform: uppercase; letter-spacing: .05em; }
+    .header-right { display: flex; align-items: center; gap: 1rem; font-size: .85rem; }
+    .header-user { color: var(--muted); }
+    .header-user span { color: var(--text); font-weight: 500; }
+    .btn-nav { padding: .4rem .9rem; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: .8rem; font-family: inherit; cursor: pointer; transition: all .2s; text-decoration: none; display: inline-flex; align-items: center; }
+    .btn-nav:hover { background: var(--surface2); border-color: var(--accent); }
+    .btn-logout { color: var(--red); border-color: rgba(239,68,68,.3); }
+    .btn-logout:hover { background: rgba(239,68,68,.08); border-color: var(--red); }
+
+    /* ── Layout ── */
+    .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+
+    /* ── Stats grid ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .stat-label { font-size: .75rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .stat-value { font-size: 1.75rem; font-weight: 700; line-height: 1; }
+    .stat-sub   { font-size: .75rem; color: var(--muted); margin-top: .35rem; }
+    .green { color: var(--green); }
+    .red   { color: var(--red); }
+    .blue  { color: #60a5fa; }
+    .purple { color: #a78bfa; }
+    .yellow { color: var(--yellow); }
+
+    /* ── Section ── */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; }
+    .section-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-size: .875rem; font-weight: 600; }
+    .section-meta  { font-size: .75rem; color: var(--muted); }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th { padding: .6rem 1rem; text-align: left; font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: .65rem 1rem; border-bottom: 1px solid rgba(30,42,58,.5); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .role-badge { display: inline-block; font-size: .65rem; font-weight: 600; padding: .15rem .45rem; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    .role-admin { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); }
+    .role-user  { background: rgba(100,116,139,.12); color: var(--muted); border: 1px solid rgba(100,116,139,.2); }
+
+    .status-badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+    .status-active   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-inactive { background: var(--red); }
+
+    /* ── Action buttons ── */
+    .actions { display: flex; gap: .35rem; }
+    .btn-action { padding: .25rem .6rem; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .7rem; font-family: inherit; cursor: pointer; transition: all .15s; }
+    .btn-action:hover { color: var(--text); border-color: var(--accent); background: rgba(99,102,241,.08); }
+    .btn-action.danger:hover { color: var(--red); border-color: var(--red); background: rgba(239,68,68,.08); }
+    .btn-action.success:hover { color: var(--green); border-color: var(--green); background: rgba(16,185,129,.08); }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1.25rem; font-size: .85rem; z-index: 100; transform: translateY(120%); transition: transform .3s; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    #toast.show { transform: translateY(0); }
+    #toast.ok  { border-color: rgba(16,185,129,.4); color: var(--green); }
+    #toast.err { border-color: rgba(239,68,68,.4); color: var(--red); }
+
+    /* ── Loading ── */
+    .loading { text-align: center; padding: 3rem; color: var(--muted); font-size: .875rem; }
+
+    @media (max-width: 640px) {
+      .header-right .btn-nav { display: none; }
+      .container { padding: 1rem .75rem; }
+      .stat-value { font-size: 1.4rem; }
+    }
+
+    @keyframes dropIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+    .pd-item {
+      display: block; width: 100%; text-align: left;
+      padding: 8px 12px; border-radius: 8px; border: none;
+      background: transparent; font-family: inherit; font-size: 13px;
+      font-weight: 500; cursor: pointer; transition: background .15s;
+    }
+    .pd-item:hover { background: var(--surface2); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📈</div>
+      TradingApp
+      <span class="badge-admin">Admin</span>
+    </div>
+    <div class="header-right">
+      <a href="../crypto-trading/index.html" class="btn-nav">📊 Trading</a>
+
+      <!-- Profile dropdown -->
+      <div style="position:relative" id="profile-wrapper">
+        <button id="profile-btn" style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-family:inherit;transition:border-color .2s;" title="Profile">
+          <div id="profile-avatar" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">?</div>
+          <span id="admin-name" style="font-size:13px;color:var(--text);font-weight:500;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+          <span style="color:var(--muted);font-size:10px;">▾</span>
+        </button>
+
+        <div id="profile-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:240px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.5);z-index:200;overflow:hidden;animation:dropIn .15s ease;">
+          <!-- Info -->
+          <div style="padding:16px;border-bottom:1px solid var(--border);background:var(--surface2);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div id="profile-avatar-lg" style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0;">?</div>
+              <div style="min-width:0;">
+                <div id="profile-username" style="color:var(--text);font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+                <div id="profile-email" style="color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+                <span style="display:inline-block;margin-top:3px;font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">ADMIN</span>
+              </div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted);font-size:11px;">Paper Balance</span>
+              <span id="profile-balance" style="color:var(--green);font-family:monospace;font-size:13px;font-weight:600;">$100,000.00</span>
+            </div>
+          </div>
+          <!-- Actions -->
+          <div style="padding:6px;">
+            <button type="button" class="pd-item" style="color:var(--muted);">👤 Edit Profile</button>
+            <div style="height:1px;background:var(--border);margin:4px 8px;"></div>
+            <button id="logout-btn" type="button" class="pd-item" style="color:var(--red);">🚪 Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value blue" id="s-users">—</div><div class="stat-sub" id="s-admins">— admins</div></div>
+      <div class="stat-card"><div class="stat-label">Active Users</div><div class="stat-value green" id="s-active">—</div><div class="stat-sub">currently active</div></div>
+      <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-value purple" id="s-trades">—</div><div class="stat-sub" id="s-today">— today</div></div>
+      <div class="stat-card"><div class="stat-label">Trade Volume</div><div class="stat-value yellow" id="s-volume">—</div><div class="stat-sub">paper USD</div></div>
+      <div class="stat-card"><div class="stat-label">Platform Cash</div><div class="stat-value green" id="s-cash">—</div><div class="stat-sub">sum of all balances</div></div>
+      <div class="stat-card"><div class="stat-label">Open Positions</div><div class="stat-value" id="s-positions">—</div><div class="stat-sub">across all users</div></div>
+    </div>
+
+    <!-- User Management -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">User Management</span>
+        <span class="section-meta" id="user-count">Loading…</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Balance</th>
+              <th>PnL</th>
+              <th>Trades</th>
+              <th>Positions</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="10" class="loading">Loading users…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Trades -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Recent Trades (All Users)</span>
+        <span class="section-meta" id="trades-count">Loading…</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Symbol</th>
+              <th>Side</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Value</th>
+              <th>Market</th>
+            </tr>
+          </thead>
+          <tbody id="trades-tbody">
+            <tr><td colspan="8" class="loading">Loading trades…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const API = '../api';
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function fmt$(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtDate(s) {
+      if (!s) return '—';
+      const d = new Date(s + (s.includes('Z') ? '' : 'Z'));
+      return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    let toastTimer;
+    function toast(msg, type = 'ok') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `show ${type}`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    async function api(path, opts = {}) {
+      const r = await fetch(API + path, { credentials: 'include', ...opts });
+      return r.json();
+    }
+
+    // ── Profile dropdown ─────────────────────────────────────────
+    const profileBtn      = document.getElementById('profile-btn');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    profileBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.style.display = profileDropdown.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', () => { if (profileDropdown) profileDropdown.style.display = 'none'; });
+    profileDropdown?.addEventListener('click', (e) => e.stopPropagation());
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await api('/auth/logout.php', { method: 'POST' });
+      window.location.replace('../auth/login.html');
+    });
+
+    // ── Auth ready ───────────────────────────────────────────────
+    document.addEventListener('auth:ready', (e) => {
+      const u   = e.detail?.user;
+      const bal = e.detail?.balance;
+
+      if (u) {
+        const initials = u.username.slice(0, 2).toUpperCase();
+        document.getElementById('admin-name').textContent           = u.username;
+        document.getElementById('profile-avatar').textContent       = initials;
+        document.getElementById('profile-avatar-lg').textContent    = initials;
+        document.getElementById('profile-username').textContent     = u.username;
+        document.getElementById('profile-email').textContent        = u.email || '—';
+      }
+      if (bal != null) {
+        const fmt = '$' + bal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('profile-balance').textContent = fmt;
+      }
+
+      loadAll();
+    });
+
+    // ── Load everything ──────────────────────────────────────────
+    async function loadAll() {
+      await Promise.all([loadStats(), loadUsers(), loadTrades()]);
+    }
+
+    // ── Stats ────────────────────────────────────────────────────
+    async function loadStats() {
+      const d = await api('/admin/stats.php');
+      document.getElementById('s-users').textContent     = d.users.total;
+      document.getElementById('s-admins').textContent    = `${d.users.admins} admin${d.users.admins !== 1 ? 's' : ''}`;
+      document.getElementById('s-active').textContent    = d.users.active;
+      document.getElementById('s-trades').textContent    = d.trades.total.toLocaleString();
+      document.getElementById('s-today').textContent     = `${d.trades.today} today`;
+      document.getElementById('s-volume').textContent    = fmt$(d.trades.volume);
+      document.getElementById('s-cash').textContent      = fmt$(d.platform.total_cash);
+      document.getElementById('s-positions').textContent = d.platform.open_positions;
+    }
+
+    // ── Users ────────────────────────────────────────────────────
+    async function loadUsers() {
+      const d = await api('/admin/users.php');
+      const tbody = document.getElementById('users-tbody');
+      document.getElementById('user-count').textContent = `${d.users.length} user${d.users.length !== 1 ? 's' : ''}`;
+
+      tbody.innerHTML = d.users.map(u => {
+        const pnlColor = u.pnl >= 0 ? 'green' : 'red';
+        const pnlSign  = u.pnl >= 0 ? '+' : '';
+        return `
+          <tr data-id="${u.id}" data-role="${u.role}" data-active="${u.is_active}">
+            <td><strong>${u.username}</strong></td>
+            <td style="color:var(--muted)">${u.email}</td>
+            <td><span class="role-badge role-${u.role}">${u.role}</span></td>
+            <td><span class="status-badge ${u.is_active ? 'status-active' : 'status-inactive'}" title="${u.is_active ? 'Active' : 'Inactive'}"></span></td>
+            <td>${fmt$(u.balance)}</td>
+            <td class="${pnlColor}">${pnlSign}${fmt$(u.pnl)}</td>
+            <td>${u.total_orders}</td>
+            <td>${u.open_positions}</td>
+            <td style="color:var(--muted)">${fmtDate(u.last_login)}</td>
+            <td>
+              <div class="actions">
+                ${u.role === 'user'
+                  ? `<button class="btn-action" onclick="userAction(${u.id},'set_admin')">Make Admin</button>`
+                  : `<button class="btn-action danger" onclick="userAction(${u.id},'set_user')">Demote</button>`}
+                ${u.is_active
+                  ? `<button class="btn-action danger" onclick="userAction(${u.id},'deactivate')">Ban</button>`
+                  : `<button class="btn-action success" onclick="userAction(${u.id},'activate')">Unban</button>`}
+                <button class="btn-action" onclick="userAction(${u.id},'reset_balance')">Reset $</button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+    }
+
+    async function userAction(userId, action) {
+      const labels = { set_admin:'Promoted to admin', set_user:'Demoted to user', activate:'User activated', deactivate:'User banned', reset_balance:'Balance reset' };
+      const d = await api('/admin/users.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, action }),
+      });
+      if (d.error) { toast(d.error, 'err'); return; }
+      toast(labels[action] || d.message, 'ok');
+      await Promise.all([loadStats(), loadUsers()]);
+    }
+
+    // ── Trades ───────────────────────────────────────────────────
+    async function loadTrades() {
+      const d = await api('/admin/trades.php?limit=50');
+      document.getElementById('trades-count').textContent = `${d.total.toLocaleString()} total`;
+      const tbody = document.getElementById('trades-tbody');
+
+      if (!d.trades.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">No trades yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = d.trades.map(t => {
+        const sideColor = t.side === 'buy' ? 'green' : 'red';
+        return `
+          <tr>
+            <td style="color:var(--muted)">${fmtDate(t.created_at)}</td>
+            <td><strong>${t.username}</strong> <span class="role-badge role-${t.role}">${t.role}</span></td>
+            <td><strong>${t.symbol}</strong></td>
+            <td class="${sideColor}" style="font-weight:600;text-transform:uppercase">${t.side}</td>
+            <td>${Number(t.quantity).toFixed(6)}</td>
+            <td>${Number(t.price).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td>${fmt$(t.value)}</td>
+            <td style="color:var(--muted)">${t.market_type}</td>
+          </tr>`;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

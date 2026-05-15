@@ -568,16 +568,30 @@
     </footer>
 
     <script>
+        // Role-based redirect: send users to the right page automatically
+        (async () => {
+            try {
+                const res = await fetch('api/auth/me.php', { credentials: 'include' });
+                if (!res.ok) return; // Not logged in — show hub normally
+                const data = await res.json();
+                if (data.user?.role === 'admin') {
+                    window.location.replace('admin/index.html');
+                } else if (data.user) {
+                    window.location.replace('crypto-trading/index.html');
+                }
+            } catch (_) {}
+        })();
+
         // Enhanced JavaScript with better error handling and performance
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize animations and interactions
             initializeAnimations();
             initializePlatformCards();
             initializeStatusCounters();
-            
+
             // Add keyboard navigation support
             addKeyboardNavigation();
-            
+
             // Check platform availability
             checkPlatformStatus();
         });

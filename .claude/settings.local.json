@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cmd /c \"C:\\\\xampp\\\\mysql\\\\bin\\\\aria_chk.exe --recover --force `\"C:\\\\xampp\\\\mysql\\\\data\\\\mysql\\\\proxies_priv`\"\" 2>&1)"
+    ]
+  }
+}

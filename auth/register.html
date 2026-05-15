@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — TradingApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0a0e14;
+      --surface: #111722;
+      --border:  #1e2a3a;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --accent:  #6366f1;
+      --green:   #10b981;
+      --red:     #ef4444;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%; max-width: 420px;
+      position: relative; z-index: 1;
+    }
+    .logo { display: flex; align-items: center; gap: .6rem; margin-bottom: 2rem; }
+    .logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .logo-text { font-size: 1.25rem; font-weight: 700; }
+    .logo-sub  { font-size: .75rem; color: var(--muted); }
+
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
+    .subtitle { color: var(--muted); font-size: .875rem; margin-bottom: 2rem; }
+
+    .bonus-badge {
+      display: flex; align-items: center; gap: .5rem;
+      background: rgba(16,185,129,.08);
+      border: 1px solid rgba(16,185,129,.2);
+      border-radius: 8px;
+      padding: .6rem .875rem;
+      font-size: .8rem; color: #6ee7b7;
+      margin-bottom: 1.5rem;
+    }
+
+    .field { margin-bottom: 1.1rem; }
+    label  { display: block; font-size: .78rem; font-weight: 500; color: var(--muted); margin-bottom: .35rem; text-transform: uppercase; letter-spacing: .05em; }
+    input {
+      width: 100%; padding: .72rem .9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text); font-size: .9rem; font-family: inherit;
+      transition: border-color .2s; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    .hint { font-size: .75rem; color: var(--muted); margin-top: .3rem; }
+
+    .btn {
+      width: 100%; padding: .8rem;
+      background: linear-gradient(135deg,#6366f1,#8b5cf6);
+      border: none; border-radius: 8px;
+      color: #fff; font-size: .95rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+      margin-top: .5rem;
+    }
+    .btn:hover  { opacity: .9; }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .error-box {
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+      border-radius: 8px; padding: .75rem 1rem;
+      color: #fca5a5; font-size: .85rem; margin-bottom: 1.25rem; display: none;
+    }
+    .error-box.show { display: block; }
+    .success-box {
+      background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3);
+      border-radius: 8px; padding: .75rem 1rem;
+      color: #6ee7b7; font-size: .85rem; margin-bottom: 1.25rem; display: none;
+    }
+    .success-box.show { display: block; }
+
+    .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+    .footer-link { text-align: center; font-size: .875rem; color: var(--muted); }
+    .footer-link a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    .footer-link a:hover { text-decoration: underline; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; margin-right: .4rem; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">📈</div>
+      <div>
+        <div class="logo-text">TradingApp</div>
+        <div class="logo-sub">Paper Trading Platform</div>
+      </div>
+    </div>
+
+    <h1>Create account</h1>
+    <p class="subtitle">Start paper trading in seconds</p>
+
+    <div class="bonus-badge">
+      💰 Every new account starts with <strong>&nbsp;$100,000&nbsp;</strong> paper money
+    </div>
+
+    <div class="error-box"   id="errorBox"></div>
+    <div class="success-box" id="successBox"></div>
+
+    <form id="registerForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="tradingpro123" autocomplete="username" required maxlength="50">
+        <p class="hint">3–50 characters, letters/numbers/underscore only</p>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password" required minlength="8">
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm Password</label>
+        <input type="password" id="confirm" placeholder="Repeat password" autocomplete="new-password" required>
+      </div>
+      <button class="btn" type="submit" id="submitBtn">Create Account</button>
+    </form>
+
+    <div class="divider"></div>
+    <p class="footer-link">Already have an account? <a href="login.html">Sign in</a></p>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    (async () => {
+      try {
+        const r = await fetch('../api/auth/me.php', { credentials: 'include' });
+        if (r.ok) window.location.replace('../crypto-trading/index.html');
+      } catch (_) {}
+    })();
+
+    const form       = document.getElementById('registerForm');
+    const errorBox   = document.getElementById('errorBox');
+    const successBox = document.getElementById('successBox');
+    const submitBtn  = document.getElementById('submitBtn');
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.add('show');
+      successBox.classList.remove('show');
+    }
+    function showSuccess(msg) {
+      successBox.textContent = msg;
+      successBox.classList.add('show');
+      errorBox.classList.remove('show');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBox.classList.remove('show');
+
+      const username = document.getElementById('username').value.trim();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm  = document.getElementById('confirm').value;
+
+      if (password !== confirm) { showError('Passwords do not match'); return; }
+      if (password.length < 8)  { showError('Password must be at least 8 characters'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span>Creating account…';
+
+      try {
+        const res  = await fetch('../api/auth/register.php', {
+          method:      'POST',
+          credentials: 'include',
+          headers:     { 'Content-Type': 'application/json' },
+          body:        JSON.stringify({ username, email, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Registration failed');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+          return;
+        }
+
+        showSuccess('Account created! Redirecting to your dashboard…');
+        setTimeout(() => window.location.replace('../crypto-trading/index.html'), 1000);
+
+      } catch (_) {
+        showError('Network error — is XAMPP running?');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>
