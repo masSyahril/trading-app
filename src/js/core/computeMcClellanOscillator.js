@@ -46,3 +46,6 @@ computeMcClellanOscillator(data, day = 10, esp1 = 20, esp2 = 40) {
 
   return { mcclellanOsc, SI };
 }
+
+// slfaf
+
