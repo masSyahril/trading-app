@@ -5293,221 +5293,12 @@ function TDI(K_close, RSI_day) {
 window.TDI = TDI;
 //----------------------------------------------------------------------
 
-//===designed by Prof Wang, 2026-May-14================================
-// Klinger Oscillator <No.103>
-function KlingerOsc(K_high, K_low, K_close, K_vol, day1, day2, day3) {
-  //Menu Name= KlingerOsc     //day1=10, day2=20, day3=13
-  //1.Typical Prices, 2.Trend Direction, 3.Daily Measurement(DM) 4.Volume Force(VF) 
-  const TP=[];     //Typical Price=TP=(High+Low+Close)/3
-  const Trend=[];  //Trend Direction=Trend=TP[i]-TP[i-1]
-  const DM=[];     //Daily Measurement(DM), DM=High[i]-Low[i]
-  const VF=[];     //Volume Force(VF), VF=DVolume*Trend*abs(2(DM/sum_DM-1)*100
-  let sum_DM = 0;    //DM_sum
-  for(let i=1; i<K_close.length; i++) {
-    TP[i]=(K_high[i]+K_low[i]+K_close[i])/3;  // TP[]=1,2,...,2000
-    DM[i]=K_high[i]-K_low[i];    
-                 // DM[]=1,2,...,2000
-    if(i>1) {    //i>=2, then can compute Trend[] and VF[]
-      if(TP[i] > TP[i-1]) {  //Trend[]=2,3,...,2000
-        Trend[i]=1; } 
-      else {
-        Trend[i]=-1; }
-      //if DM>DM_prev,then update DM_sum
-      if(DM[i] > DM[i-1]) {
-        sum_DM = sum_DM + DM[i];   //要用此式嗎？--> DM[i]-DM[i-1];
-      }
-       VF[i]=(sum_DM !== 0) ? K_vol[i]*Trend[i]*Math.abs(2*(DM[i]/sum_DM-1))*100 : 0;
-      // VF[i]=K_vol[i]*Trend[i]*Math.abs(2*(DM[i]/sum_DM-1))*100; //VF[]=2,3,...,2000
-      
-    }
-  }
 
 
-  // create by Fami 16-05-2026 need to chech 
-  // for(let i=1; i<K_close.length; i++) {
-  //   TP[i]=(K_high[i]+K_low[i]+K_close[i])/3;
-  //   DM[i]=K_high[i]-K_low[i];
-  //   if(i>1) {
-  //     Trend[i]=(TP[i] > TP[i-1]) ? 1 : -1;
-  //     if(DM[i] > DM[i-1]) {
-  //       sum_DM = sum_DM + DM[i];
-  //     }
-  //     // guard against sum_DM=0 (divide-by-zero) — treat VF as 0 until sum_DM accumulates
-  //     VF[i]=(sum_DM !== 0) ? K_vol[i]*Trend[i]*Math.abs(2*(DM[i]/sum_DM-1))*100 : 0;
-  //   }
-  // }
-  //5.Calculate Klinger Oscillator (KO), KO=EMA(VF,day1)-EMA(VF,day2)
-  const EMA_day1=[];   //EMA(VF,day1), day1=10, EMA_day1[]=2,...,2000
-  const EMA_day2=[];   //EMA(VF,day2), day2=20, EMA_day2[]=2,...,2000
-  const KO=[];         //Klinger Oscillator (KO), KO=EMA(VF,day1)-EMA(VF,day2)
-  const SignalLine=[]; //6. Signal Line,Signal Line=EMA(KO,day3), day3=13
-  //Ensure day1 < day2
-  let temp;
-  if(day1 > day2) {
-    temp=day1; day1=day2; day2=temp;
-  }
-  EMA_day1[2]=VF[2];  //first=[2], set the same values
-  EMA_day2[2]=VF[2];  //first=[2], set the same values
-  KO[2]=EMA_day1[2]-EMA_day2[2]; //=0; //first=[2], set the same values
-  SignalLine[2]=KO[2]; //first=[2], set the same values
-  for(let i=3; i<=K_close.length; i++) {  // i=3 to 2000
-    EMA_day1[i]=(day1-1)/(day1+1)*EMA_day1[i-1]+2/(day1+1)*VF[i]; //second=[3]
-    EMA_day2[i]=(day2-1)/(day2+1)*EMA_day2[i-1]+2/(day2+1)*VF[i]; //second=[3]
-    KO[i]=EMA_day1[i]-EMA_day2[i];    //KO[]=3,4,...,2000
-    //Signal Line=EMA(KO,day3), day3=13
-    SignalLine[i]=(day3-1)/(day3+1)*SignalLine[i-1]+2/(day3+1)*KO[i]; //=3,4,...,2000
-  }
-  return { KO, SignalLine };
-  //drawing these figures in the small windows.
-  //Original parameters: day1=34, day2=55, day3=13
-  //This program: day1=10, day2=20, day3=13
-  //KO[], SignalLine[], VF[], EMA_day1[], EMA_day2[]=2,...,2000
-}
-window.KlingerOsc = KlingerOsc; //將函數KlingerOsc賦值給window對象，使其成為全局可訪問的函數
+
 //----------------------------------------------------------------------
-
-//===designed by Prof Wang, 2026-May-14==============================
-//Candlestick Body Average燭身平均。
-//類似Qstick量化陰陽線(Quantitative Candle Stick, Qstick)
-//例如:N=10, avg[abs(Close-Open, 10)]=sum(abs[Close-Open], 1 to 10)/10
-//用以衡量一段期間內蠟燭圖實體（開盤價與收盤價之間的距離）的平均大小。
-//它有助於判斷市場波動性與趨勢強度，並作為其他交易策略的基礎參數。
-//eQstick=(n-1)/(n+1)*eQstick昨+2/(n+1)*Qstick今,  <自創>
-//指數平滑移動平均的參數:exponential smoothing parameter(esp)
-function QstickBodyAvg(K_open, K_close, day, esp) {   //QstickBodyAvg
-  // Menu Name: QstickBodyAvg       // day=10, 20, ..., esp=9
-  // K_close=STK_close, K_open=STK_open
-  const QstickBodyAvg = [];    //例如:N=10, QstickBodyAvg=10 to 2000
-  const eQstickBodyAvg = [];   //例如:N=10, eQstickBodyAvg=10 to 2000
-  //compute first Qstick[]=10, 例如:N=10, Qstick[10]
-  let sum=0;  //加總N日內(C-O)總和
-  for(let i=1; i<=day; i++) {   //i=1 to 10, 例如:N=10}
-    sum=sum+Math.abs((K_close[i]-K_open[i]));  //例如:N=10
-  }
-  QstickBodyAvg[day]=sum/day;  //例如:N=10, first QstickBodyAvg[10]
-  eQstickBodyAvg[day]=QstickBodyAvg[day];  //<自創>,令eQstickBodyAvg初值=QstickBodyAvg初值
-  //compute QstickBodyAvg[]=11 to 2000, 例如:N=10, i=day+1 to 2000
-  for(let i=day+1; i<=K_close.length; i++) {   //i=11 to 2000
-    sum=sum-Math.abs((K_close[i-day]-K_open[i-day]))+Math.abs((K_close[i]-K_open[i]));  
-    //例如:N=10, sum=sum-(C[1]-O[1])+(C[11]-O[11]), 減去N日前的C-O, 加上今天的C-O
-    QstickBodyAvg[i]=sum/day;  //例如:N=10, second QstickBodyAvg[11]
-    eQstickBodyAvg[i]=(esp-1)/(esp+1)*eQstickBodyAvg[i-1]+2/(esp+1)*QstickBodyAvg[i]; 
-    //second eQstickBodyAvg[11]
-  }
-  return { QstickBodyAvg, eQstickBodyAvg };
-  //drawing the QstickBodyAvg and eQstickBodyAvg figures in the small windows.
-  //if day=10, then QstickBodyAvg[], eQstickBodyAvg[]=10,11,...,2000.
-}
-window.QstickBodyAvg = QstickBodyAvg;
 //----------------------------------------------------------------------
-
-//===designed by Prof Wang, 2026-May-15===========================
-//OBOS超買超賣指標(OBOS, Over Buy/Over Sell)
-//OBOS: Over Bought Over Sold, 以N日內上漲天數總和減去N日內下跌天數總和來衡量買賣力道
-//改為個股，則是OBOS=N日內上漲天數總和-N日內下跌天數總和
-//指數平滑移動平均的參數:exponential smoothing parameter(esp),<自創>
-function OBOS(K_close, day, esp) {   //OBOS
-  // Menu Name: OBOS       // day=10, 20, ..., esp=9
-  const OBOS = [];    //例如:N=10, OBOS=10 to 2000
-  const eOBOS = [];   //例如:N=10, eOBOS=10 to 2000
-  //compute first OBOS[]=10, 例如:N=10, OBOS[10]
-  let sum_up=0;       //加總N日內(C-Cprev)總和,上漲天數總和
-  let sum_down=0;     //加總N日內(C-Cprev)總和,下跌天數總和 
-  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
-    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
-      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
-    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
-      sum_down=sum_down+(K_close[i-1]-K_close[i]);
-    }
-  }
-  OBOS[day+1]=sum_up-sum_down;  //例如:N=10, first OBOS[11]
-  eOBOS[day+1]=OBOS[day+1];     //<自創>,令eOBOS初值=OBOS初值
-  //compute OBOS[]=12 to 2000, 例如:N=10, i=day+2 to 2000
-  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
-    //先減去N日前的K_close[i-day-1],再加上當天的K_close[i],以更新sum_up和sum_down
-    if(K_close[i-day] > K_close[i-day-1]) {       //N日前的K_close[i-day-1]對sum_up的貢獻
-      sum_up=sum_up-(K_close[i-day]-K_close[i-day-1]); }
-    else if(K_close[i-day] < K_close[i-day-1]) {  //N日前的K_close[i-day-1]對sum_down的貢獻
-      sum_down=sum_down-(K_close[i-day-1]-K_close[i-day]);
-    } 
-    //再加上當天的K_close[i]對sum_up或sum_down的貢獻
-    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
-      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
-    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
-      sum_down=sum_down+(K_close[i-1]-K_close[i]);
-    }  
-    OBOS[i]=sum_up-sum_down;  //例如:N=10, second OBOS[12]
-    eOBOS[i]=(esp-1)/(esp+1)*eOBOS[i-1]+2/(esp+1)*OBOS[i]; 
-    //second eOBOS[12]
-  }
-  return { OBOS, eOBOS };
-  //drawing the OBOS and eOBOS figures in the small windows.
-  //if day=10, then OBOS[], eOBOS[]=11,12,...,2000.
-}
-window.OBOS = OBOS;
 //----------------------------------------------------------------------
-//===designed by Prof Wang, 2026-May-16===========================
-//McClellan Oscillator(麥克萊倫震盪指標)	(No.101)
-//類似：OBOS: Over Bought Over Sold, 以N日內上漲天數總和減去N日內下跌天數總和來衡量買賣力道
-//改為個股，則是OBOS=N日內上漲天數總和-N日內下跌天數總和
-//McClellan Summation Index（麥克萊倫總和指數）
-//McClellan Summation Index（SI）是 McClellan Oscillator 的累積值。
-//指數平滑移動平均的參數:exponential smoothing parameter(esp),<自創>
-function McClellanOSC(K_close, day, esp1, esp2) {   //McClellanOSC
-  // Menu Name: McClellanOSC  // day=10,20,...,esp1=10, 20, ..., esp2=20,30,...
-  // ensure esp1<esp2, 例如: esp1=10, esp2=20
-  let temp;
-  if(esp1>=esp2) {
-    temp=esp1; esp1=esp2; esp2=temp;
-  }
-  const ANA=[];  //Net Advances Adjusted(ANA), 例如:N=10, ANA=11 to 2000
-  const EMA19=[], EMA39=[]; //指數平滑移動平均
-  const McClellanOSC=[];    //McClellan Oscillator, 例如:N=10, McClellanOSC=11 to 2000
-  const SI=[];              //McClellan Summation Index, 例如:N=10, SI=11 to 2000
-  let esp=9;
-  //Net Advances Adjusted(ANA): 
-  //(N日內上漲天數總和-N日內下跌天數總和)/(N日內上漲天數總和+N日內下跌天數總和)
-  //compute first ANA[]=11, 例如:N=10, ANA[11]
-  let sum_up=0;       //加總N日內(C-Cprev)總和,上漲天數總和
-  let sum_down=0;     //加總N日內(C-Cprev)總和,下跌天數總和 
-  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
-    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
-      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
-    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
-      sum_down=sum_down+(K_close[i-1]-K_close[i]);
-    }
-  }
-  ANA[day+1]=(sum_up-sum_down)/(sum_up+sum_down);  //例如:N=10, first ANA[11]
-  EMA19[day+1]=ANA[day+1];     //令EMA19初值=ANA初值, first EMA19[11]
-  EMA39[day+1]=ANA[day+1];     //令EMA39初值=ANA初值, first EMA39[11]
-  McClellanOSC[day+1]=EMA19[day+1]/EMA39[day+1];     //first McClellanOSC[11]
-  SI[day+1]=McClellanOSC[day+1];     //first SI[11]
-  //compute ANA[]=12 to 2000, 例如:N=10, i=day+2 to 2000
-  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
-    //先減去N日前的K_close[i-day-1],再加上當天的K_close[i],以更新sum_up和sum_down
-    if(K_close[i-day] > K_close[i-day-1]) {       //N日前的K_close[i-day-1]對sum_up的貢獻
-      sum_up=sum_up-(K_close[i-day]-K_close[i-day-1]); }
-    else if(K_close[i-day] < K_close[i-day-1]) {  //N日前的K_close[i-day-1]對sum_down的貢獻
-      sum_down=sum_down-(K_close[i-day-1]-K_close[i-day]);
-    } 
-    //再加上當天的K_close[i]對sum_up或sum_down的貢獻
-    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
-      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
-    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
-      sum_down=sum_down+(K_close[i-1]-K_close[i]);
-    }
-    ANA[i]=(sum_up-sum_down)/(sum_up+sum_down);  //例如:N=10, second ANA[12]
-    EMA19[i]=(esp1-1)/(esp1+1)*EMA19[i-1]+(2)/(esp1+1)*ANA[i];  //例如:N=10, second EMA19[12]
-    EMA39[i]=(esp2-1)/(esp2+1)*EMA39[i-1]+(2)/(esp2+1)*ANA[i];  //例如:N=10, second EMA39[12]
-    McClellanOSC[i]=EMA19[i]/EMA39[i];  //例如:N=10, second McClellanOSC[12]
-    //SI[i]=SI[i-1]+McClellanOSC[i];      //例如:N=10, second SI[12]
-    SI[i]=(esp-1)/(esp+1)*SI[i-1]+(2)/(esp+1)*McClellanOSC[i];
-  }
-  return { McClellanOSC, SI };
-  //drawing the McClellanOSC[] and SI[] figures in the small windows.
-  //if day=10, then McClellanOSC[]=11,12,...,2000 and SI[]=11,12,...,2000. 可以加eMcClellanOSC[]和SI[]
-}
-window.McClellanOSC = McClellanOSC;
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -5932,9 +5723,23 @@ if (typeof window !== 'undefined') {
   window.computeMACD = computeMACD;
   window.computeRSI = computeRSI;
   // window.computeKD = computeKD;
+  window.computeWilliamsR = computeWilliamsR;
+  window.computeCCI = computeCCI;
   window.computeADX = computeADX;
   window.computeSmoothedAverage = computeSmoothedAverage;
-
+  window.computeBollingerBands = computeBollingerBands;
+  window.computeATR = computeATR;
   window.computeParabolicSAR = computeParabolicSAR;
   window.computeIchimoku = computeIchimoku;
+  window.computeM3 = computeM3;
+  window.computeDMA = computeDMA;
+  window.computeK2D2 = computeK2D2;
+  window.computeCoppockCurve = computeCoppockCurve;
+  window.computeVolMA = computeVolMA;
+  window.computeTRIX = computeTRIX;
+  window.computeASI = computeASI;
+  window.computeMFI = computeMFI;
+  window.computeOBV = computeOBV;
+  window.computeROC = computeROC;
+  window.computeADI = computeADI;
 }

@@ -1227,12 +1227,13 @@ function DEMA(STK_close, esp) {
 window.DEMA = DEMA;
 //----------------------------------------------------------------------
 
-//===designed by Prof Wang, 2025-Dec-03==modified on 2026-April-09==
+//===designed by Prof Wang, 2025-Dec-03==modified on 2026-April-09, 2026-May-07==
 //ADR漲跌比率(ADR, Advance Decline Ratio)。
-//ADRt=N日內上漲天數總和/N日內下跌天數總和
-function ADR(STK_close, ADR_day) {
-  // Menu Name: ADR  , ADR_day=10, 20, ...
-  const ADR=[];
+//ADRt=N日內上漲天數總和/N日內下跌天數總和。 ADRt=sum(Up_days)/sum(Dn_days)
+//指數平滑移動平均的參數:exponential smoothing parameter(esp),自創新
+function ADR(STK_close, ADR_day, esp) {
+  // Menu Name: ADR    //ADR_day=10, 20, ...,  esp=9,10,...
+  const ADR=[], eADR=[];    //自創新
   let Up_days = 0, Dn_days = 0;  //上漲天數，下跌天數
   //例ADR_day=20，計算1,2,...,20的漲跌天數
   for(let i=2; i<=ADR_day; i++) {    //例： i=2,3,...,20
@@ -1246,6 +1247,7 @@ function ADR(STK_close, ADR_day) {
   else {
     ADR[ADR_day]=Up_days/Dn_days; 
   }
+  eADR[ADR_day]=ADR[ADR_day];  //eADR(20)，第1個eADR
   //計算其餘的ADR=21,22,...,2000
   for(let i=ADR_day+1; i<=STK_close.length; i++) {    //例： i=21,22,...,2000.
     //先扣掉第2天比第1天是否漲跌的天數。
@@ -1264,10 +1266,11 @@ function ADR(STK_close, ADR_day) {
     else {
       ADR[i]=Up_days/Dn_days; 
     }
+    eADR[i]=(esp-1)/(esp+1)*eADR[i-1]+2/(esp+1)*ADR[i];  //自創新
   }
-  return { ADR };
-  //drawing the ADR figure in the small windows.
-  //if day=20, ADR[]=20,21,...,2000.
+  return { ADR, eADR };
+  //drawing the ADR[], eADR[] figures in the small windows.
+  //if day=20, ADR[], eADR[]=20,21,...,2000.
 }
 window.ADR = ADR;
 //----------------------------------------------------------------------
@@ -4934,11 +4937,500 @@ function StochasticSMI(K_high, K_low, K_close, day, rr, ss, esp) {
 window.StochasticSMI = StochasticSMI;
 //----------------------------------------------------------------------
 
+//===designed by Prof Wang, 2026-May-02======================
+// Pretty Good Oscillator (PGO)良好震盪指標	<No.116>
+// calculate: simpleMA, Average True Range(ATR)
+// TR=max[(H-L), abs(H-昨C), abs(L-昨C)]. ATR=sum(TR of n_day)/n
+// PGO=(Close-simpleMA)/ATR
+//指數平滑移動平均的參數:exponential smoothing parameter(esp),自創新
+function PGO(K_high, K_low, K_close, ma_day, n_period, esp) {
+  // Menu Name: PGO  //ma_day=5, 10, 14..., n_period=14..., esp=9
+  // calculate simpleMA, from (ma_day=14) to 2000
+  const simpleMA=[];
+  let sum=0;
+  for(let i=1; i<=ma_day; i++) {  //i=1 to 5, or //i=1 to 14
+    sum=sum+K_close[i];
+  }
+  simpleMA[ma_day]=sum/ma_day;  //first =5, 10, 14
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
+    sum=sum-K_close[i-ma_day+1]+K_close[i];      //減舊加新
+    simpleMA[i]=sum/ma_day;     //second =5+1, 10+1, 14+1
+  }
+  // calculate Average True Range(ATR) and TR, from (n_period+1=14+1) to 2000
+  // calculate PGO=(Close-simpleMA)/ATR
+  const TR=[], ATR=[];
+  const PGO=[], ePGO=[];  //ePGO[]=自創新
+  sum=0;
+  for(let i=2; i<=n_period+1; i++) {  //i=2 to 14+1
+    TR[i]=Math.max((K_high[i]-K_low[i]),Math.abs(K_high[i]-K_close[i-1]),Math.abs(K_low[i]-K_close[i-1]));
+    sum=sum+TR[i];    //sum from i=2 to 14+1
+  }
+  let tp=n_period+1;      //tp=14+1
+  ATR[tp]=sum/n_period;   //first ATR[14+1]
+  PGO[tp]=(K_close[tp]-simpleMA[tp])/ATR[tp];   //first PGO[14+1]
+  ePGO[tp]=PGO[tp];       //first ePGO[14+1]=自創新
+  //Calculate the rest of TR[], ATR[], PGO[]. from 14+2 to 2000
+  for(let i=n_period+2; i<=K_close.length; i++) {  //i=14+2 to 2000
+    TR[i]=Math.max((K_high[i]-K_low[i]),Math.abs(K_high[i]-K_close[i-1]),Math.abs(K_low[i]-K_close[i-1]));
+    //first smoothing method: ATR=((n-1)/n)*ATR昨+(1/n)*TR今
+    ATR[i]=((n_period-1)/n_period)*ATR[i-1] + (1/n_period)*TR[i];    //second=14+2
+    //second smoothing method: ATR=((n-1)/(n+1))*ATR昨+(2/(n+1))*TR今
+    //ATR[i]=((n_period-1)/(n_period+1))*ATR[i-1] + (2/(n_period+1))*TR[i];  //second=14+2
+    // ======= FAMI 2026-05-02=====================
+    // adding new PGO formula, PGO=(Close-simpleMA)/ATR because there is no division by zero problem, because ATR is not zero.
+    // if its deleted the data will be null, and the chart will not be drawn.
+    PGO[i] = ATR[i] === 0 ? null : (K_close[i] - simpleMA[i]) / ATR[i];
+  // =======================================
+    ePGO[i]=(esp-1)/(esp+1)*ePGO[i-1] + 2/(esp+1)*PGO[i];  //自創新
+  }
+  return { PGO, ePGO };
+  //drawing the PGO[] and ePGO[] figures in the small windows.
+  //if ma_day=10, then simpleMA[]= 10 to 2000.
+  //TR[]= 2 to 2000.
+  //if n_period=14, then ATR[]= 14+1 to 2000.
+  //if n_period=14, then PGO[], ePGO[]= 14+1 to 2000.
+}
+window.PGO = PGO;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-02======================
+// Kairi Relative Index，Kairi相對指數(KRI) <No.113>
+// calculate: simpleMA,  // KairiRI=[(Close-simpleMA)/simpleMA]*100
+//指數平滑移動平均的參數:exponential smoothing parameter(esp),自創新
+function KairiRI(K_close, ma_day, esp) {
+  // Menu Name: KairiRI_KRI  //ma_day=5, 10,..., esp=9
+  // calculate simpleMA, from (ma_day) to 2000
+  const simpleMA=[];
+  let sum=0;
+  for(let i=1; i<=ma_day; i++) {  //i=1 to 5, or //i=1 to 10
+    sum=sum+K_close[i];
+  }
+
+  simpleMA[ma_day]=sum/ma_day;  //first =5, 10
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
+    sum=sum-K_close[i-ma_day+1]+K_close[i];      //減舊加新
+    simpleMA[i]=sum/ma_day;     //second =5+1, 10+1, 14+1
+  }
+  // calculate KRI=[(Close-simpleMA)/simpleMA]*100
+  const KRI=[]
+  const eKRI=[];  //eKRI[]=自創新, =5 to 2000.
+  for(let i=ma_day; i<=K_close.length; i++) {  //i=5 to 2000
+
+    // ======================= made by FAMI, 2026-05-02 =======================
+    //  changing [ma_day] into [i] because it [ma_day] will cause the KRI[] to be only one value, and the chart will not be drawn.
+    // old // KRI[ma_day]=(K_close[ma_day]-simpleMA[ma_day])/simpleMA[ma_day]*100;
+    KRI[i]=(K_close[i]-simpleMA[i])/simpleMA[i]*100;  //new
+    if(i===ma_day) {
+      eKRI[i]=KRI[i]; }   //自創新, first eKRI[]
+    else {
+      eKRI[i]=(esp-1)/(esp+1)*eKRI[i-1] + 2/(esp+1)*KRI[i];  //自創新
+    }
+  }
+  return { KRI, eKRI };
+  //drawing the KRI[] and eKRI[] figures in the small windows.
+  //if ma_day=10, then simpleMA[], KRI[], eKRI[]= 10 to 2000.
+}
+window.KairiRI = KairiRI;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-05======================
+// Gaussian Filter <No.112>  // Calculate the price of Gaussian filtering
+// calculate: GaussianMA=sum(w*p)/sum(w)
+//指數平滑移動平均的參數:exponential smoothing parameter(esp),自創新
+function Gaussian(K_close, day, sigma, esp) {
+  // Menu Name: Gaussian Filter  //day=5, 10,..., esp=9, sigma=2~5.
+  const GaussianMA=[]
+  const eGaussianMA=[];   //自創新
+  let sum_wgt=0;        //=w1+w2+...+wn,權重加總,放分母Normalization Factor
+  let sum_wgt_price=0;  //=sum(wgt*price), 加總,放分子
+  let weight=0;         //weight=exp(-x^2/(2*sigma^2))
+  // Calculate Gaussian weights
+  for(let i=1; i<=day; i++) {  //i=1 to 5, or //i=1 to 10
+    weight=Math.exp(-(i-1)*(i-1)/(2*sigma*sigma));
+    sum_wgt=sum_wgt + weight;
+    sum_wgt_price=sum_wgt_price + weight*K_close[i];
+  }
+  GaussianMA[day]=sum_wgt_price/sum_wgt;   //first GaussianMA[]=5  to 2000
+  eGaussianMA[day]=GaussianMA[day];        //自創新, eGaussianMA[]=5 to 2000
+  // Calculate the price of Gaussian filtering, from (day) to 2000
+  let count=1;
+  for(let i=day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
+    sum_wgt_price=0;
+    count=1;
+    for(let j=i-day+1; j<=i; j++) {  //j=2 to 6
+      weight=Math.exp(-(count-1)*(count-1)/(2*sigma*sigma));
+      sum_wgt_price=sum_wgt_price + weight*K_close[j];
+      count=count+1;
+    }
+    GaussianMA[i]=sum_wgt_price/sum_wgt;   //second GaussianMA[]=6  to 2000
+    eGaussianMA[i]=(esp-1)/(esp+1)*eGaussianMA[i-1]+2/(esp+1)*GaussianMA[i]; //自創新
+  }
+  return { K_close, GaussianMA, eGaussianMA };
+  //drawing the K_close[], GaussianMA[] and eGaussianMA[] figures in the small windows.
+  //Normally drawing these two indicators in the K_Line area.
+  //if ma_day=10, then GaussianMA[], eGaussianMA[]= 10 to 2000.
+}
+window.Gaussian = Gaussian;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-05======================
+// David Varadi Oscillator(DVO)  <No.110>  //
+// Ratio=C/((H+L)/2), Smooth Ratio=SMA(Ratio,n), Rr=Ratio/(Smooth Ratio)
+// L=ln(Rr), DVO=PercentileRank(L,m)*100.
+function DVO(K_high, K_low, K_close, smooth_day, m) {
+  // Menu Name: DVO    //smooth_day=5, 10,..., m=50, 100, 200, 250
+  // m is parameter for the data rangking ( user can chose data range ? ) 
+  const DVO=[];        //DVO=PercentileRank(L,m)*100.
+  const Ratio=[];      //Ratio=C/((H+L)/2)
+  // Calculate Ratio[], =1 TO 2000
+  for(let i=1; i<=K_close.length; i++) {
+    Ratio[i]=K_close[i]/((K_high[i]+K_low[i])/2);  //Ratio=C/((H+L)/2)
+  }  // Ratio[]=1 to 2000
+  // Smooth Ratio=SMA(RAtio,n)   //Rr=Ratio/(Smooth Ratio)
+  // Transform to Log Space. To normalize the data and ensure symmetry, 
+  // the natural logarithm of the ratio is taken.
+  const smooth_Ratio=[];  // =smooth_day to 2000 =5 to 2000
+  const Rr=[];            // =smooth_day to 2000 =5 to 2000
+  const LL=[];            // L=ln(Rr).   // = 5 to 2000
+  let sum=0;
+  for(let i=1; i<=smooth_day; i++) {  //i=1 to 5
+    sum=sum+Ratio[i];
+  }
+  smooth_Ratio[smooth_day]=sum/smooth_day;  //first =[5]
+  Rr[smooth_day]=Ratio[smooth_day]/smooth_Ratio[smooth_day];  //first =[5] 
+  //在 JavaScript 裡，自然對數（ln）是用內建的 Math.log() 函式來計算的
+  LL[smooth_day]=Math.log(Rr[smooth_day]);            //first =[5]
+  for(let i=smooth_day+1; i<=K_close.length; i++ ) {  // 6 to 2000
+    sum = sum-Ratio[i- smooth_day+1]+Ratio[i];  //減舊加新
+    smooth_Ratio[i] = sum/smooth_day;  //second =[6] to 2000
+    Rr[i] = Ratio[i]/smooth_Ratio[i];  //second =[6] to 2000
+    LL[i] = Math.log(Rr[i]);           //second =[6] to 2000
+  }  //smooth_Ratio[], Rr[], LL[]= 5 to 2000
+  // Calculate DVO=PercentileRank(L,m)*100.
+  // The final DVO value is the percentile rank of the current value 
+  // of L relative to its values over a lookback period (usually m = 252 days 
+  // for a yearly lookback, or shorter for more active trading).
+  const PercentileRank=[];
+  let count;
+  for(let i=(smooth_day+m-1); i<=K_close.length; i++) {  //i=5+100-1 to 2000.
+    //第104(5+100-1)個陣列元素,往前看100筆資料內,有幾個比它小的,即從第5個比較到第103個。
+    //例如有60個比它小,則Percentile Rank=(60/100)*100=60.
+    count=0;
+    for(let j=(i-m+1); j<=(i-1); j++) {  //j=5 to 103
+      if(LL[i]>LL[j]) {
+        count = count + 1; }
+    }
+    PercentileRank[i] = count/m*100;  // smooth_day+m-1=104 to 2000
+  }
+  return { PercentileRank };
+  //drawing the PercentileRank[] figure in the small windows.
+  //if smooth_day=5, m=100, then PercentileRank[]= 5+100-1 to 2000.
+}
+window.DVO = DVO;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-08======================
+// Vortex Indicator(渦流指標)	(No.107)
+// VM+: Positive Vortex Movement. =abs(Ht-Lt-1)
+// VM-: Negative Vortex Movement. =abs(Lt-Ht-1)
+// VI+=sum(VM+)/sum(TR)   // VI-=sum(VM-)/sum(TR)
+function Vortex(K_high, K_low, K_close, day) {
+  // Menu Name: Vortex    //day=10, 14,...
+  const pVM=[]; //Positive Vortex Movement=VM+
+  const nVM=[]; //Negative Vortex Movement=VM-
+  const TR=[];  //TR=真實波幅(True Range)
+  let temp1, temp2, temp3;
+  //Calculate VM+, VM-, TR
+  for(let i=2; i<=K_close.length; i++) {    //i=2 to 2000
+    pVM[i]=Math.abs(K_high[i]-K_low[i-1]);  //今高-昨低, =2 to 2000
+    nVM[i]=Math.abs(K_low[i]-K_high[i-1]);  //今低-昨高, =2 to 2000
+    temp1 = K_high[i] - K_low[i];
+    temp2 = Math.abs(K_high[i] - K_close[i-1]);
+    temp3 = Math.abs(K_low[i] - K_close[i-1]);
+    TR[i] = Math.max(temp1, temp2, temp3);  // 2 to 2000
+  }  
+  //Calculate first values, =2 to 11(2+10-1=2+day-1)
+  const pVI=[]
+  const nVI=[];
+  // ========made by FAMI, 2026-05-08======================
+  // let sum_pVM, sum_nVM, sum_TR;   //加總用 old 
+  let sum_pVM = 0, sum_nVM = 0, sum_TR = 0;  // new
+  for(let i=2; i<=day+1; i++) {   // i=2 to 11
+    sum_pVM=sum_pVM+pVM[i];
+    sum_nVM=sum_nVM+nVM[i];
+    sum_TR=sum_TR+TR[i];
+  }
+  pVI[day+1]=sum_pVM/sum_TR;  //first pVI[11]
+  nVI[day+1]=sum_nVM/sum_TR;  //first nVI[11]
+  //Calculate the rest values, =12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {  // i=12 to 2000
+    //先減舊,再加新
+    sum_pVM=sum_pVM-pVM[i-day]+pVM[i];
+    sum_nVM=sum_nVM-nVM[i-day]+nVM[i];
+    sum_TR=sum_TR-TR[i-day]+TR[i];
+    pVI[i]=sum_pVM/sum_TR;  //second pVI[12]
+    nVI[i]=sum_nVM/sum_TR;  //second nVI[12]
+  }
+  return { pVI, nVI };
+  //drawing the pVI[], nVI[] figures in the small windows.
+  //if day=10, then pVI[], nVI[]= 11 to 2000.
+}
+window.Vortex = Vortex;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-09======================
+// Traders Dynamic Index(TDI,交易者動態指標)  <No.106>
+// Calculate 13-day RSI, Price Line(綠線)=PL=EMA(RSI,2)
+// Signal Line(紅線)=SL=EMA(PL,7), 
+// 較長週期平滑=Market Base Line(黃線)=MBL=SMA(RSI,34)=>中線Mid
+// Volatility Bands(藍色波動帶),將 Bollinger Bands 套在 RSI 上
+// 中線=Mid=SMA(RSI,34), 標準差=Sigma=StaDev(RSI,34)
+// 上軌=Upper=Mid+1.6185*Sigma, 下軌=Mid-1.6185*Sigma
+// 此程式是完整的RSI設計，以此為主。  <2026-Feb-24>
+function TDI(K_close, RSI_day) {
+  //Menu Name= TDI     //RSI_day=5,10,15,...
+  // First calculate RSI
+  const RSI=[];
+  const dif=[];   //dif=今收盤-昨收盤
+  for(let i=2; i<=K_close.length; i++) {
+    dif[i]=K_close[i]-K_close[i-1];   // dif[]=2,3,...,2000
+  }
+  //compute the first RSI(). if day=10, RSI()=11,12,...,2000.
+  let sum_Up = 0;   //最近 n 日收盤價漲幅之和
+  let sum_Dn = 0;   //最近 n 日收盤價跌幅之和
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+    if(dif[i] > 0) {
+      sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
+    else {
+      //sum_Dn = sum_Dn - dif[i];  //此式是正確的，一定要用負號
+      sum_Dn=sum_Dn+Math.abs(dif[i]);   //收盤價跌幅之和
+    }
+  }
+  //if RSI_day=10 then first RSI value=RSI[11]
+  if((sum_Up+sum_Dn) === 0) {
+    RSI[RSI_day+1]=100; }
+  else {
+    RSI[RSI_day+1]=sum_Up/(sum_Up+sum_Dn)*100;
+  }
+  //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
+    // 先加新的收盤價差值！
+    if(dif[i] > 0) {
+      sum_Up=sum_Up+dif[i]; }           //收盤價漲幅之和
+    else {
+      sum_Dn=sum_Dn+Math.abs(dif[i]);   //收盤價跌幅之和
+    }
+    // 再扣除10日前的累加值
+    if (dif[i-RSI_day] > 0) {
+      sum_Up=sum_Up-dif[i-RSI_day]; }
+    else {
+      //sum_Dn=sum_Dn+dif[i-RSI_day];  //此式是正確的，一定要用加號
+      sum_Dn=sum_Dn-Math.abs(dif[i-RSI_day]);
+    }
+    //if RSI_day=10 then second RSI value=RSI[12]
+    if((sum_Up+sum_Dn) === 0) {  
+      RSI[i]=100; }
+    else {
+       RSI[i]=sum_Up/(sum_Up+sum_Dn)*100;
+    }
+  }
+  //==========以上程式是完整的RSI設計，以此為主。  <2026-Feb-24>
+  // if RSI_day=10 then RSI[]=11,12,...,2000.
+  //對RSI做短期平滑, Price Line(綠線)=PL=EMA(RSI,2)
+  const PriceLine=[];  //Price Line(綠線)=PL=EMA(RSI,2)
+  PriceLine[RSI_day+1]=RSI[RSI_day+1]; //first=[11], set the same values
+  let esp=3;
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
+    PriceLine[i]=(esp-1)/(esp+1)*PriceLine[i-1]+2/(esp+1)*RSI[i]; //second=[12]
+  }
+  //Calculate Signal Line(紅線), Signal Line(紅線)=SL=EMA(PriceLine,7)
+  const SignalLine=[];  //Signal Line(紅線)=SL=EMA(PriceLine,7)
+  SignalLine[RSI_day+1]=PriceLine[RSI_day+1]; //first=[11], set the same values
+  esp=7;
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
+    SignalLine[i]=(esp-1)/(esp+1)*SignalLine[i-1]+2/(esp+1)*PriceLine[i]; //second=[12]
+  } 
+  // 較長週期平滑=Market Base Line(黃線)=MBL=SMA(RSI,34) 
+  // if RSI_day=10 then RSI[]=11,12,...,2000.
+  let N20=20;    //Market Base Line(黃線)=MBL=SMA(RSI,34), 此處取=20
+  // 20 number or 20 data ?? 
+  let sum=0;
+  const MBL=[]; //Market Base Line(黃線)=MBL=SMA(RSI,34)=>中線Mid=SMA(RSI,34)
+  const Mu=[];  //Population Mean母體平均數, =30 to 2000
+  for(let i=RSI_day+1; i<=RSI_day+N20; i++) { //i=11 to 30
+    sum=sum+RSI[i];  //累加, from 11 to 30
+  }
+  MBL[RSI_day+N20]=sum/N20;   //first MBL=[30], 30 to 2000, MBL[]=Mid[]
+  Mu[RSI_day+N20]=sum/N20;    //first Population Mean母體平均數, =30 to 2000
+  //Calculate the rest MBL[]=31 to 2000
+  for(i=RSI_day+N20+1; i<=K_close.length; i++) {  // i=31 to 2000
+    //先減舊的,再加新的
+    sum=sum-RSI[i-N20]+RSI[i];  //舊的=RSI[11],新的=RSI[31]
+    MBL[i]=sum/N20;             //second MBL=[31], 31 to 2000, MBL[]=Mid[]
+    Mu[i]=sum/N20;              //second Mu=[31], 31 to 2000
+  }
+  //Calculate Sigma=StdDev, 母體標準差(Population Standard Deviation)
+  //不能用此思考設計程式-----------------先減舊的,再加新的
+  const Sigma=[];  //母體標準差(Population Standard Deviation), =30 to 2000
+  const Upper=[], Lower=[]; //上軌=Upper=Mid+1.6185*Sigma,下軌=Mid-1.6185*Sigma
+  for(let i=RSI_day+N20; i<=K_close.length; i++) { //i=10+20 to 2000
+    sum=0;
+    for(let j=i-N20+1; j<=i; j++) {  // j=(30-20+1)=11 to 30
+      sum=sum+(RSI[j]-Mui[i])**2;    //累加, from 11 to 30
+    }
+    Sigma[i]=Math.sqrt(sum/N20);      //first Sigma=[30], 30 to 2000
+    Upper[i]= MBL[i]+1.6185*Sigma[i]; //上軌
+    Lower[i]= MBL[i]-1.6185*Sigma[i]; //下軌
+  }
+  return { RSI, MBL, Upper, Lower }; // for small windows, only return RSI, MBL, Upper, Lower
+  // return { RSI, PriceLine, SignalLine, MBL, Upper, Lower }; // for K_Line area, return all indicators
+  //if RSI_day=10 then RSI[], PriceLine[], SignalLine[]=11,12,...,2000.
+  //if RSI_day=10, N20=20 then MBL[], Mu[], Upper[], Lower[]=30,...,2000.
+  //Normally drawing these figures in the K_Line area.
+  //drawing these figures in the small windows.
+  // 
+}
+window.TDI = TDI;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-14================================
+// Klinger Oscillator <No.103>
+function KlingerOsc(K_high, K_low, K_close, K_vol, day1, day2, day3) {
+  //Menu Name= KlingerOsc     //day1=10, day2=20, day3=13
+  //1.Typical Prices, 2.Trend Direction, 3.Daily Measurement(DM) 4.Volume Force(VF) 
+  const TP=[];     //Typical Price=TP=(High+Low+Close)/3
+  const Trend=[];  //Trend Direction=Trend=TP[i]-TP[i-1]
+  const DM=[];     //Daily Measurement(DM), DM=High[i]-Low[i]
+  const VF=[];     //Volume Force(VF), VF=DVolume*Trend*abs(2(DM/sum_DM-1)*100
+  let sum_DM=0;    //DM_sum
+  for(let i=1; i<=K_close.length; i++) {
+    TP[i]=(K_high[i]+K_low[i]+K_close[i])/3;  // TP[]=1,2,...,2000
+    DM[i]=K_high[i]-K_low[i];                 // DM[]=1,2,...,2000
+    if(i>1) {    //i>=2, then can compute Trend[] and VF[]
+      if(TP[i] > TP[i-1]) {  //Trend[]=2,3,...,2000
+        Trend[i]=1; } 
+      else {
+        Trend[i]=-1; }
+      //if DM>DM_prev,then update DM_sum
+      if(DM[i] > DM[i-1]) {
+        sum_DM = sum_DM + DM[i];   //要用此式嗎？--> DM[i]-DM[i-1];
+      }
+      VF[i]=K_vol[i]*Trend[i]*Math.abs(2*(DM[i]/sum_DM-1))*100; //VF[]=2,3,...,2000
+    }
+  }
+  //5.Calculate Klinger Oscillator (KO), KO=EMA(VF,day1)-EMA(VF,day2)
+  const EMA_day1=[];   //EMA(VF,day1), day1=10, EMA_day1[]=2,...,2000
+  const EMA_day2=[];   //EMA(VF,day2), day2=20, EMA_day2[]=2,...,2000
+  const KO=[];         //Klinger Oscillator (KO), KO=EMA(VF,day1)-EMA(VF,day2)
+  const SignalLine=[]; //6. Signal Line,Signal Line=EMA(KO,day3), day3=13
+  //Ensure day1 < day2
+  let temp;
+  if(day1 > day2) {
+    temp=day1; day1=day2; day2=temp;
+  }
+  EMA_day1[2]=VF[2];  //first=[2], set the same values
+  EMA_day2[2]=VF[2];  //first=[2], set the same values
+  KO[2]=EMA_day1[2]-EMA_day2[2]; //=0; //first=[2], set the same values
+  SignalLine[2]=KO[2]; //first=[2], set the same values
+  for(let i=3; i<=K_close.length; i++) {  // i=3 to 2000
+    EMA_day1[i]=(day1-1)/(day1+1)*EMA_day1[i-1]+2/(day1+1)*VF[i]; //second=[3]
+    EMA_day2[i]=(day2-1)/(day2+1)*EMA_day2[i-1]+2/(day2+1)*VF[i]; //second=[3]
+    KO[i]=EMA_day1[i]-EMA_day2[i];    //KO[]=3,4,...,2000
+    //Signal Line=EMA(KO,day3), day3=13
+    SignalLine[i]=(day3-1)/(day3+1)*SignalLine[i-1]+2/(day3+1)*KO[i]; //=3,4,...,2000
+  }
+  return { KO, SignalLine };
+  //drawing these figures in the small windows.
+  //Original parameters: day1=34, day2=55, day3=13
+  //This program: day1=10, day2=20, day3=13
+  //KO[], SignalLine[], VF[], EMA_day1[], EMA_day2[]=2,...,2000
+}
+window.KlingerOsc = KlingerOsc; //將函數KlingerOsc賦值給window對象，使其成為全局可訪問的函數
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-14==============================
+//Candlestick Body Average燭身平均。
+//類似Qstick量化陰陽線(Quantitative Candle Stick, Qstick)
+//例如:N=10, avg[abs(Close-Open, 10)]=sum(abs[Close-Open], 1 to 10)/10
+//用以衡量一段期間內蠟燭圖實體（開盤價與收盤價之間的距離）的平均大小。
+//它有助於判斷市場波動性與趨勢強度，並作為其他交易策略的基礎參數。
+//eQstick=(n-1)/(n+1)*eQstick昨+2/(n+1)*Qstick今,  <自創>
+//指數平滑移動平均的參數:exponential smoothing parameter(esp)
+function QstickBodyAvg(K_open, K_close, day, esp) {   //QstickBodyAvg
+  // Menu Name: QstickBodyAvg       // day=10, 20, ..., esp=9
+  // K_close=STK_close, K_open=STK_open
+  const QstickBodyAvg = [];    //例如:N=10, QstickBodyAvg=10 to 2000
+  const eQstickBodyAvg = [];   //例如:N=10, eQstickBodyAvg=10 to 2000
+  //compute first Qstick[]=10, 例如:N=10, Qstick[10]
+  let sum=0;  //加總N日內(C-O)總和
+  for(let i=1; i<=day; i++) {   //i=1 to 10, 例如:N=10}
+    sum=sum+Math.abs((K_close[i]-K_open[i]));  //例如:N=10
+  }
+  QstickBodyAvg[day]=sum/day;  //例如:N=10, first QstickBodyAvg[10]
+  eQstickBodyAvg[day]=QstickBodyAvg[day];  //<自創>,令eQstickBodyAvg初值=QstickBodyAvg初值
+  //compute QstickBodyAvg[]=11 to 2000, 例如:N=10, i=day+1 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {   //i=11 to 2000
+    sum=sum-Math.abs((K_close[i-day]-K_open[i-day]))+Math.abs((K_close[i]-K_open[i]));  
+    //例如:N=10, sum=sum-(C[1]-O[1])+(C[11]-O[11]), 減去N日前的C-O, 加上今天的C-O
+    QstickBodyAvg[i]=sum/day;  //例如:N=10, second QstickBodyAvg[11]
+    eQstickBodyAvg[i]=(esp-1)/(esp+1)*eQstickBodyAvg[i-1]+2/(esp+1)*QstickBodyAvg[i]; 
+    //second eQstickBodyAvg[11]
+  }
+  return { QstickBodyAvg, eQstickBodyAvg };
+  //drawing the QstickBodyAvg and eQstickBodyAvg figures in the small windows.
+  //if day=10, then QstickBodyAvg[], eQstickBodyAvg[]=10,11,...,2000.
+}
+window.QstickBodyAvg = QstickBodyAvg;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-May-15===========================
+//OBOS超買超賣指標(OBOS, Over Buy/Over Sell)
+//OBOS: Over Bought Over Sold, 以N日內上漲天數總和減去N日內下跌天數總和來衡量買賣力道
+//改為個股，則是OBOS=N日內上漲天數總和-N日內下跌天數總和
+//指數平滑移動平均的參數:exponential smoothing parameter(esp),<自創>
+function OBOS(K_close, day, esp) {   //OBOS
+  // Menu Name: OBOS       // day=10, 20, ..., esp=9
+  const OBOS = [];    //例如:N=10, OBOS=10 to 2000
+  const eOBOS = [];   //例如:N=10, eOBOS=10 to 2000
+  //compute first OBOS[]=10, 例如:N=10, OBOS[10]
+  let sum_up=0;       //加總N日內(C-Cprev)總和,上漲天數總和
+  let sum_down=0;     //加總N日內(C-Cprev)總和,下跌天數總和 
+  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
+    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
+      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
+    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
+      sum_down=sum_down+(K_close[i-1]-K_close[i]);
+    }
+  }
+  OBOS[day+1]=sum_up-sum_down;  //例如:N=10, first OBOS[11]
+  eOBOS[day+1]=OBOS[day+1];     //<自創>,令eOBOS初值=OBOS初值
+  //compute OBOS[]=12 to 2000, 例如:N=10, i=day+2 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
+    //先減去N日前的K_close[i-day-1],再加上當天的K_close[i],以更新sum_up和sum_down
+    if(K_close[i-day] > K_close[i-day-1]) {       //N日前的K_close[i-day-1]對sum_up的貢獻
+      sum_up=sum_up-(K_close[i-day]-K_close[i-day-1]); }
+    else if(K_close[i-day] < K_close[i-day-1]) {  //N日前的K_close[i-day-1]對sum_down的貢獻
+      sum_down=sum_down-(K_close[i-day-1]-K_close[i-day]);
+    } 
+    //再加上當天的K_close[i]對sum_up或sum_down的貢獻
+    if(K_close[i] > K_close[i-1]) {       //上漲天數總和
+      sum_up=sum_up+(K_close[i]-K_close[i-1]); }
+    else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
+      sum_down=sum_down+(K_close[i-1]-K_close[i]);
+    }  
+    OBOS[i]=sum_up-sum_down;  //例如:N=10, second OBOS[12]
+    eOBOS[i]=(esp-1)/(esp+1)*eOBOS[i-1]+2/(esp+1)*OBOS[i]; 
+    //second eOBOS[12]
+  }
+  return { OBOS, eOBOS };
+  //drawing the OBOS and eOBOS figures in the small windows.
+  //if day=10, then OBOS[], eOBOS[]=11,12,...,2000.
+}
+window.OBOS = OBOS;
+//----------------------------------------------------------------------
 
 
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
-//----------------------------------------------------------------------
+
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -5362,7 +5854,7 @@ if (typeof window !== 'undefined') {
   window.computeMA = computeMA;
   window.computeMACD = computeMACD;
   window.computeRSI = computeRSI;
-  window.computeKD = computeKD;
+  // window.computeKD = computeKD;
   window.computeWilliamsR = computeWilliamsR;
   window.computeCCI = computeCCI;
   window.computeADX = computeADX;

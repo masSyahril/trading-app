@@ -940,10 +940,10 @@ class MultiIndicatorSystem {
        DVO : { // not finish
         name: 'DVO (Detrended Volume Osc)',
         type: 'volume',
-        defaultParams: { day: 10, esp: 9 },
-        paramLabels: { day: 'Period', esp: 'Smooth' },
+        defaultParams: { day: 10, m: 9 },
+        paramLabels: { day: 'smooth Day', m: 'M' },
         minPeriod: 10,
-        compute: (data, params) => this.computeDVOIndicator(data, params.day, params.esp),
+        compute: (data, params) => this.computeDVOIndicator(data, params.day, params.m),
         render: (chart, data, colors, seriesMap) => this.renderDVO(chart, data, colors, seriesMap)
        }, 
        Vortex: { 
@@ -954,6 +954,45 @@ class MultiIndicatorSystem {
         minPeriod: 14,
         compute: (data, params) => this.computeVortexIndicator(data, params.day),
         render: (chart, data, colors, seriesMap) => this.renderVortex(chart, data, colors, seriesMap)
+       },
+
+       KlingerOsc: {
+        name: 'Klinger OSC',
+        type: 'trend',
+        defaultParams: { day1: 10, day2: 20, day3: 13 },
+        paramLabels: { day1: 'Short Period', day2: 'Long Period', day3: 'Signal Period' },
+        minPeriod: 20,
+        compute: (data, params) => this.computeKlingerOscillator(data, params.day1, params.day2, params.day3),
+        render: (chart, data, colors, seriesMap) => this.renderKlingerOscillator(chart, data, colors, seriesMap)
+       },
+       McClellanOSC: {
+        name: 'McClellan OSC',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp: 20, esp2: 40 },
+        paramLabels: { day: 'Period', esp: 'Short EMA', esp2: 'Long EMA' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeMcClellanOscillator(data, params.day, params.esp, params.esp2),
+        render: (chart, data, colors, seriesMap) => this.renderMcClellanOscillator(chart, data, colors, seriesMap)
+       },
+
+       OBOS:{
+        name: 'OBOS (Overbought/Oversold)',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp:11 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeOBOSIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderOBOS(chart, data, colors, seriesMap)
+       },
+
+       QstickBodyAvg: {
+        name: 'Qstick Body Avg',
+        type: 'momentum',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeQstickBodyAvgIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderQstickBodyAvg(chart, data, colors, seriesMap)
        },
 
 
@@ -4407,7 +4446,261 @@ computeGaussianFilterIndicator(data, day = 10, sigma = 3, esp = 9) {
   return { pVI, nVI };
 
  }
+
+ computeDVOIndicator(data, day = 10, m = 20) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const percentil = new Array(len).fill(null);
+  if (len === 0) return {percentil: []};
+
+  const fn = (typeof window !== 'undefined' && window.DVO) ? window.DVO : null;
+  if (!fn) return { percentil };  
+  
+  const out = fn(highs, lows, closes, day, m);
+  const srcPercentil = out && out.PercentileRank ? out.PercentileRank : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcPercentil[i];
+    percentil[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { percentil };
+}
+
+
+computeKlingerOscillator(data, day1 = 34, day2 = 55, day3 = 13) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length;
+  const KO = new Array(len).fill(null);
+  const signalLine = new Array(len).fill(null);
+  if (len === 0) return { KO: [], signalLine: [] };
+
+  const fn = (typeof window !== 'undefined' && window.KlingerOsc) ? window.KlingerOsc : null;
+  if (!fn) return { KO, signalLine };
+
+  const out = fn(highs, lows, closes, volumes, day1, day2, day3);
+  const srcKO = out && out.KO ? out.KO : [];
+  const srcSignalLine = out && out.SignalLine ? out.SignalLine : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcKO[i];
+    KO[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcSignalLine[i];
+    signalLine[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { KO, signalLine };
+}
+
+
+computeMcClellanOscillator(data, day = 10, esp1 = 20, esp2 = 40) {
+  const closes = data.map(d => d.close ?? 0);
+  const len = closes.length;
+  const mcclellanOsc = new Array(len).fill(null);
+  const SI = new Array(len).fill(null);
+  if (len === 0) return { mcclellanOsc: [], SI: [] };
+
+  const fn = (typeof window !== 'undefined' && window.McClellanOSC) ? window.McClellanOSC : null;
+  if (!fn) return { mcclellanOsc, SI };
+
+  const out = fn(closes, day, esp1, esp2);
+  const srcMcClellanOsc = out && out.McClellanOSC ? out.McClellanOSC : [];
+  const srcSI = out && out.SI ? out.SI : [];
+  // let day = out && out.McClellanOSC ? out.McClellanOSC : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcMcClellanOsc[i];
+    mcclellanOsc[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcSI[i];
+    SI[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { mcclellanOsc, SI };
+}
+
+
+computeOBOSIndicator(data, day = 10, esp = 11) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const OBOS = new Array(len).fill(null);
+  const eOBOS = new Array(len).fill(null);
+   if (len === 0) return { OBOS: [], eOBOS: [] };
+
+  const fn = (typeof window !== 'undefined' && window.OBOS) ? window.OBOS : null;
+  if (!fn) return { OBOS, eOBOS };
+  const out = fn(closes, day, esp);
+  const srcOBOS = out && out.OBOS ? out.OBOS : [];
+  const srceOBOS = out && out.eOBOS ? out.eOBOS : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcOBOS[i];
+    OBOS[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceOBOS[i];
+    eOBOS[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { OBOS, eOBOS };
+}
+
+
+computeQstickBodyAvgIndicator(data, day = 10, esp = 9) { 
+  const opens = data.map(d => d.open);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const QstickBodyAvg = new Array(len).fill(null);
+  const eQstickBodyAvg = new Array(len).fill(null);
+  if (len === 0) return { QstickBodyAvg: [], eQstickBodyAvg: [] };
+
+  const fn = (typeof window !== 'undefined' && window.QstickBodyAvg) ? window.QstickBodyAvg : null;
+  if (!fn) return { QstickBodyAvg, eQstickBodyAvg };
+
+  const out = fn(opens, closes, day, esp);
+  const srcQstickBodyAvg = out && out.QstickBodyAvg ? out.QstickBodyAvg : [];
+  const srceQstickBodyAvg = out && out.eQstickBodyAvg ? out.eQstickBodyAvg : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcQstickBodyAvg[i];
+    QstickBodyAvg[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srceQstickBodyAvg[i];
+    eQstickBodyAvg[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { QstickBodyAvg, eQstickBodyAvg };
+}
+
+
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+renderQstickBodyAvg(chart, data, colors, seriesMap) {
+  if (!data || !data.QstickBodyAvg || !data.eQstickBodyAvg) return;
+  if (!seriesMap.has('QstickBodyAvg')) {
+    seriesMap.set('QstickBodyAvg', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Qstick Body Avg',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eQstickBodyAvg')) {
+    seriesMap.set('eQstickBodyAvg', chart.addLineSeries({
+      color: colors.LINE2, 
+      lineWidth: 2,
+      title: 'eQstick Body Avg',  
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const QstickBodyAvgData = this.seriesWithLeadInPadding(data.QstickBodyAvg, (v) => (v == null || isNaN(v) ? null : v));
+  const eQstickBodyAvgData = this.seriesWithLeadInPadding(data.eQstickBodyAvg, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('QstickBodyAvg').setData(QstickBodyAvgData);
+  seriesMap.get('eQstickBodyAvg').setData(eQstickBodyAvgData);
+}
+
+renderOBOS(chart, data, colors, seriesMap) {
+  if (!data || !data.OBOS || !data.eOBOS) return;
+  if (!seriesMap.has('OBOS')) { 
+    seriesMap.set('OBOS', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'OBOS',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eOBOS')) {
+    seriesMap.set('eOBOS', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eOBOS',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const OBOSData = this.seriesWithLeadInPadding(data.OBOS, (v) => (v == null || isNaN(v) ? null : v));
+  const eOBOSData = this.seriesWithLeadInPadding(data.eOBOS, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('OBOS').setData(OBOSData);
+  seriesMap.get('eOBOS').setData(eOBOSData);
+}
+
+renderMcClellanOscillator(chart, data, colors, seriesMap) {
+  if (!data || !data.mcclellanOsc || !data.SI) return;
+  if (!seriesMap.has('mcclellanOsc')) {
+    seriesMap.set('mcclellanOsc', chart.addLineSeries({ 
+      color: colors.LINE1,
+      lineWidth: 2, 
+      title: 'McClellan Oscillator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('SI')) {
+    seriesMap.set('SI', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'SI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const mcclellanOscData = this.seriesWithLeadInPadding(data.mcclellanOsc, (v) => (v == null || isNaN(v) ? null : v));
+  const SIData = this.seriesWithLeadInPadding(data.SI, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('mcclellanOsc').setData(mcclellanOscData);
+  seriesMap.get('SI').setData(SIData);
+}
+
+// renderMcClellanOscillator(chart, data, colors, seriesMap) {
+//   if (!data || !data.SI) return;
+//   if (!seriesMap.has('SI')) {
+//     seriesMap.set('SI', chart.addLineSeries({
+//       color: colors.LINE1,
+//       lineWidth: 2, 
+//       title: 'SI Oscillator',
+//       crosshairMarkerVisible: false,
+//       priceLineVisible: false,
+//     }));
+//   }
+//   const mcclellanOscData = this.seriesWithLeadInPadding(data.SI, (v) => (v == null || isNaN(v) ? null : v));
+//   seriesMap.get('SI').setData(mcclellanOscData);
+// }
+
+renderKlingerOscillator(chart, data, colors, seriesMap) {
+  if (!data || !data.KO || !data.signalLine) return;
+  if (!seriesMap.has('KO')) {
+    seriesMap.set('KO', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2, 
+      title: 'KO',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('signalLine')) {
+    seriesMap.set('signalLine', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'Signal Line',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));  
+  }
+  const KOData = this.seriesWithLeadInPadding(data.KO, (v) => (v == null || isNaN(v) ? null : v));
+  const signalLineData = this.seriesWithLeadInPadding(data.signalLine, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('KO').setData(KOData);
+  seriesMap.get('signalLine').setData(signalLineData);
+}
+
+renderDVO(chart, data, colors, seriesMap) {
+  if (!data || !data.percentil) return;
+  if (!seriesMap.has('percentil')) {
+    seriesMap.set('percentil', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2, 
+      title: 'DVO Percentil',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const percentilData = this.seriesWithLeadInPadding(data.percentil, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('percentil').setData(percentilData);
+}
 
 renderVortex(chart, data, colors, seriesMap) {
   if (!data || !data.pVI || !data.nVI) return;
