@@ -995,6 +995,26 @@ class MultiIndicatorSystem {
         render: (chart, data, colors, seriesMap) => this.renderQstickBodyAvg(chart, data, colors, seriesMap)
        },
 
+       ADX_DMI: {
+        name: 'ADX/DMI',
+        type: 'trend',
+        defaultParams: { esp:2 },
+        paramLabels: { esp: 'smooth' },
+        minPeriod: 2,
+        compute: (data, params) => this.computeADXDMIIndicator(data, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderADXDMI(chart, data, colors, seriesMap)
+       },
+
+       AdaptiveMA: {
+        name: 'Adaptive MA',
+        type: 'trend',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Adaptive MA' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeAdaptiveMAIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderAdaptiveMA(chart, data, colors, seriesMap)
+       },
+
 
 
     // last definition 
@@ -4566,7 +4586,115 @@ computeQstickBodyAvgIndicator(data, day = 10, esp = 9) {
 }
 
 
+
+computeADXDMIIndicator(data, esp = 2) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const ADX = new Array(len).fill(null);
+  const DIPlus = new Array(len).fill(null);
+  const DIMinus = new Array(len).fill(null);
+  if (len === 0) return { ADX: [], DIPlus: [], DIMinus: [] };
+
+  const fn = (typeof window !== 'undefined' && window.ADX_DMI) ? window.ADX_DMI : null;
+  if (!fn) return { ADX, DIPlus, DIMinus };
+
+  const out = fn(highs, lows, closes, esp);
+  const srcADX = out && (out.ADX || out.adx) ? (out.ADX || out.adx) : [];
+  const srcDIPlus = out && (out.DIPlus || out.DI_plus) ? (out.DIPlus || out.DI_plus) : [];
+  const srcDIMinus = out && (out.DIMinus || out.DI_minus) ? (out.DIMinus || out.DI_minus) : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcADX[i];
+    ADX[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcDIPlus[i];
+    DIPlus[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+    const w3 = srcDIMinus[i];
+    DIMinus[i] = (w3 != null && Number.isFinite(w3)) ? w3 : null;
+  }
+  return { ADX, DIPlus, DIMinus };
+}
+
+
+computeAdaptiveMAIndicator(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high);
+  const opens = data.map(d => d.open);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const AdaptiveMA = new Array(len).fill(null);
+  // const eAdaptiveMA = new Array(len).fill(null);
+  if (len === 0) return { AdaptiveMA: [] };
+
+  const fn = (typeof window !== 'undefined' && window.AdaptiveMA) ? window.AdaptiveMA : null;
+  if (!fn) return { AdaptiveMA };
+
+   const out = fn(highs, opens, closes, day);
+   const srcAdaptiveMA = out && (out.AdaptiveMA || out.adaptiveMA) ? (out.AdaptiveMA || out.adaptiveMA) : [];
+  // const srcAdaptiveMA = out && out.AdaptiveMA ? out.AdaptiveMA : [];
+  // const srceAdaptiveMA = out && out.eAdaptiveMA ? out.eAdaptiveMA : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcAdaptiveMA[i];
+    AdaptiveMA[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    // const w2 = srceAdaptiveMA[i];
+    // eAdaptiveMA[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { AdaptiveMA};
+}
+
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+
+renderAdaptiveMA(chart, data, colors, seriesMap) {
+  if (!data || !data.AdaptiveMA) return;
+  if (!seriesMap.has('AdaptiveMA')) {
+    seriesMap.set('AdaptiveMA', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Adaptive MA',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const AdaptiveMAData = this.seriesWithLeadInPadding(data.AdaptiveMA, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('AdaptiveMA').setData(AdaptiveMAData);
+}
+
+renderADXDMI(chart, data, colors, seriesMap) {
+  if (!data || !data.ADX || !data.DIPlus || !data.DIMinus) return;
+  if (!seriesMap.has('ADX')) {
+    seriesMap.set('ADX', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'ADX',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('DIPlus')) {
+    seriesMap.set('DIPlus', chart.addLineSeries({
+      color: colors.LINE2,  
+      lineWidth: 2,
+      title: 'DI+',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('DIMinus')) {
+    seriesMap.set('DIMinus', chart.addLineSeries({
+      color: colors.LINE3,
+      lineWidth: 2,
+      title: 'DI-',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const ADXData = this.seriesWithLeadInPadding(data.ADX, (v) => (v == null || isNaN(v) ? null : v));
+  const DIPlusData = this.seriesWithLeadInPadding(data.DIPlus, (v) => (v == null || isNaN(v) ? null : v));
+  const DIMinusData = this.seriesWithLeadInPadding(data.DIMinus, (v) => (v == null || isNaN(v) ? null : v));
+  seriesMap.get('ADX').setData(ADXData);
+  seriesMap.get('DIPlus').setData(DIPlusData);
+  seriesMap.get('DIMinus').setData(DIMinusData);
+}
 
 renderQstickBodyAvg(chart, data, colors, seriesMap) {
   if (!data || !data.QstickBodyAvg || !data.eQstickBodyAvg) return;
@@ -6743,13 +6871,9 @@ renderBollingerBands4SD(chart, data, colors, seriesMap) {
     });
     this.mainChartOverlays.clear();
 
-    // Default MA configurations if none provided
+    // Default MA configurations if none provided — empty by default (managed by overlay panel)
     if (!maConfigs) {
-      maConfigs = [
-        { period: 10, type: 'SMA', color: this.colors.LINE1 },
-        { period: 20, type: 'EMA', color: this.colors.LINE2 },
-        { period: 50, type: 'SMA', color: this.colors.LINE3 }
-      ];
+      maConfigs = [];
     }
 
     // Create MA overlays for each configuration

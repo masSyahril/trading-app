@@ -47,34 +47,33 @@ function computeMA(values, Ma_day) {
 
 // MACD (Moving Average Convergence Divergence)
 function computeMACD(values, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-  const fastEMA = computeWangEMA(values, fastPeriod);  // sparse 1-based, valid [fastPeriod..values.length-1]
-  const slowEMA = computeWangEMA(values, slowPeriod);  // sparse 1-based, valid [slowPeriod..values.length-1]
-
-  // Build dense MACD: both EMAs are valid from slowPeriod onward
+  const fastEMA = computeEMA(values, fastPeriod);
+  const slowEMA = computeEMA(values, slowPeriod);
+  
+  // MACD line = Fast EMA - Slow EMA
   const macd = [];
-  for (let i = slowPeriod; i < values.length; i++) {
-    macd.push(fastEMA[i] - slowEMA[i]);
+  const startIdx = slowPeriod - fastPeriod;
+  
+  for (let i = 0; i < slowEMA.length; i++) {
+    macd.push(fastEMA[startIdx + i] - slowEMA[i]);
   }
-
-  // Standard 0-based EMA for signal line (avoids 1-based sparse issue)
-  const k = 2 / (signalPeriod + 1);
-  const signal = [];
-  let emaVal = 0;
-  for (let i = 0; i < macd.length; i++) {
-    if (i < signalPeriod) {
-      emaVal += macd[i] / signalPeriod;
-      if (i === signalPeriod - 1) signal.push(emaVal);
-    } else {
-      emaVal = k * macd[i] + (1 - k) * emaVal;
-      signal.push(emaVal);
-    }
+  
+  // Signal line = EMA of MACD
+  const signal = computeEMA(macd, signalPeriod);
+  
+  // Histogram = MACD - Signal
+  const histogram = [];
+  const histStartIdx = macd.length - signal.length;
+  
+  for (let i = 0; i < signal.length; i++) {
+    histogram.push(macd[histStartIdx + i] - signal[i]);
   }
-
-  // Histogram aligned with signal (signal is shorter than macd by signalPeriod-1)
-  const offset = macd.length - signal.length;
-  const hist = signal.map((s, i) => macd[offset + i] - s);
-
-  return { macd, signal, hist };
+  
+  return {
+    macd: macd,
+    signal: signal,
+    hist: histogram
+  };
 }
 
 // RSI (Relative Strength Index) - Window-Sum Method
@@ -916,20 +915,20 @@ window.ATR = ATR;
 //此函數先計算simple MA，再計算EMA，所以整個過程都必須先算MA再算EMA。
 //所以傳來的資料是原始資料。公式為EMA(t)=(n-1)/(n+1)*EMA(t-1)+2/(n+1)*MA(t)
 //EMA(5),6,7,...,2000. 從第5開始到2000.
-// Exponential Moving Average(EMA) - Prof Wang's sparse 1-based variant
-function computeWangEMA(raw_data, ema_num) {
+// Exponential Moving Average(EMA)
+function computeEMA(raw_data, ema_num) {
   const EMA=[];
   let sum=0;
   for(let i=1; i<ema_num; i++) {
-    sum=sum+raw_data[i];
+    sum=sum+raw_data(i);
   }
-  //First EMA value=EMA[ema_num], for example EMA[5]=sum/5=simple MA(5)
-  EMA[ema_num]=sum/ema_num;   //第1筆EMA(5)就是移動平均的MA(5)
+  //First EMA value=EMA(ema_num), for example EMA(5)=sum/5=simple MA(5)
+  EMA(ema_num)=sum/ema_num;   //第1筆EMA(5)就是移動平均的MA(5)
   for (let i=ema_num+1; i<raw_data.length; i++) {
-    sum=sum+raw_data[i]-raw_data[i-ema_num];
-    EMA[i]=(ema_num-1)/(ema_num+1)*EMA[i-1]+(2/(ema_num+1))*sum/ema_num;
+    sum=sum+raw_data(i)-raw_data(i-ema_num);
+    EMA(i)=(ema_num-1)/(ema_num+1)*EMA(i-1)+(2/(ema_num+1))*sum/ema_num;
   }
-  return EMA;
+  return EMA();
   // 如果參數=5，則EMA()=5,6,...,2000. 繪圖在K線區域。
 }
 //----------------------------------------------------------------------
@@ -941,11 +940,13 @@ function computeWangEMA(raw_data, ema_num) {
 //Smoothed_MA(1),2,3,...,2000. 從第1開始到2000.
 function computeSmoothedAverage(processed_data, smoothed_num) {
   const Smoothed_MA = [];
-  Smoothed_MA[1] = processed_data[2]; //set the initial value
-  for(let i=2; i<processed_data.length; i++) {
-    Smoothed_MA[i]=(smoothed_num-1)/(smoothed_num+1)*Smoothed_MA[i-1]+2/(smoothed_num+1)*processed_data[i];
+  for(let  i=2; i<processed_data.length; i++) {
+    if(i===2);{
+      Smoothed_MA(1)=processed_data(2); 
+    } //set the initial value of Smoothed_MA(1)=processed_data(2)
+    Smoothed_MA(i)=(smoothed_num-1)/(smoothed_num+1)*Smoothed_MA(i-1)+2/(smoothed_num+1)*processed_data(i);
   }
-  return Smoothed_MA;
+  return Smoothed_MA();
   // Smoothed_MA()=1,2,...,2000.
 }
 //----------------------------------------------------------------------
@@ -5502,12 +5503,11 @@ function ADX_DMI(STK_high, STK_low, STK_close, esp) {
   // 1.Calculate Directional Movement(DM)
   //DM+ =當日最高價-前一日最高價,如果當日最高價-前一日最高價>前一日最低價-當日最低價,
   // 且當日最高價-前一日最高價>0,則DM+ = 當日最高價-前一日最高價,否則DM+ = 0.
-  const DM_plus=[];
-  const eDM_plus=[];    // =2 to 2000
+  const DM_plus=[], eDM_plus=[];    // =2 to 2000
   //DM- =前一日最低價-當日最低價,如果前一日最低價-當日最低價>當日最高價-前一日最高價,
   // 且前一日最低價-當日最低價>0,則DM- = 前一日最低價-當日最低價,否則DM- = 0.
   const DM_minus=[], eDM_minus=[];  // =2 to 2000
-  for(let i=2; i<STK_close.length; i++) {    //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {    //i=2 to 2000
     if((STK_high[i]-STK_high[i-1])>(STK_low[i-1]-STK_low[i]) && (STK_high[i]-STK_high[i-1])>0) {  
       //當日最高價-前一日最高價>前一日最低價-當日最低價,且當日最高價-前一日最高價>0
       DM_plus[i]=STK_high[i]-STK_high[i-1]; }  //DM+ = 當日最高價-前一日最高價
@@ -5533,7 +5533,7 @@ function ADX_DMI(STK_high, STK_low, STK_close, esp) {
   const ATR=[]; //ATR[]=TR的指數平滑移動平均
   const TR=[];  //TR=真實波幅(True Range),TR是陣列不是變數. =2 to 2000
   let temp1, temp2, temp3;
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]);
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -5547,19 +5547,19 @@ function ADX_DMI(STK_high, STK_low, STK_close, esp) {
   }
   //4.Calculate +DI and -DI (DI, Directional Indicator)
   const DI_plus=[], DI_minus=[];            //=2 to 2000
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     DI_plus[i] = 100 * eDM_plus[i] / ATR[i];
     DI_minus[i] = 100 * eDM_minus[i] / ATR[i];
   } 
   //5.Calculate Directional Index (DX)
   const DX=[];  //=2 to 2000
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     DX[i] = 100*Math.abs(DI_plus[i]-DI_minus[i])/(DI_plus[i]+DI_minus[i]);
   } 
   // 6.Calculate Average Directional Index (ADX)
   const ADX=[];     //=2 to 2000
   ADX[2] = DX[2];   //ADX[2]=DX,因為i=2才開始計算DX,所以ADX[2]=DX.
-  for(let i=3; i<STK_close.length; i++) {  //i=3 to 2000
+  for(let i=3; i<=STK_close.length; i++) {  //i=3 to 2000
     ADX[i] = (esp-1)/esp*ADX[i-1]+1/esp*DX[i];
   }
   return { DI_plus, DI_minus, ADX };
@@ -5581,12 +5581,12 @@ function AdaptiveMA(STK_high, STK_low, STK_close, day) {
   // Menu Name: AdaptiveMA       // day=10, 20,...
   // Calculate Price[]=(H+L+2*C)/4
   const Price = [];   //Price[]=1,...,2000
-  for(let i=1; i<STK_close.length; i++) {  //i=1 to 2000
+  for(let i=1; i<=STK_close.length; i++) {  //i=1 to 2000
     Price[i] = (STK_high[i]+STK_low[i]+2*STK_close[i])/4;
   }
   // 1:計算效率比率(Efficiency Ratio, ER)
   const ER = [];    //ER[]=11,...,2000=day+1 to 2000
-  for(let i=day+1; i<STK_close.length; i++) { //i=11 to 2000
+  for(let i=day+1; i<=STK_close.length; i++) { //i=11 to 2000
     const priceChange = Price[i]-Price[i-day]; //P11-P1=當前價格-N期前價格
     let volatility = 0;  //分母=N期內的價格波動總和
     for(let j=i-day+1; j<=i; j++) {  //j=2 to 11
@@ -5598,14 +5598,14 @@ function AdaptiveMA(STK_high, STK_low, STK_close, day) {
   const SC = [];  //SC[]=11,...,2000,平滑常數(Smoothing Constant,SC)
   const FastSC = 2/(2+1);    //=2/(day+1);  
   const SlowSC = 2/(30+1);   //30是常用的慢速週期
-  for(let i=day+1; i<STK_close.length; i++) { //i=11 to 2000
+  for(let i=day+1; i<=STK_close.length; i++) { //i=11 to 2000
     SC[i] = (ER[i]*(FastSC-SlowSC)+SlowSC)**2; //SC[]=11 to 2000,平方
   }
   // 3:計算KAMA最終值，計算Adaptive MA
   const AdaptiveMA = [];  //AdaptiveMA[]=11,...,2000
   //變通：初始值=AdaptiveMA[11]=(Price[10]+Price[11])/2,
   AdaptiveMA[day+1] = (Price[day]+Price[day+1])/2; 
-  for(let i=day+2; i<STK_close.length; i++) { //i=12 to 2000
+  for(let i=day+2; i<=STK_close.length; i++) { //i=12 to 2000
     AdaptiveMA[i] = AdaptiveMA[i-1]+SC[i]*(Price[i]-AdaptiveMA[i-1]); 
     //AdaptiveMA[]=11,12 to 2000 
   }
@@ -6061,6 +6061,7 @@ if (typeof window !== 'undefined') {
   window.computeATR = computeATR;
   window.computeParabolicSAR = computeParabolicSAR;
   window.computeIchimoku = computeIchimoku;
+  window.computeM3 = computeM3;
   window.computeDMA = computeDMA;
   window.computeK2D2 = computeK2D2;
   window.computeCoppockCurve = computeCoppockCurve;

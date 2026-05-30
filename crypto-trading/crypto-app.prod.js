@@ -1016,6 +1016,10 @@
         rightPriceScale: {
           borderColor: "#334155",
           minimumWidth: (typeof MultiIndicatorSystem !== 'undefined' && MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) || 56,
+          scaleMargins: {
+            top: 0,
+            bottom: 0,
+          },
         },
         timeScale: {
           borderColor: "#334155",
@@ -1046,7 +1050,7 @@
 
       try {
         const alignW = (typeof MultiIndicatorSystem !== 'undefined' && MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) || 56;
-        chart.priceScale('right').applyOptions({ minimumWidth: alignW });
+        chart.priceScale('right').applyOptions({ minimumWidth: alignW, scaleMargins: { top: 0, bottom: 0 } });
       } catch (e) {}
 
       /* Asian-style candles: rising (close ≥ open) = red, falling = green */

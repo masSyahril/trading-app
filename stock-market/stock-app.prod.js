@@ -37,6 +37,11 @@
   let indicatorSystem = null;
   let panelIds = [];
 
+  // Main-chart overlay state
+  let overlaySeries = {};
+  const activeOverlays = new Set();
+  let overlayParams = {};
+
   // DOM Elements
   let el = {};
 
@@ -80,6 +85,316 @@
     }
   }
 
+  // ─── Overlay indicator definitions ───────────────────────────────────────
+  const OVERLAY_DEFS = [
+    { id:'SMA20',  group:'Moving Averages', label:'SMA',         color:'#34d399', defaultParam:20  },
+    { id:'SMA200', group:'Moving Averages', label:'SMA',         color:'#f97316', defaultParam:200 },
+    { id:'EMA9',   group:'Moving Averages', label:'EMA',         color:'#a78bfa', defaultParam:9   },
+    { id:'EMA55',  group:'Moving Averages', label:'EMA',         color:'#fb7185', defaultParam:55  },
+    { id:'BB20',   group:'Bands',           label:'Bollinger',   color:'#94a3b8', multi:true, defaultParam:20 },
+    { id:'VWAP',   group:'Other',           label:'VWAP',        color:'#22d3ee' },
+    { id:'KAMA',   group:'Other',           label:'Adaptive MA', color:'#4ade80', defaultParam:10  },
+    { id:'HullMA', group:'Other',           label:'Hull MA',     color:'#fbbf24', defaultParam:10  },
+    { id:'DEMA20', group:'Other',           label:'DEMA',        color:'#e879f9', defaultParam:20  },
+  ];
+
+  // ─── Compute helpers ─────────────────────────────────────────────────────
+  function computeSMAData(data, period) {
+    return data.map((d, i) => {
+      if (i < period - 1) return { time: d.time, value: null };
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
+      return { time: d.time, value: sum / period };
+    });
+  }
+
+  function computeEMAData(data, period) {
+    const k = 2 / (period + 1);
+    let ema = null;
+    return data.map((d, i) => {
+      ema = ema === null ? d.close : d.close * k + ema * (1 - k);
+      return { time: d.time, value: i >= period - 1 ? ema : null };
+    });
+  }
+
+  function computeBBData(data, period, mult) {
+    const upper = [], middle = [], lower = [];
+    data.forEach((d, i) => {
+      if (i < period - 1) {
+        upper.push({ time: d.time, value: null });
+        middle.push({ time: d.time, value: null });
+        lower.push({ time: d.time, value: null });
+        return;
+      }
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += data[j].close;
+      const sma = sum / period;
+      let variance = 0;
+      for (let j = i - period + 1; j <= i; j++) variance += (data[j].close - sma) ** 2;
+      const sd = Math.sqrt(variance / period);
+      upper.push({ time: d.time, value: sma + mult * sd });
+      middle.push({ time: d.time, value: sma });
+      lower.push({ time: d.time, value: sma - mult * sd });
+    });
+    return { upper, middle, lower };
+  }
+
+  function computeVWAPData(data) {
+    let cumTPV = 0, cumVol = 0;
+    return data.map(d => {
+      const tp = (d.high + d.low + d.close) / 3;
+      cumTPV += tp * (d.volume || 0);
+      cumVol += (d.volume || 0);
+      return { time: d.time, value: cumVol > 0 ? cumTPV / cumVol : null };
+    });
+  }
+
+  function computeKAMAData(data, day) {
+    if (!window.AdaptiveMA) return null;
+    const highs  = data.map(d => d.high);
+    const lows   = data.map(d => d.low);
+    const closes = data.map(d => d.close);
+    try {
+      const out = window.AdaptiveMA(highs, lows, closes, day);
+      const src = out && out.AdaptiveMA ? out.AdaptiveMA : [];
+      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+    } catch (e) { return null; }
+  }
+
+  function computeHullMAData(data, day) {
+    const fn = window.computeHullMA || window.HullMA;
+    if (!fn) return null;
+    const closes = data.map(d => d.close);
+    try {
+      const out = fn(closes, day, 9);
+      const src = out && out.HMA ? out.HMA : [];
+      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+    } catch (e) { return null; }
+  }
+
+  function computeDEMAData(data, esp) {
+    const fn = window.DEMA || window.computeDEMA;
+    if (!fn) return null;
+    const closes = data.map(d => d.close);
+    try {
+      const out = fn(closes, esp);
+      const src = out && out.DEMA ? out.DEMA : [];
+      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+    } catch (e) { return null; }
+  }
+
+  function getOverlayParam(id) {
+    const def = OVERLAY_DEFS.find(x => x.id === id);
+    return overlayParams[id] != null ? overlayParams[id] : (def && def.defaultParam != null ? def.defaultParam : 20);
+  }
+
+  function getOverlayTitle(id) {
+    const def = OVERLAY_DEFS.find(x => x.id === id);
+    if (!def) return id;
+    const p = getOverlayParam(id);
+    return def.defaultParam != null ? `${def.label}(${p})` : def.label;
+  }
+
+  function getOverlayData(id) {
+    const d = chartData;
+    const p = getOverlayParam(id);
+    switch (id) {
+      case 'SMA20':
+      case 'SMA200': return { type:'single', data: computeSMAData(d, p)    };
+      case 'EMA9':
+      case 'EMA55':  return { type:'single', data: computeEMAData(d, p)    };
+      case 'BB20':   return { type:'bb',     ...computeBBData(d, p, 2)     };
+      case 'VWAP':   return { type:'single', data: computeVWAPData(d)      };
+      case 'KAMA':   return { type:'single', data: computeKAMAData(d, p)   };
+      case 'HullMA': return { type:'single', data: computeHullMAData(d, p) };
+      case 'DEMA20': return { type:'single', data: computeDEMAData(d, p)   };
+      default: return null;
+    }
+  }
+
+  // ─── Series management ────────────────────────────────────────────────────
+  function nonNull(arr) {
+    return (arr || []).filter(p => p.value !== null);
+  }
+
+  function addOverlayToChart(id) {
+    if (!chart || overlaySeries[id]) return;
+    const def = OVERLAY_DEFS.find(d => d.id === id);
+    if (!def || !chartData.length) return;
+    const result = getOverlayData(id);
+    if (!result) return;
+
+    if (result.type === 'bb') {
+      const p = getOverlayParam(id);
+      const opts = { lineWidth: 1, lineStyle: 2, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const s1 = chart.addLineSeries({ ...opts, color: def.color, title: `BB+(${p})` });
+      const s2 = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 0, title: `BB(${p})` });
+      const s3 = chart.addLineSeries({ ...opts, color: def.color, title: `BB-(${p})` });
+      s1.setData(nonNull(result.upper));
+      s2.setData(nonNull(result.middle));
+      s3.setData(nonNull(result.lower));
+      overlaySeries[id] = [s1, s2, s3];
+    } else {
+      if (!result.data) return;
+      const pts = nonNull(result.data);
+      if (!pts.length) return;
+      const s = chart.addLineSeries({ color: def.color, lineWidth: 1, title: getOverlayTitle(id), priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true });
+      s.setData(pts);
+      overlaySeries[id] = [s];
+    }
+  }
+
+  function removeOverlayFromChart(id) {
+    if (!chart || !overlaySeries[id]) return;
+    overlaySeries[id].forEach(s => { try { chart.removeSeries(s); } catch (e) {} });
+    delete overlaySeries[id];
+  }
+
+  function refreshOverlays() {
+    activeOverlays.forEach(id => {
+      if (!overlaySeries[id]) { addOverlayToChart(id); return; }
+      const result = getOverlayData(id);
+      if (!result) return;
+      if (result.type === 'bb') {
+        overlaySeries[id][0].setData(nonNull(result.upper));
+        overlaySeries[id][1].setData(nonNull(result.middle));
+        overlaySeries[id][2].setData(nonNull(result.lower));
+      } else if (result.data) {
+        overlaySeries[id][0].setData(nonNull(result.data));
+      }
+    });
+  }
+
+  function toggleOverlay(id) {
+    if (activeOverlays.has(id)) {
+      activeOverlays.delete(id);
+      removeOverlayFromChart(id);
+    } else {
+      activeOverlays.add(id);
+      addOverlayToChart(id);
+    }
+    saveLS('stock_overlays_v2', [...activeOverlays]);
+    updateOverlayBtn();
+  }
+
+  function clearAllOverlays() {
+    [...activeOverlays].forEach(id => removeOverlayFromChart(id));
+    activeOverlays.clear();
+    saveLS('stock_overlays_v2', []);
+    document.querySelectorAll('.overlay-check').forEach(cb => { cb.checked = false; });
+    updateOverlayBtn();
+  }
+
+  function updateOverlayBtn() {
+    const btn = document.getElementById('overlay-toggle-btn');
+    if (!btn) return;
+    const n = activeOverlays.size;
+    btn.innerHTML = n > 0
+      ? `Overlay(${n}) <span style="font-size:10px;line-height:1">▾</span>`
+      : `Overlay <span style="font-size:10px;line-height:1">▾</span>`;
+    btn.style.color = n > 0 ? '#60a5fa' : '';
+  }
+
+  // ─── Dropdown UI ──────────────────────────────────────────────────────────
+  function setupOverlayDropdown() {
+    const saved = loadLS('stock_overlays_v2', []);
+    saved.forEach(id => { if (OVERLAY_DEFS.find(d => d.id === id)) activeOverlays.add(id); });
+
+    // Load saved params
+    const savedParams = loadLS('stock_overlay_params_v2', {});
+    OVERLAY_DEFS.forEach(def => {
+      if (def.defaultParam != null) {
+        overlayParams[def.id] = savedParams[def.id] != null ? savedParams[def.id] : def.defaultParam;
+      }
+    });
+
+    const toggleBtn = document.getElementById('overlay-toggle-btn');
+    if (!toggleBtn) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'overlay-panel';
+    panel.style.cssText = [
+      'position:fixed',
+      'z-index:9999',
+      'background:#0f172a',
+      'border:1px solid #334155',
+      'border-radius:8px',
+      'padding:12px 14px',
+      'min-width:240px',
+      'box-shadow:0 12px 40px rgba(0,0,0,.7)',
+      'display:none',
+    ].join(';');
+    document.body.appendChild(panel);
+
+    const groups = [...new Set(OVERLAY_DEFS.map(d => d.group))];
+    let html = '';
+    groups.forEach((group, gi) => {
+      html += `<div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin:${gi > 0 ? '10px' : '0'} 0 5px">${group}</div>`;
+      OVERLAY_DEFS.filter(d => d.group === group).forEach(def => {
+        const chk = activeOverlays.has(def.id) ? 'checked' : '';
+        const curParam = overlayParams[def.id] ?? def.defaultParam;
+        const paramInput = def.defaultParam != null
+          ? `<input type="number" class="overlay-param" data-id="${def.id}" value="${curParam}" min="2" max="999"
+              style="width:46px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:11px;padding:1px 4px;text-align:right;outline:none;flex-shrink:0">`
+          : '';
+        html += `<div style="display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:4px" class="ol-row">
+          <input type="checkbox" class="overlay-check" data-id="${def.id}" ${chk} style="cursor:pointer;accent-color:${def.color};width:13px;height:13px;flex-shrink:0">
+          <span style="width:8px;height:8px;border-radius:50%;background:${def.color};flex-shrink:0;display:inline-block"></span>
+          <span style="flex:1;font-size:11.5px;color:#cbd5e1;white-space:nowrap">${def.label}</span>
+          ${paramInput}
+        </div>`;
+      });
+    });
+    html += `<div style="border-top:1px solid #1e293b;margin-top:10px;padding-top:8px;display:flex;justify-content:flex-end">
+      <button id="overlay-clear-btn" style="font-size:11px;color:#94a3b8;background:transparent;border:1px solid #334155;border-radius:4px;padding:2px 10px;cursor:pointer">Clear All</button>
+    </div>`;
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.ol-row').forEach(row => {
+      row.addEventListener('mouseover', () => row.style.background = 'rgba(255,255,255,.05)');
+      row.addEventListener('mouseout',  () => row.style.background = '');
+    });
+
+    panel.querySelectorAll('.overlay-check').forEach(cb => {
+      cb.addEventListener('change', () => toggleOverlay(cb.dataset.id));
+    });
+
+    panel.querySelectorAll('.overlay-param').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const id = inp.dataset.id;
+        const val = Math.max(2, Math.min(999, parseInt(inp.value) || 2));
+        inp.value = val;
+        overlayParams[id] = val;
+        saveLS('stock_overlay_params_v2', overlayParams);
+        if (activeOverlays.has(id)) {
+          removeOverlayFromChart(id);
+          addOverlayToChart(id);
+        }
+      });
+      inp.addEventListener('click', e => e.stopPropagation());
+    });
+
+    panel.querySelector('#overlay-clear-btn')?.addEventListener('click', clearAllOverlays);
+
+    toggleBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const rect = toggleBtn.getBoundingClientRect();
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? 'block' : 'none';
+      if (open) {
+        panel.style.top  = (rect.bottom + 5) + 'px';
+        panel.style.left = rect.left + 'px';
+      }
+    });
+
+    document.addEventListener('click', e => {
+      if (!panel.contains(e.target) && e.target !== toggleBtn) panel.style.display = 'none';
+    });
+
+    updateOverlayBtn();
+    if (chartData.length) refreshOverlays();
+  }
+
   function init() {
     setTimeout(() => {
       initializeDOMElements();
@@ -95,6 +410,7 @@
       setupChart();
       setupIndicatorSystem();
       setupChartControls();
+      setupOverlayDropdown();
 
       renderWatchlist();
       syncSymbolHeader();
@@ -387,6 +703,12 @@
 
   async function loadCandlesAndDisplay(symbol, tf) {
     chartData = [];
+    // Remove stale overlay series from chart before loading new data
+    [...activeOverlays].forEach(id => removeOverlayFromChart(id));
+    activeOverlays.clear();
+    saveLS('stock_overlays_v2', []);
+    document.querySelectorAll('.overlay-check').forEach(cb => { cb.checked = false; });
+    updateOverlayBtn();
     if (candleSeries) {
       candleSeries.setData([]);
     }
@@ -553,6 +875,10 @@
         rightPriceScale: {
           borderColor: "#334155",
           minimumWidth: (typeof MultiIndicatorSystem !== 'undefined' && MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) || 56,
+          scaleMargins: {
+            top: 0,
+            bottom: 0,
+          },
         },
         timeScale: {
           borderColor: "#334155",
@@ -583,7 +909,7 @@
 
       try {
         const alignW = (typeof MultiIndicatorSystem !== 'undefined' && MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) || 56;
-        chart.priceScale('right').applyOptions({ minimumWidth: alignW });
+        chart.priceScale('right').applyOptions({ minimumWidth: alignW, scaleMargins: { top: 0, bottom: 0 } });
       } catch (e) {}
 
       candleSeries = chart.addCandlestickSeries({
@@ -872,15 +1198,13 @@
   }
 
   function updateIndicators() {
-    if (!indicatorSystem || !chartData.length) {
-      return;
-    }
-    
+    if (!chartData.length) return;
     try {
-      indicatorSystem.updateAllPanels(chartData);
+      if (indicatorSystem) indicatorSystem.updateAllPanels(chartData);
     } catch (error) {
       console.error('❌ Error updating indicators:', error);
     }
+    try { refreshOverlays(); } catch (e) {}
   }
 
   // Utility Functions
