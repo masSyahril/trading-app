@@ -96,6 +96,10 @@
     { id:'KAMA',   group:'Other',           label:'Adaptive MA', color:'#4ade80', defaultParam:10  },
     { id:'HullMA', group:'Other',           label:'Hull MA',     color:'#fbbf24', defaultParam:10  },
     { id:'DEMA20', group:'Other',           label:'DEMA',        color:'#e879f9', defaultParam:20  },
+    { id:'WVC',    group:'Bands', label:'WilliamsVC', color:'#38bdf8', colorUpper:'#f87171', colorLower:'#4ade80', multi:true, defaultParam:10, defaultParam2:9, paramLabel:'day', paramLabel2:'esp' },
+    { id:'CKstop',          group:'Bands', label:'CK Stop',      color:'#4ade80', colorLong:'#4ade80', colorShort:'#f87171', multi:true, defaultParam:10, paramLabel:'n' },
+    { id:'DonchianChannel', group:'Bands', label:'Donchian',      color:'#60a5fa',                                              multi:true, defaultParam:20, paramLabel:'n' },
+    { id:'ChandelierExit',  group:'Bands', label:'Chandelier',    color:'#fbbf24', colorLong:'#4ade80', colorShort:'#f87171', multi:true, defaultParam:20, paramLabel:'n' },
   ];
 
   // ─── Compute helpers ─────────────────────────────────────────────────────
@@ -183,9 +187,91 @@
     } catch (e) { return null; }
   }
 
+  function computeWVCData(data, day, esp) {
+    const fn = window.WilliamsVolatilityChannel;
+    if (!fn) return null;
+    const highs  = data.map(d => d.high);
+    const lows   = data.map(d => d.low);
+    const closes = data.map(d => d.close);
+    try {
+      const out = fn(highs, lows, closes, day, esp != null ? esp : 9);
+      if (!out) return null;
+      const srcMid   = out.MiddleLine || [];
+      const srcUpper = out.UpperLine  || [];
+      const srcLower = out.LowerLine  || [];
+      const toSeries = src => data.map((d, i) => ({
+        time:  d.time,
+        value: (src[i + 1] != null && Number.isFinite(src[i + 1])) ? src[i + 1] : null
+      }));
+      return { middle: toSeries(srcMid), upper: toSeries(srcUpper), lower: toSeries(srcLower) };
+    } catch (e) { return null; }
+  }
+
+  function computeDonchianData(data, num) {
+    const fn = window.DonchianChannel;
+    if (!fn) return null;
+    const highs = data.map(d => d.high);
+    const lows  = data.map(d => d.low);
+    try {
+      const out = fn(highs, lows, num);
+      if (!out) return null;
+      const srcUpper  = out.UpperChannel  || [];
+      const srcMiddle = out.MiddleChannel || [];
+      const srcLower  = out.LowerChannel  || [];
+      const toSeries = src => data.map((d, i) => ({
+        time:  d.time,
+        value: (src[i + 1] != null && Number.isFinite(src[i + 1])) ? src[i + 1] : null
+      }));
+      return { upper: toSeries(srcUpper), middle: toSeries(srcMiddle), lower: toSeries(srcLower) };
+    } catch (e) { return null; }
+  }
+
+  function computeChandelierData(data, num) {
+    const fn = window.ChandelierExit;
+    if (!fn) return null;
+    const highs  = data.map(d => d.high);
+    const lows   = data.map(d => d.low);
+    const closes = data.map(d => d.close);
+    try {
+      const out = fn(highs, lows, closes, num);
+      if (!out) return null;
+      const srcLong  = out.Long_ChandelierExit  || [];
+      const srcShort = out.Short_ChandelierExit || [];
+      const toSeries = src => data.map((d, i) => ({
+        time:  d.time,
+        value: (src[i + 1] != null && Number.isFinite(src[i + 1])) ? src[i + 1] : null
+      }));
+      return { long: toSeries(srcLong), short: toSeries(srcShort) };
+    } catch (e) { return null; }
+  }
+
+  function computeCKstopData(data, num) {
+    const fn = window.CKstop;
+    if (!fn) return null;
+    const highs  = data.map(d => d.high);
+    const lows   = data.map(d => d.low);
+    const closes = data.map(d => d.close);
+    try {
+      const out = fn(highs, lows, closes, num);
+      if (!out) return null;
+      const srcLong  = out.CKS_Long  || [];
+      const srcShort = out.CKS_Short || [];
+      const toSeries = src => data.map((d, i) => ({
+        time:  d.time,
+        value: (src[i + 1] != null && Number.isFinite(src[i + 1])) ? src[i + 1] : null
+      }));
+      return { long: toSeries(srcLong), short: toSeries(srcShort) };
+    } catch (e) { return null; }
+  }
+
   function getOverlayParam(id) {
     const def = OVERLAY_DEFS.find(x => x.id === id);
     return overlayParams[id] != null ? overlayParams[id] : (def && def.defaultParam != null ? def.defaultParam : 20);
+  }
+
+  function getOverlayParam2(id) {
+    const def = OVERLAY_DEFS.find(x => x.id === id);
+    return overlayParams[id + '_2'] != null ? overlayParams[id + '_2'] : (def && def.defaultParam2 != null ? def.defaultParam2 : null);
   }
 
   function getOverlayTitle(id) {
@@ -208,6 +294,10 @@
       case 'KAMA':   return { type:'single', data: computeKAMAData(d, p)   };
       case 'HullMA': return { type:'single', data: computeHullMAData(d, p) };
       case 'DEMA20': return { type:'single', data: computeDEMAData(d, p)   };
+      case 'WVC':    return { type:'wvc',    ...computeWVCData(d, p, getOverlayParam2(id)) };
+      case 'CKstop':          return { type:'cks',      ...computeCKstopData(d, p)    };
+      case 'DonchianChannel': return { type:'donchian', ...computeDonchianData(d, p)  };
+      case 'ChandelierExit':  return { type:'cks',      ...computeChandelierData(d, p) };
       default: return null;
     }
   }
@@ -234,6 +324,37 @@
       s2.setData(nonNull(result.middle));
       s3.setData(nonNull(result.lower));
       overlaySeries[id] = [s1, s2, s3];
+    } else if (result.type === 'wvc') {
+      const p    = getOverlayParam(id);
+      const opts = { lineWidth: 1, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const sUpper  = chart.addLineSeries({ ...opts, color: def.colorUpper || def.color, lineStyle: 2, title: `WVC+(${p})` });
+      const sMiddle = chart.addLineSeries({ ...opts, color: def.color,                   lineStyle: 0, title: `WVC(${p})`  });
+      const sLower  = chart.addLineSeries({ ...opts, color: def.colorLower || def.color, lineStyle: 2, title: `WVC-(${p})` });
+      sUpper .setData(nonNull(result.upper));
+      sMiddle.setData(nonNull(result.middle));
+      sLower .setData(nonNull(result.lower));
+      overlaySeries[id] = [sUpper, sMiddle, sLower];
+    } else if (result.type === 'cks') {
+      if (!result.long || !result.short) return;
+      const p    = getOverlayParam(id);
+      const lbl  = def.label || id;
+      const opts = { lineWidth: 1.5, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const sLong  = chart.addLineSeries({ ...opts, color: def.colorLong  || '#4ade80', lineStyle: 0, title: `${lbl}-Long(${p})`  });
+      const sShort = chart.addLineSeries({ ...opts, color: def.colorShort || '#f87171', lineStyle: 0, title: `${lbl}-Short(${p})` });
+      sLong .setData(nonNull(result.long));
+      sShort.setData(nonNull(result.short));
+      overlaySeries[id] = [sLong, sShort];
+    } else if (result.type === 'donchian') {
+      if (!result.upper || !result.lower) return;
+      const p    = getOverlayParam(id);
+      const opts = { lineWidth: 1, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const sUpper  = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 2, title: `DC+(${p})` });
+      const sMiddle = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 0, title: `DC(${p})`  });
+      const sLower  = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 2, title: `DC-(${p})` });
+      sUpper .setData(nonNull(result.upper));
+      sMiddle.setData(nonNull(result.middle));
+      sLower .setData(nonNull(result.lower));
+      overlaySeries[id] = [sUpper, sMiddle, sLower];
     } else {
       if (!result.data) return;
       const pts = nonNull(result.data);
@@ -256,6 +377,17 @@
       const result = getOverlayData(id);
       if (!result) return;
       if (result.type === 'bb') {
+        overlaySeries[id][0].setData(nonNull(result.upper));
+        overlaySeries[id][1].setData(nonNull(result.middle));
+        overlaySeries[id][2].setData(nonNull(result.lower));
+      } else if (result.type === 'wvc') {
+        overlaySeries[id][0].setData(nonNull(result.upper));
+        overlaySeries[id][1].setData(nonNull(result.middle));
+        overlaySeries[id][2].setData(nonNull(result.lower));
+      } else if (result.type === 'cks') {
+        overlaySeries[id][0].setData(nonNull(result.long));
+        overlaySeries[id][1].setData(nonNull(result.short));
+      } else if (result.type === 'donchian') {
         overlaySeries[id][0].setData(nonNull(result.upper));
         overlaySeries[id][1].setData(nonNull(result.middle));
         overlaySeries[id][2].setData(nonNull(result.lower));
@@ -303,9 +435,8 @@
     // Load saved params
     const savedParams = loadLS('stock_overlay_params_v2', {});
     OVERLAY_DEFS.forEach(def => {
-      if (def.defaultParam != null) {
-        overlayParams[def.id] = savedParams[def.id] != null ? savedParams[def.id] : def.defaultParam;
-      }
+      if (def.defaultParam  != null) overlayParams[def.id]        = savedParams[def.id]        != null ? savedParams[def.id]        : def.defaultParam;
+      if (def.defaultParam2 != null) overlayParams[def.id + '_2'] = savedParams[def.id + '_2'] != null ? savedParams[def.id + '_2'] : def.defaultParam2;
     });
 
     const toggleBtn = document.getElementById('overlay-toggle-btn');
@@ -332,16 +463,20 @@
       html += `<div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin:${gi > 0 ? '10px' : '0'} 0 5px">${group}</div>`;
       OVERLAY_DEFS.filter(d => d.group === group).forEach(def => {
         const chk = activeOverlays.has(def.id) ? 'checked' : '';
-        const curParam = overlayParams[def.id] ?? def.defaultParam;
+        const curParam  = overlayParams[def.id]        ?? def.defaultParam;
+        const curParam2 = overlayParams[def.id + '_2'] ?? def.defaultParam2;
+        const inputStyle = 'width:40px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:11px;padding:1px 4px;text-align:right;outline:none;flex-shrink:0';
         const paramInput = def.defaultParam != null
-          ? `<input type="number" class="overlay-param" data-id="${def.id}" value="${curParam}" min="2" max="999"
-              style="width:46px;background:#1e293b;border:1px solid #334155;border-radius:3px;color:#94a3b8;font-size:11px;padding:1px 4px;text-align:right;outline:none;flex-shrink:0">`
+          ? `<span style="font-size:10px;color:#475569;flex-shrink:0">${def.paramLabel || 'n'}</span><input type="number" class="overlay-param" data-id="${def.id}" value="${curParam}" min="2" max="999" style="${inputStyle}">`
+          : '';
+        const paramInput2 = def.defaultParam2 != null
+          ? `<span style="font-size:10px;color:#475569;flex-shrink:0">${def.paramLabel2 || 'n2'}</span><input type="number" class="overlay-param2" data-id="${def.id}" value="${curParam2}" min="1" max="999" style="${inputStyle}">`
           : '';
         html += `<div style="display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:4px" class="ol-row">
           <input type="checkbox" class="overlay-check" data-id="${def.id}" ${chk} style="cursor:pointer;accent-color:${def.color};width:13px;height:13px;flex-shrink:0">
           <span style="width:8px;height:8px;border-radius:50%;background:${def.color};flex-shrink:0;display:inline-block"></span>
           <span style="flex:1;font-size:11.5px;color:#cbd5e1;white-space:nowrap">${def.label}</span>
-          ${paramInput}
+          ${paramInput}${paramInput2}
         </div>`;
       });
     });
@@ -366,10 +501,19 @@
         inp.value = val;
         overlayParams[id] = val;
         saveLS('stock_overlay_params_v2', overlayParams);
-        if (activeOverlays.has(id)) {
-          removeOverlayFromChart(id);
-          addOverlayToChart(id);
-        }
+        if (activeOverlays.has(id)) { removeOverlayFromChart(id); addOverlayToChart(id); }
+      });
+      inp.addEventListener('click', e => e.stopPropagation());
+    });
+
+    panel.querySelectorAll('.overlay-param2').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const id = inp.dataset.id;
+        const val = Math.max(1, Math.min(999, parseInt(inp.value) || 1));
+        inp.value = val;
+        overlayParams[id + '_2'] = val;
+        saveLS('stock_overlay_params_v2', overlayParams);
+        if (activeOverlays.has(id)) { removeOverlayFromChart(id); addOverlayToChart(id); }
       });
       inp.addEventListener('click', e => e.stopPropagation());
     });

@@ -1014,7 +1014,62 @@ class MultiIndicatorSystem {
         compute: (data, params) => this.computeAdaptiveMAIndicator(data, params.day, params.esp),
         render: (chart, data, colors, seriesMap) => this.renderAdaptiveMA(chart, data, colors, seriesMap)
        },
+       DeMarker: {
+        name: 'DeMarker',
+        type: 'oscillator',
+        defaultParams: { day: 10 },
+        paramLabels: { day: 'Period' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeDeMarkerIndicator(data, params.day),
+        render: (chart, data, colors, seriesMap) => this.renderDeMarker(chart, data, colors, seriesMap)
+       },
+       WilliamsVolatilityChannel: {
+        name: 'Williams Volatility Channel',
+        type: 'volatility',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeWilliamsVolatilityChannelIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderWilliamsVolatilityChannel(chart, data, colors, seriesMap)
+       },
+       VolumeZoneOsc:{
+        name: 'Volume Zone Oscillator',
+        type: 'volume',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeVolumeZoneOscillator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderVolumeZoneOscillator(chart, data, colors, seriesMap)
+       },
+       DynamicZoneRSI:{ // there is some problem with upper and lower zone, need to check
+        name: 'Dynamic Zone RSI',
+        type: 'oscillator',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 5,
+        compute: (data, params) => this.computeDynamicZoneRSI(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderDynamicZoneRSI(chart, data, colors, seriesMap)
+       },
+       VolumeFlowIndicator: {
+        name: 'Volume Flow Indicator',
+        type: 'volume',
+        defaultParams: { day: 10, esp: 9 },
+        paramLabels: { day: 'Period', esp: 'Smooth' },
+        minPeriod: 10,
+        compute: (data, params) => this.computeVolumeFlowIndicator(data, params.day, params.esp),
+        render: (chart, data, colors, seriesMap) => this.renderVolumeFlowIndicator(chart, data, colors, seriesMap)
+        },
+        FractalDimensionIndex: {
+          name: 'Fractal Dimension Index',
+          type: 'volatility',
+          defaultParams: { day: 10 },
+          paramLabels: { day: 'Period' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeFractalDimensionIndex(data, params.day),
+          render: (chart, data, colors, seriesMap) => this.renderFractalDimensionIndex(chart, data, colors, seriesMap)
+         },
 
+       
 
 
     // last definition 
@@ -4641,7 +4696,290 @@ computeAdaptiveMAIndicator(data, day = 10, esp = 9) {
   return { AdaptiveMA};
 }
 
+computeDeMarkerIndicator(data, day = 10) {
+  const highs  = data.map(d => d.high);
+  const lows   = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = highs.length;
+  const DeMarker = new Array(len).fill(null);
+  if (len === 0) return { DeMarker: [] };
+
+  const fn = (typeof window !== 'undefined' && window.DeMarker) ? window.DeMarker : null;
+  if (!fn) return { DeMarker };
+
+  const out = fn(highs, lows, closes, day);
+  const srcDeMarker = out && out.DeMarker ? out.DeMarker : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcDeMarker[i + 1];  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    DeMarker[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { DeMarker };
+}
+
+computeWilliamsVolatilityChannelIndicator(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const Upperline = new Array(len).fill(null);
+  const MiddleLine= new Array(len).fill(null);
+  const Lowerline = new Array(len).fill(null);
+  if (len === 0) return { Upperline: [], MiddleLine: [], Lowerline: [] };
+
+  const fn = (typeof window !== 'undefined' && window.WilliamsVolatilityChannel) ? window.WilliamsVolatilityChannel : null;
+  if (!fn) return { Upperline, MiddleLine, Lowerline };
+  const out = fn(highs, lows, closes, day, esp);
+  const srcUpper = out && out.UpperLine ? out.UpperLine : [];
+  const srcMiddle = out && out.MiddleLine ? out.MiddleLine : [];
+  const srcLower = out && out.LowerLine ? out.LowerLine : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcUpper[i];
+    Upperline[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcMiddle[i];
+    MiddleLine[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+    const w3 = srcLower[i];
+    Lowerline[i] = (w3 != null && Number.isFinite(w3)) ? w3 : null;
+  }
+  return { Upperline, MiddleLine, Lowerline };
+}
+
+
+computeVolumeZoneOscillator(data, day = 10, esp = 9) {
+  const closes  = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length;
+  const VolZoneOsc = new Array(len).fill(null);
+  if (len === 0) return { VolZoneOsc: [] };
+
+  const fn = (typeof window !== 'undefined' && window.VolumeZoneOsc) ? window.VolumeZoneOsc : null;
+  if (!fn) return { VolZoneOsc };
+  const out = fn(closes, volumes, esp);
+  const srcVolZoneOsc = out && out.VolZoneOsc ? out.VolZoneOsc : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcVolZoneOsc[i + 1];
+    VolZoneOsc[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { VolZoneOsc };
+}
+
+computeDynamicZoneRSI(data, day = 10, esp = 9) {
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const DZ_upper = new Array(len).fill(null);
+  const DZ_mid = new Array(len).fill(null);
+  const DZ_lower = new Array(len).fill(null);
+   if (len === 0) return { DZ_upper: [], DZ_mid: [] , DZ_lower: []};
+
+  const fn = (typeof window !== 'undefined' && window.DynamicZoneRSI) ? window.DynamicZoneRSI : null;
+  if (!fn) return { DZ_upper, DZ_lower, DZ_mid };
+  const out = fn(closes, day, esp); 
+  const srcDZUpper = out && out.DZ_upper ? out.DZ_upper : [];
+  const srcDZMid = out && out.DZ_mid ? out.DZ_mid : [];
+  const srcDZLower = out && out.DZ_lower ? out.DZ_lower : [];
+  
+  for (let i = 0; i < len; i++) {
+    const w1 = srcDZUpper[i];
+    DZ_upper[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcDZMid[i];
+    DZ_mid[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+    const w3 = srcDZLower[i];
+    DZ_lower[i] = (w3 != null && Number.isFinite(w3)) ? w3 : null;
+  }
+  return { DZ_upper, DZ_lower, DZ_mid };
+}
+
+computeVolumeFlowIndicator(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length;
+  const VolFlowIndicator = new Array(len).fill(null);
+  const eVolFlowIndicator = new Array(len).fill(null);
+  if (len === 0) return { VolFlowIndicator: [], eVolFlowIndicator: [] };
+
+  const fn = (typeof window !== 'undefined' && window.VolumeFlowIndicator) ? window.VolumeFlowIndicator : null;
+  if (!fn) return { VolFlowIndicator, eVolFlowIndicator };
+
+  const out = fn(highs, lows, closes, volumes, day, esp);
+  const srcVolFlowIndicator = out && out.VolFlowIndicator ? out.VolFlowIndicator : [];
+  const srceVolFlowIndicator = out && out.eVolFlowIndicator ? out.eVolFlowIndicator : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcVolFlowIndicator[i];
+    VolFlowIndicator[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;  
+    const w2 = srceVolFlowIndicator[i];
+    eVolFlowIndicator[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { VolFlowIndicator, eVolFlowIndicator };
+}
+
+computeFractalDimensionIndex(data, day = 10) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const FDI = new Array(len).fill(null);
+  if (len === 0) return { FDI: [] };
+
+  const fn = (typeof window !== 'undefined' && window.FractalDimensionIndex) ? window.FractalDimensionIndex : null;
+  if (!fn) return { FDI };
+  const out = fn(highs, lows, closes, day);
+  const srcFDI = out && out.FDI ? out.FDI : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcFDI[i];
+    FDI[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { FDI };
+}
+
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+renderFractalDimensionIndex(chart, data, colors, seriesMap) {
+  if (!data || !data.FDI) return;
+  if (!seriesMap.has('FDI')) {
+    seriesMap.set('FDI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Fractal Dimension Index',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const FDIData = this.seriesWithLeadInPadding(data.FDI, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('FDI').setData(FDIData);
+}
+
+renderVolumeFlowIndicator(chart, data, colors, seriesMap) {
+  if (!data || !data.VolFlowIndicator || !data.eVolFlowIndicator) return;
+  if (!seriesMap.has('VolFlowIndicator')) {
+    seriesMap.set('VolFlowIndicator', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Volume Flow Indicator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eVolFlowIndicator')) {
+    seriesMap.set('eVolFlowIndicator', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eVolume Flow Indicator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const VolFlowIndicatorData = this.seriesWithLeadInPadding(data.VolFlowIndicator, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('VolFlowIndicator').setData(VolFlowIndicatorData);
+  const eVolFlowIndicatorData = this.seriesWithLeadInPadding(data.eVolFlowIndicator, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('eVolFlowIndicator').setData(eVolFlowIndicatorData);
+}
+
+renderDynamicZoneRSI(chart, data, colors, seriesMap) {
+  if (!data || !data.DZ_upper || !data.DZ_mid || !data.DZ_lower) return;
+  if (!seriesMap.has('DZ_upper')) {
+    seriesMap.set('DZ_upper', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'DZ RSI Upper',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+
+    }));
+  }
+  if (!seriesMap.has('DZ_mid')) {
+    seriesMap.set('DZ_mid', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'DZ RSI Mid',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('DZ_lower')) {
+    seriesMap.set('DZ_lower', chart.addLineSeries({
+      color: colors.LINE3,
+      lineWidth: 2,
+      title: 'DZ RSI Lower',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const DZUpperData = this.seriesWithLeadInPadding(data.DZ_upper, (v) => (v == null || isNaN(v)) ? null : v);
+  const DZMidData = this.seriesWithLeadInPadding(data.DZ_mid, (v) => (v == null || isNaN(v)) ? null : v);
+  const DZLowerData = this.seriesWithLeadInPadding(data.DZ_lower, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('DZ_upper').setData(DZUpperData);
+  seriesMap.get('DZ_mid').setData(DZMidData);
+  seriesMap.get('DZ_lower').setData(DZLowerData);
+}
+
+renderVolumeZoneOscillator(chart, data, colors, seriesMap) {
+  if (!data || !data.VolZoneOsc) return;
+  if (!seriesMap.has('VolZoneOsc')) {
+    seriesMap.set('VolZoneOsc', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Volume Zone Oscillator',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const VolZoneOscData = this.seriesWithLeadInPadding(data.VolZoneOsc, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('VolZoneOsc').setData(VolZoneOscData);
+}
+
+renderWilliamsVolatilityChannel(chart, data, colors, seriesMap) {
+  if (!data || !data.Upperline || !data.MiddleLine || !data.Lowerline) return;
+  if (!seriesMap.has('Upperline')) {
+    seriesMap.set('Upperline', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Upper Line',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('MiddleLine')) {
+    seriesMap.set('MiddleLine', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'Middle Line',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  } 
+  if (!seriesMap.has('Lowerline')) {
+    seriesMap.set('Lowerline', chart.addLineSeries({
+      color: colors.LINE3,
+      lineWidth: 2,
+      title: 'Lower Line',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const UpperlineData = this.seriesWithLeadInPadding(data.Upperline, (v) => (v == null || isNaN(v)) ? null : v);
+  const MiddleLineData = this.seriesWithLeadInPadding(data.MiddleLine, (v) => (v == null || isNaN(v)) ? null : v);
+  const LowerlineData = this.seriesWithLeadInPadding(data.Lowerline, (v) => (v == null || isNaN(v)) ? null : v);  
+  seriesMap.get('Upperline').setData(UpperlineData);
+  seriesMap.get('MiddleLine').setData(MiddleLineData);
+  seriesMap.get('Lowerline').setData(LowerlineData);
+}
+
+renderDeMarker(chart, data, colors, seriesMap) {
+  if (!data || !data.DeMarker) return;
+  if (!seriesMap.has('DeMarker')) {
+    seriesMap.set('DeMarker', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'DeMarker',  
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const DeMarkerData = this.seriesWithLeadInPadding(data.DeMarker, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('DeMarker').setData(DeMarkerData);
+}
+
 
 
 renderAdaptiveMA(chart, data, colors, seriesMap) {

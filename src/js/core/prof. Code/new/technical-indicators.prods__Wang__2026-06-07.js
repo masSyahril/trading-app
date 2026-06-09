@@ -173,13 +173,13 @@ function ARBR( STK_open, STK_high, STK_low, STK_close, ARBR_day) {
   const AR=[], BR=[];
   //let HO, OL, HC, CL; //this is wrong! HO, OL, HC, CL are arrays, not single variables.
   const HO=[], OL=[], HC=[], CL=[];
-  for(let i=1; i<STK_close.length; i++) {  // i=1,2,...,2000
+  for(let i=1; i<=STK_close.length; i++) {  // i=1,2,...,2000
     HO[i]= STK_high[i] - STK_open[i];
     OL[i]= STK_open[i] - STK_low[i];
     HC[i]= STK_high[i] - STK_close[i];
     CL[i]= STK_close[i] - STK_low[i];  }
   let tp_HO = 0, tp_OL = 0, tp_HC = 0, tp_CL = 0;
-  for(let i=1; i<ARBR_day; i++) {    // i=1,2,...,10
+  for(let i=1; i<=ARBR_day; i++) {    // i=1,2,...,10
      tp_HO = tp_HO + HO[i];
      tp_OL = tp_OL + OL[i];
      tp_HC = tp_HC + HC[i];
@@ -187,7 +187,7 @@ function ARBR( STK_open, STK_high, STK_low, STK_close, ARBR_day) {
   // let AR, BR = ARBR_day; this is wrong !!!
   AR[ARBR_day] = tp_HO/tp_OL;
   BR[ARBR_day] = tp_HC/tp_CL;
-  for(let i=ARBR_day+1; i<STK_close.length; i++){  // i=11,12,...,2000
+  for(let i=ARBR_day+1; i<=STK_close.length; i++){  // i=11,12,...,2000
     // AR(i) = AR(i-1) * (ARBR_day -1) + HO(i) / OL(i) )/ ARBR_day;
     AR[i]=(tp_HO+HO[i]-HO[i-ARBR_day])/(tp_OL+OL[i]-OL[i-ARBR_day]);
     BR[i]=(tp_HC+HC[i]-HC[i-ARBR_day])/(tp_CL+CL[i]-CL[i-ARBR_day]);
@@ -206,20 +206,20 @@ function CR(STK_high, STK_low, STK_close, CR_day, esp) {
   const CR=[], eCR=[];    //自創的eCR指標, eCR是CR的EMA(esp)指標
   let MP;
   const H_MP=[], MP_L=[];   // 分子=H-MP, 分母=MP-L
-  for(let i=2; i<STK_close.length; i++) {   // 2,3,...,2000
+  for(let i=2; i<=STK_close.length; i++) {   // 2,3,...,2000
     MP = (STK_high[i-1] + 2*STK_close[i-1]+STK_low[i-1])/4;
     H_MP[i] = STK_high[i]-MP;   // 2 to 2000
     MP_L[i] = MP-STK_low[i];    // 2 to 2000
   }
   let sum_H_MP = 0, sum_MP_L = 0;
-  for(let i=2; i<CR_day; i++) {  // 2,3,...,CR_day
+  for(let i=2; i<=CR_day; i++) {  // 2,3,...,CR_day
     sum_H_MP=sum_H_MP+H_MP[i];    //sum_H_MP += H_MP(i)
     sum_MP_L=sum_MP_L+MP_L[i];    //sum_MP_L += MP_L(i)
   }
   // CR = CR_day +1;
   CR[CR_day+1]= sum_H_MP/sum_MP_L;  //first CR values=CR[11]
   eCR[CR_day+1] = CR[CR_day+1];     //first eCR values= eCR[11], 自創
-  for(let i=CR_day+2; i<STK_close.length; i++) {  //12,...,2000
+  for(let i=CR_day+2; i<=STK_close.length; i++) {  //12,...,2000
     //加新的H-MP, MP-L, 減去舊的H-MP, MP-L
     sum_H_MP = sum_H_MP + H_MP[i] - H_MP[i-CR_day];  // 分子
     sum_MP_L = sum_MP_L + MP_L[i] - MP_L[i-CR_day];  // 分母
@@ -254,7 +254,7 @@ function BBI3(STK_close, day1, day2, day3){
   } */
   max_day=Math.max(day1, day2, day3);
   // for example day=5,10,20, then max_day=20
-  for(let i=max_day; i<STK_close.length; i++) { //例如:i=20 to 2000
+  for(let i=max_day; i<=STK_close.length; i++) { //例如:i=20 to 2000
     BBI3[i]=(MA1[i]+MA2[i]+MA3[i])/3;    
   }
   //compute RR(Rate-of-Return) and Acc_RR(Accumulate Rate-of-Return)
@@ -264,7 +264,7 @@ function BBI3(STK_close, day1, day2, day3){
   let BS_times=0;   //Buy and Sell times累積買賣次數
   if(BBI3[max_day]<STK_close[max_day]) {   //若條件成立，表示買點早已出現
      buy_price=STK_close[max_day]; }
-  for(let i=max_day+1; i<STK_close.length; i++) {    //例如:i=21 to 2000
+  for(let i=max_day+1; i<=STK_close.length; i++) {    //例如:i=21 to 2000
     if(BBI3[i-1]>STK_close[i-1] && BBI3[i]<STK_close[i]) {  //買點
       buy_price=STK_close[i]; }
     else if(BBI3[i-1]<STK_close[i-1] && BBI3[i]>STK_close[i]) {  //賣點
@@ -294,7 +294,7 @@ function BBI4(STK_close, day1, day2, day3, day4){
   const MA3 = KingMA(STK_close, day3);
   const MA4 = KingMA(STK_close, day4);
   let max_day = Math.max(day1, day2, day3, day4);
-  for(let i=max_day; i<STK_close.length; i++){
+  for(let i=max_day; i<=STK_close.length; i++){
     BBI4[i]=(MA1[i]+MA2[i]+MA3[i]+MA4[i])/4;
   }
   //return BBI4();
@@ -306,7 +306,7 @@ function BBI4(STK_close, day1, day2, day3, day4){
   let BS_times=0;   //Buy and Sell times累積買賣次數
   if(BBI4[max_day]<STK_close[max_day]) {   //若條件成立，表示買點早已出現
     buy_price=STK_close[max_day]; }
-  for(let i=max_day+1; i<STK_close.length; i++) {    //例如:i=21 to 2000
+  for(let i=max_day+1; i<=STK_close.length; i++) {    //例如:i=21 to 2000
     if(BBI4[i-1]>STK_close[i-1] & BBI4[i]<STK_close[i]) {  //買點
       buy_price=STK_close[i]; }
     else if(BBI4[i-1]<STK_close[i-1] & BBI4[i]>STK_close[i]) {  //賣點
@@ -337,7 +337,7 @@ function BBI5(STK_close, day1, day2, day3, day4, day5){
   const MA4 = KingMA(STK_close, day4);
   const MA5 = KingMA(STK_close, day5);
   let max_day = Math.max(day1,day2,day3,day4,day5);
-  for(let i=max_day; i<STK_close.length; i++){
+  for(let i=max_day; i<=STK_close.length; i++){
     BBI5[i]=(MA1[i]+MA2[i]+MA3[i]+MA4[i]+MA5[i])/5;
   }
   //return BBI5();
@@ -348,7 +348,7 @@ function BBI5(STK_close, day1, day2, day3, day4, day5){
   let BS_times=0;   //Buy and Sell times累積買賣次數
   if(BBI5(max_day)<STK_close(max_day)) {   //若條件成立，表示買點早已出現
     buy_price=STK_close(max_day); }
-  for(let i=max_day+1; i<STK_close.length; i++) {    //例如:i=21 to 2000
+  for(let i=max_day+1; i<=STK_close.length; i++) {    //例如:i=21 to 2000
     if(BBI5[i-1]>STK_close[i-1] & BBI5[i]<STK_close[i]) {  //買點
       buy_price=STK_close[i]; }
     else if(BBI5[i-1]<STK_close[i-1] & BBI5[i]>STK_close[i]) {  //賣點
@@ -373,7 +373,7 @@ function OSC(K_close, MA_day) {
   //k_close=STK_close, MA_day=5,10,20
   const OSC1=[], OSC2=[];
   const MA = KingMA(K_close, MA_day);
-  for(let i=MA_day; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=MA_day; i<=K_close.length; i++) {  //i=10 to 2000
     OSC1[i]=K_close[i]-MA[i];
     OSC2[i]=K_close[i]/MA[i];
   }
@@ -393,7 +393,7 @@ function BIAS(STK_close, day, esp) {
   // as it does not affect the calculation of BIAS.
   const BIAS=[], eBIAS=[];  //自創的eBIAS陣列，初始為空陣列。
   const MA1 = KingMA(STK_close,day);
-  for(let i=day; i<STK_close.length; i++) {
+  for(let i=day; i<=STK_close.length; i++) {
     BIAS[i]=(STK_close[i]/MA1[i]-1)*100;
     if(i==day) { //the first day of BIAS calculation, eBIAS is the same as BIAS.
       eBIAS[i]=BIAS[i]; }
@@ -421,7 +421,7 @@ function MABIAS(STK_close, day1, day2, esp) {
     day1=tepm; }
   const MA1 = KingMA(STK_close, day1); //day1較大
   const MA2 = KingMA(STK_close, day2);
- for(let i=day1; i<STK_close.length; i++){
+ for(let i=day1; i<=STK_close.length; i++){
    MABIAS[i]=MA2[i]-MA1[i];   //短期MA2減去長期MA1
    if(i==day1) {
      eMABIAS[i]=MABIAS[i]; }  //初值,自創eMABIAS
@@ -444,20 +444,20 @@ function UOSC(K_close, MA_day, UOSC_num) {
   const UOSC1=[], UOSC2=[];
   const OSC1=[], OSC2=[];
   const MA = KingMA(K_close, MA_day);
-  for(let i=MA_day; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=MA_day; i<=K_close.length; i++) {  //i=10 to 2000
     OSC1[i] = K_close[i]-MA[i]; //傳統表示法, =10,11,...,2000. //比較大
     OSC2[i] = K_close[i]/MA[i]; //自創表示法, =10,11,...,2000. //比較小
   }
   let sum1 = 0;
   let sum2 = 0;
-  for(let i=MA_day; i<MA_day+UOSC_num-1; i++) { //i=10 to 10+10-1=19
+  for(let i=MA_day; i<=MA_day+UOSC_num-1; i++) { //i=10 to 10+10-1=19
     sum1 += OSC1[i];
     sum2 += OSC2[i];
   }
   //first UOSC1, UOSC2 values, for example: UOSC1(19), UOSC2(19)
   UOSC1[MA_day+UOSC_num-1] = sum1/UOSC_num;
   UOSC2[MA_day+UOSC_num-1] = sum2/UOSC_num;
-  for(let i=MA_day+UOSC_num; i<K_close.length; i++) {  //i=20 to 2000
+  for(let i=MA_day+UOSC_num; i<=K_close.length; i++) {  //i=20 to 2000
     //扣除10天前的OSC1、OSC2值，加入新的OSC1、OSC2值
     sum1 += OSC1[i] - OSC1[i-UOSC_num];  //20-10=10
     sum2 += OSC2[i] - OSC2[i-UOSC_num];
@@ -480,7 +480,7 @@ function KD_KD(K_high, K_low, K_close, KD_day) {
   //K_high=STK_high, K_low=STK_low, K_close=STK_close
   const KD_K=[], KD_D=[];
   //const KD_K2=[], KD_D2=[];
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     let maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     let minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -522,7 +522,7 @@ function KD_K2D2(K_high, K_low, K_close, KD_day, esp) {
   const KD_K=[], KD_D=[];
   const KD_K2=[], KD_D2=[];
   let maxHigh, minLow=0;
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -563,7 +563,7 @@ function KD_K2(K_high, K_low, K_close, KD_day, esp) {
   // K_high=STK_high, K_low=STK_low, K_close=STK_close
   const KD_K=[], KD_D=[];
   const KD_K2=[], KD_D2=[];
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     let maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     let minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -605,7 +605,7 @@ function KD_D2(K_high, K_low, K_close, KD_day, esp) {
   // 一般KD_day=9天, 對KD_D指數平滑,取參數esp=9,之後取名KD_D2
   const KD_K=[], KD_D=[];
   const KD_K2=[], KD_D2=[];
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     let maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     let minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -647,7 +647,7 @@ function KD_D2(K_high, K_low, K_close, KD_day, esp) {
   // 一般KD_day=9天, 對KD_D指數平滑,取參數esp=9,之後取名KD_D2
   const KD_K=[], KD_D=[];
   const KD_K2=[], KD_D2=[];
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     let maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     let minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -696,7 +696,7 @@ function NewKD(K_high, K_low, K_close, KD_day, esp) {
   //enewD指標是"Stochastic Oscillator隨機震盪指標" 沒有的！
   let rsv;
   let maxHigh, minLow=0;
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -750,7 +750,7 @@ function diffKD(K_high, K_low, K_close, KD_day, esp) {
   //enewD指標是"Stochastic Oscillator隨機震盪指標" 沒有的！
   let rsv;
   let maxHigh, minLow=0;
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -791,7 +791,7 @@ function NVR(K_high, K_low, K_close, KD_day, esp) {
   const KD_K = [], KD_D = [];
   const NVR=[];    // NVR=K-D
   const eNVR=[];   //指數平滑NVR=eNVR
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     let maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     let minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -835,7 +835,7 @@ function StochasticOSC(K_high, K_low, K_close, KD_day, esp) {
   Stoch_D[KD_day-1] = 50;   //Stoch_D[8]初值
   eStoch_D[KD_day-1] = 50;  //eStoch_D[8]初值,對Stoch_D再指數平滑移動平均
   let maxHigh, minLow=0;
-  for(let i=KD_day; i<K_close.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_close.length; i++) {   // i=9 to 2000
     maxHigh=K_high[i-KD_day+1];   //令第一筆K_high[1]為最大
     minLow=K_low[i-KD_day+1];     //令第一筆K_low[1]為最小
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -864,7 +864,7 @@ window.StochasticOSC = StochasticOSC;
 function WilliamR(STK_close, WR_day) {
   //STK_close=STK_close,  WR_day=10,15,... 天數
   const WilliamR=[];
-  for(let i=1; i<STK_close.length-WR_day+1; i++) { // i=1 to 2000-10+1=1991
+  for(let i=1; i<=STK_close.length-WR_day+1; i++) { // i=1 to 2000-10+1=1991
     let Max_high=0; 
     let Min_low=9999;   // initial value can not be zero
     for(j=i; j<=WR_day+i-1; j++) {
@@ -894,7 +894,7 @@ function ATR(STK_high, STK_low, STK_close, esp) {
   const ATR=[]; //ATR[]=TR的指數平滑移動平均
   const TR=[];  //TR=真實波幅(True Range),TR是陣列不是變數
   let temp1, temp2, temp3;
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]);
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -957,32 +957,32 @@ function CCI(STK_high,STK_low, STK_close, CCI_day) {
   const TP = [];   //const typicalPrices, TP=1,2,3,...,2000.
   const CCI = [];
   // Calculate Typical Price(TP), TP[]=1,2,...,2000
-  for(let i=1; i<STK_close.length; i++) {
+  for(let i=1; i<=STK_close.length; i++) {
     TP[i]=(STK_high[i]+STK_low[i]+STK_close[i])/3;  //TP=1,2,...,2000
   }
   // Calculate MTP，計算n(CCD_day)日TP平均價, MTP=5,6,...,2000
   let sum=0;
-  for(let i=1; i<CCI_day; i++){
+  for(let i=1; i<=CCI_day; i++){
     sum=sum+TP[i]; }
   //first MTP value, 例如：CCD_day=5,則第一個MPT為MTP(5)
   const MTP=[];
   MTP[CCI_day]=sum/CCI_day;   //例如MTP[]=5,6,...,2000
-  for(let i=CCI_day+1; i<STK_close.length; i++) {   //6,7,...,2000.
+  for(let i=CCI_day+1; i<=STK_close.length; i++) {   //6,7,...,2000.
     MTP[i]=(sum+TP[i]-TP[i-CCI_day])/CCI_day;    //6,7,...,2000.
   }  
   //計算5日平均價MTP之一階均差MD(Mean Deviation)
   //TP=1,2,...,2000 .  MTP=5,6,...,2000  ,  MD=(5+5-1=9),10,11,...,2000
   const MD=[];
   sum=0;
-  for(let i=CCI_day; i<(CCI_day*2-1); i++) {  // i=5,6,7,8,9
+  for(let i=CCI_day; i<=(CCI_day*2-1); i++) {  // i=5,6,7,8,9
     sum=sum+Math.abs(TP[i]-MTP[i]);  }
   MD[CCI_day*2-1]=sum/CCI_day;   //first MD value, MD[]=9.10.11....2000
-  for(let i=CCI_day*2; i<STK_close.length; i++) {  // i=10,11,...,2000
+  for(let i=CCI_day*2; i<=STK_close.length; i++) {  // i=10,11,...,2000
     MD[i]=(sum+Math.abs(TP[i]-MTP[i])-Math.abs(TP[i-CCI_day]-MTP[i-CCI_day]))/CCI_day;
   }
   //Calculate CCI[],計算商品通道指標, CCI[], i=9,10,...,2000
   let alpha=0.015;  //常數0.015
-  for(let i=CCI_day*2-1; i<STK_close.length; i++) { //i=9,10,...,2000
+  for(let i=CCI_day*2-1; i<=STK_close.length; i++) { //i=9,10,...,2000
     CCI[i]=(TP[i]-MTP[i])/(alpha*MD[i]); }  
   return { CCI };    
   //如參數CCI_day=5，則CCI[]=9,10,...,2000.  例如：9=CCI_day*2-1
@@ -1003,7 +1003,7 @@ function AccuDistIndex(STK_close, STK_low, STK_high, esp) {
   const eADI=[];  //自創新
   ADI[1]=0;       //ADI(1)初值=0
   eADI[1]=0;      //eADI(1)初值=0
-  for (let i=2; i<STK_close.length; i++) {
+  for (let i=2; i<=STK_close.length; i++) {
     switch (true) {
       case STK_close[i]>STK_close[i-1]:
         ADI[i]=ADI[i-1]+(STK_close[i]-Math.min(STK_low[i],STK_close[i-1]));
@@ -1033,7 +1033,7 @@ window.AccuDistIndex = AccuDistIndex;
 function AccuDistOSC(STK_open, STK_high, STK_low, STK_close, esp) { //原名:ADO
   // Menu Name: AccuDistOSC(ADO)
   const ADO=[], eADO=[];  //自創新
-  for (let i=1; i<STK_close.length; i++) { //i=1,2,...,2000.
+  for (let i=1; i<=STK_close.length; i++) { //i=1,2,...,2000.
     if (STK_high(i)-STK_low(i)==0) {
       ADO[i]=100;  }
     else {
@@ -1059,7 +1059,7 @@ window.AccuDistOSC = AccuDistOSC;
 function VolAccuDistOsc(STK_high, STK_low, STK_close, STK_vol, esp) {  //原名稱:VAO
   // Menu Name=Vol Accu/Dist Osc(VAO)    , esp=9, 平滑化因子
   const VolAccuDistOsc=[], eVolAccuDistOsc=[];  //原名稱:VAO=[];
-  for(let i=1; i<STK_close.length; i++){  //=1,2,...,2000.
+  for(let i=1; i<=STK_close.length; i++){  //=1,2,...,2000.
     //if ((STK_high[i]-STK_low[i]!=0)) {
     //  VAO[i]=(2*STK_close[i]-STK_low[i]-STK_high[i])/(STK_high[i]-STK_low[i])*STK_vol;
     //}
@@ -1091,7 +1091,7 @@ function HighLowOsc(STK_high, STK_low, STK_close, esp) {  //原名稱:HLO
   const TR=0;     //True Range, TR
   HLO[1]=50;      //HLO(1)初值=50,適當否？
   eHLO[1]=50;     //eHLO(1)初值=50,適當否？
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     TR=max(STK_high[i]-STK_low[i], STK_high[i]-STK_close[i-1], Math.abs(STK_low[i]-STK_close[i-1]));
     HLO[i]=(STK_high[i]-STK_close[i-1])/TR*100;
     eHLO[i]=(esp-1)/(esp+1)*eHLO[i-1]+2/(esp+1)*HLO[i];  //自創新指標
@@ -1117,7 +1117,7 @@ function VertHoriFilter(STK_close, VHF_day, esp) {  //原名稱:VHF
   const VHF=[];
   const eVHF=[]; //自創新指標，名為eVHF，eVHF=（esp-1/esp+1*前一筆eVHF+2/(esp+1)*本筆VHF
   let sum=0;
-  for(let i=1; i<STK_close.length-VHF_day+1; i++) { //i=1 to 1981, 例VHF_day=20
+  for(let i=1; i<=STK_close.length-VHF_day+1; i++) { //i=1 to 1981, 例VHF_day=20
     max_close=STK_close[i];  //令第一筆為max
     min_close=STK_close[i];  //令第一筆為min
     for(j=i++; j<=(i+VHF_day-1); j++) {   //例參數VHF_day=20，從2找到20
@@ -1168,7 +1168,7 @@ function VolRatio(STK_close, STK_vol, day, esp) {   //原名=VR
   VolRatio[day+1]=(UpVol+TtlVol/2)/(DnVol+TtlVol/2)*100;  //第2個VR(21)
   eVolRatio[day+1]=(esp-1)/(esp+1)*eVolRatio[day]+2/(esp+1)*VolRatio[day+1];
   //第一個平滑eVR(21)。 eVR(21)=(n-1)/(n+1)*eVR(20)+2/(n+1)*VR(21)
-  for(let i=2+day; i<STK_close.length; i++) {   //let i=22 to 2000, 設day=20
+  for(let i=2+day; i<=STK_close.length; i++) {   //let i=22 to 2000, 設day=20
     //先扣除20天前累積的成交量
     if (STK_close[i-day]>=STK_close[i-day-1]) {  //上漲
       UpVol=UpVol-STK_vol[i-day];  }                //扣除第一個上漲成交量STK_vol(2)
@@ -1205,14 +1205,14 @@ function DEMA(STK_close, esp) {
   let yesterday_doubleEMA; //昨天的doubleEMA
   let today_doubleEMA;     //今天的doubleEMA
   let sum=0;
-  for(let i=1; i<esp; i++) {   //例如：i=1 to 20
+  for(let i=1; i<=esp; i++) {   //例如：i=1 to 20
     sum=sum+STK_close[i];
   }
   EMA[esp]=sum/esp;    //第一個EMA(20)
   DEMA[esp]=sum/esp;   //第一個DEMA(20)
   yesterday_doubleEMA=sum/esp;  //昨天的第一個doubleEMA
   //計算EMA,DEMA=21,22,...,2000
-  for(let i=esp+1; i<STK_close.length; i++) {
+  for(let i=esp+1; i<=STK_close.length; i++) {
     EMA[i]=(esp-1)/(esp+1)*EMA[i-1]+(2/(esp+1))*STK_close[i];
     today_doubleEMA=(esp-1)/(esp+1)*yesterday_doubleEMA+(2/(esp+1))*EMA[i];
     DEMA[i]=2*EMA[i]-today_doubleEMA;
@@ -1235,7 +1235,7 @@ function ADR(STK_close, ADR_day, esp) {
   const ADR=[], eADR=[];    //自創新
   let Up_days = 0, Dn_days = 0;  //上漲天數，下跌天數
   //例ADR_day=20，計算1,2,...,20的漲跌天數
-  for(let i=2; i<ADR_day; i++) {    //例： i=2,3,...,20
+  for(let i=2; i<=ADR_day; i++) {    //例： i=2,3,...,20
     if(STK_close[i]>STK_close[i-1]) {
       Up_days=Up_days+1; }
     else if(STK_close[i]<STK_close[i-1]) {
@@ -1248,7 +1248,7 @@ function ADR(STK_close, ADR_day, esp) {
   }
   eADR[ADR_day]=ADR[ADR_day];  //eADR(20)，第1個eADR
   //計算其餘的ADR=21,22,...,2000
-  for(let i=ADR_day+1; i<STK_close.length; i++) {    //例： i=21,22,...,2000.
+  for(let i=ADR_day+1; i<=STK_close.length; i++) {    //例： i=21,22,...,2000.
     //先扣掉第2天比第1天是否漲跌的天數。
     if(STK_close[i-ADR_day+1]>STK_close[i-ADR_day]) {  //第2天比第1天是否漲
       Up_days=Up_days-1;  }
@@ -1284,10 +1284,10 @@ function VariantRateMA(STK_close, day1, day2) {      //MA_day1, MA_day2
   //例：VarRtMA1=5日MA變動率，VarRtMA2=10的MA變動率
   const MA1 = KingMA(STK_close, day1);
   const MA2 = KingMA(STK_close, day2);
-  for(let i=day1+1; i<STK_close.length; i++) {  //例：VRMA1=5日的MA變化率
+  for(let i=day1+1; i<=STK_close.length; i++) {  //例：VRMA1=5日的MA變化率
     VarRtMA1[i]=(MA1[i]-MA1[i-1])/MA1[i-1]*100; //例：VRMA1=6,7,...,2000.
   }
-  for(let i=day2+1; i<STK_close.length; i++) {  //例：VRMA2=10日的MA變化率
+  for(let i=day2+1; i<=STK_close.length; i++) {  //例：VRMA2=10日的MA變化率
     VarRtMA2[i]=(MA2[i]-MA2[i-1])/MA2[i-1]*100; //例：VRMA2=11,12,...,2000.
   }
   return { VarRtMA1, VarRtMA2 };
@@ -1308,10 +1308,10 @@ function VariantRateMA2DaysAgo(STK_close,day1, day2) {      //MA_day1, MA_day2
   //例：VarRtMA1=5日MA變動率，VarRtMA2=10的MA變動率
   const MA1 = KingMA(STK_close, day1);
   const MA2 = KingMA(STK_close, day2);
-  for(let i=day1+2; i<STK_close.length; i++) {  //例：VRMA1=5日的MA變化率
+  for(let i=day1+2; i<=STK_close.length; i++) {  //例：VRMA1=5日的MA變化率
     VarRtMA2DaysAgo1[i]=(MA1[i]-MA1[i-2])/MA1[i-2]*100; //例：VRMA1=7,8,...,2000.
   }
-  for(let i=day2+2; i<STK_close.length; i++) {  //例：VRMA2=10日的MA變化率
+  for(let i=day2+2; i<=STK_close.length; i++) {  //例：VRMA2=10日的MA變化率
     VarRtMA2DaysAgo2[i]=(MA2[i]-MA2[i-2])/MA2[i-2]*100; //例：VRMA2=12,13,...,2000.
   }
   return { VarRtMA2DaysAgo1, VarRtMA2DaysAgo2 };
@@ -1331,14 +1331,14 @@ function IntradayMomentum(STK_open, STK_close, day1, day2) {  //原名: IMI
   // Menu Name: Intraday Momentum  , day1=10, day2=20, ...
   const IMI1=[], IMI2=[];
   let Iup, Idn = 0;
-  for (let i=1; i<day1; i++) {     //例: i=1 to 10
+  for (let i=1; i<=day1; i++) {     //例: i=1 to 10
     if(STK_close[i]>STK_open[i]) {
       Iup=Iup+(STK_close[i]-STK_open[i]); }
     else if(STK_open[i]>STK_close[i]) {
       Idn=Idn+(STK_open[i]-STK_close[i]); } 
   }
   IMI1[day1]=Iup/(Iup+Idn)*100;  //計算第1個IMI，例:IMI1(10)。
-  for(let i=day1+1; i<STK_close.length; i++) {  // i=11,12,...,2000.
+  for(let i=day1+1; i<=STK_close.length; i++) {  // i=11,12,...,2000.
     //先扣掉第1天比第1天是否C>O。
     if(STK_close[i-day1]>STK_open[i-day1]) {   //第1天比第1天是否C>O
       Iup=Iup-(STK_close[i-day1]-STK_open[i-day1]); }
@@ -1354,14 +1354,14 @@ function IntradayMomentum(STK_open, STK_close, day1, day2) {  //原名: IMI
   //相同程式邏輯，計算IMI2
   Iup=0;
   Idn=0;
-  for(let i=1; i<day2; i++) {     //例: let i=1 to 20
+  for(let i=1; i<=day2; i++) {     //例: let i=1 to 20
     if(STK_close[i]>STK_open[i]) {
       Iup=Iup+(STK_close[i]-STK_open[i]); }
     else if(STK_open[i]>STK_close[i]) {
       Idn=Idn+(STK_open[i]-STK_close[i]); } 
   }
   IMI2[day2]=Iup/(Iup+Idn)*100;  //計算第1個IMI，例:IMI2(20)。
-  for (let i=day2+1; i<STK_close.length; i++) {  //let i=21,22,...,2000.
+  for (let i=day2+1; i<=STK_close.length; i++) {  //let i=21,22,...,2000.
     //先扣掉第1天比第1天是否C>O。
     if(STK_close[i-day2]>STK_open[i-day2]) {   //第1天比第1天是否C>O
       Iup=Iup-(STK_close[i-day2]-STK_open[i-day2]); }
@@ -1396,13 +1396,13 @@ function Qstick(K_close, K_open, day, esp) {   //Qstick
   const eQstick = [];   //例如:N=10, eQstick=2 to 2000
   //compute first Qstick[]=10, 例如:N=10, Qstick[10]
   let sum=0;  //加總N日內(C-O)總和
-  for(let i=1; i<day; i++) {   //i=1 to 10, 例如:N=10}
+  for(let i=1; i<=day; i++) {   //i=1 to 10, 例如:N=10}
     sum=sum+(K_close[i]-K_open[i]);  //例如:N=10
   }
   Qstick[day]=sum/day;  //例如:N=10, first Qstick[10]
   eQstick[day]=Qstick[day];  //<自創>,令eQstick初值=Qstick初值, 例如:N=10, eQstick[10]
   //compute Qstick[]=11 to 2000, 例如:N=10, i=day+1 to 2000
-  for(let i=day+1; i<K_close.length; i++) {   //i=11 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {   //i=11 to 2000
     sum=sum-(K_close[i-day]-K_open[i-day])+(K_close[i]-K_open[i]);  
     //例如:N=10, sum=sum-(C[1]-O[1])+(C[11]-O[11])
     Qstick[i]=sum/day;  //例如:N=10, second Qstick[11]
@@ -1424,7 +1424,7 @@ function Momentum(K_close, day, esp) {
   //K_close=STK_close[]
   //day=closing price <day> days ago
   const MTM=[], eMTM=[];
-  for(let i=day; i<K_close.length; i++) {
+  for(let i=day; i<=K_close.length; i++) {
     MTM[i]=K_close[i]/K_close[i-day+1]*100;
     //例:day=10, MTM(10)=close(10)/close(1)*100
     //MTM=10,11,...,2000.
@@ -1448,7 +1448,7 @@ window.Momentum = Momentum;
 function ROC(STK_close, day, esp ) {
   // Menu Name: ROC  , day=10, 20, ... , esp=9, 10, ...
   const ROC=[], eROC=[];  //eROC=自創新指標, Exponential ROC, 指數平滑ROC
-  for(let i=day; i<STK_close.length; i++) {   // i=10, 11, ..., 2000.
+  for(let i=day; i<=STK_close.length; i++) {   // i=10, 11, ..., 2000.
     ROC[i]=(STK_close[i]-STK_close[i-day+1])/STK_close[i-day+1]*100;
     if(i==day) {
       eROC[i]=ROC[i]; }  //初值
@@ -1472,16 +1472,16 @@ function KST(STK_close, day1, day2, day3, day4, esp) {
   // Menu Name: KST 
   //例：day1-4：10,15,20,30天.  esp=9,10,...
   const ROC1=[], ROC2=[], ROC3=[], ROC4=[];
-  for(let i=day1; i<STK_close.length; i++) {   //ROC1(),10天
+  for(let i=day1; i<=STK_close.length; i++) {   //ROC1(),10天
     //ROC1=10,11,...,2000.
     ROC1[i]=(STK_close[i]/STK_close[i-day1+1]-1)*100; }
-  for(let i=day2; i<STK_close.length; i++) {   //ROC2(),15天
+  for(let i=day2; i<=STK_close.length; i++) {   //ROC2(),15天
     //ROC2=15,16,...,2000.
     ROC2[i]=(STK_close[i]/STK_close[i-day2+1]-1)*100; }
-  for(let i=day3; i<STK_close.length; i++) {   //ROC3(),20天
+  for(let i=day3; i<=STK_close.length; i++) {   //ROC3(),20天
     //ROC3=20,21,...,2000.
     ROC3[i]=(STK_close[i]/STK_close[i-day3+1]-1)*100; }
-  for(let i=day4; i<STK_close.length; i++) {   //ROC4(),30天
+  for(let i=day4; i<=STK_close.length; i++) {   //ROC4(),30天
     //ROC4=30,31,...,2000.
     ROC4[i]=(STK_close[i]/STK_close[i-day4+1]-1)*100; 
   }
@@ -1493,32 +1493,32 @@ function KST(STK_close, day1, day2, day3, day4, esp) {
   let maday3=10;
   let maday4=15;
   ROCma1[day1]=ROC1[day1];     //令第1個ROCma1(10)=ROC1(10)
-  for(let i=day1+1; i<STK_close.length; i++) {   //ROC1(),10天
+  for(let i=day1+1; i<=STK_close.length; i++) {   //ROC1(),10天
     ROCma1[i]=(maday1-1)/maday1*ROCma1[i-1]+1/maday1*ROC1[i];
   }
   ROCma2[day2]=ROC2[day2];     //令第1個ROCma2(15)=ROC2(15)
-  for(let i=day2+1; i<STK_close.length; i++) {   //ROC2(),15天
+  for(let i=day2+1; i<=STK_close.length; i++) {   //ROC2(),15天
     ROCma2[i]=(maday2-1)/maday2*ROCma2[i-1]+1/maday2*ROC2[i];
   }
   ROCma3[day3]=ROC3[day3];     //令第1個ROCma3(20)=ROC3(20)
-  for(let i=day3+1; i<STK_close.length; i++) {   //ROC3(),20天
+  for(let i=day3+1; i<=STK_close.length; i++) {   //ROC3(),20天
     ROCma3[i]=(maday3-1)/maday3*ROCma3[i-1]+1/maday3*ROC3[i];
   }
   ROCma4[day4]=ROC4[day4];     //令第1個ROCma4(30)=ROC4(30)
-  for(let i=day4+1; i<STK_close.length; i++) {   //ROC4(),30天
+  for(let i=day4+1; i<=STK_close.length; i++) {   //ROC4(),30天
     ROCma4[i]=(maday4-1)/maday4*ROCma4[i-1]+1/maday4*ROC4[i];
   }
   //計算KST。設4個day最大值為30，則KST的第1個值為KST(30)
   const KST=[];
   max_day=Math.max(day1,day2,day3,day4);   //設4個day最大值為30
-  for(let i=max_day; i<STK_close.length; i++) {  // i=30 to 2000
+  for(let i=max_day; i<=STK_close.length; i++) {  // i=30 to 2000
     KST[i]=(ROCma1[i]*1+ROCma2[i]*2+ROCma3[i]*3+ROCma4[i]*4)/10;
     //對4個ROCma加權，計算KST=30,31,...,2000.
   }
   //計算KST的指數平滑移動平均，(n-1)/(n+1)*舊+2/(n+1)*新。n=esp=9,10,...
   const eKST=[];   //KST的指數平滑移動平均。Signal Line, 自創
   eKST[max_day]=KST[max_day];   //令第1個eKST(30)=KST(30)
-  for(let i=max_day+1; i<STK_close.length; i++) {  // i=31 to 2000
+  for(let i=max_day+1; i<=STK_close.length; i++) {  // i=31 to 2000
     eKST[i]=(esp-1)/(esp+1)*eKST[i-1]+2/(esp+1)*KST[i];   //自創
   }
   return { KST, eKST };
@@ -1542,7 +1542,7 @@ function OBV(STK_high, STK_low, STK_close, STK_vol, esp) {
   }  //OBV[]=1
   eOBV[1]=OBV[1];   //OBV的EMA=eOBV。第1個eOBV.
   const ema_n=9;    //設平滑因子=9.
-  for(let i=2; i<STK_close.length; i++) {   // i=2 to 2000.
+  for(let i=2; i<=STK_close.length; i++) {   // i=2 to 2000.
     if(STK_high[i]!=STK_low[i]) {       //分母不為0
 // wrong: OBV[i]=OBV[i-1)+(2*STK_close[i]-STK_high[i]-STK_low[i])/(STK_high[i]-STK_low[i])*STK_vol[i]; }
       OBV[i]=OBV[i-1]+(2*STK_close[i]-STK_high[i]-STK_low[i])/(STK_high[i]-STK_low[i])*STK_vol[i]; }
@@ -1567,13 +1567,13 @@ window.OBV = OBV;
 function Acceleration(STK_close, MTM_n, ACC_n) {  //原名稱: ACC
   // Menu Name: Acceleration(ACC)     // MTM_n=10, ACC_n=5, ...
   const MTM=[], ACC=[];
-  for(let i=MTM_n; i<STK_close.length; i++) {    //MTM()
+  for(let i=MTM_n; i<=STK_close.length; i++) {    //MTM()
     //先算MTM，例:MTM_n=10, MTM(10)=close(10)/close(1)*100
     MTM[i]=STK_close[i]/STK_close[i-MTM_n+1]*100; //MTM=10,11,...,2000.
   }
   //ACC仿照MTM方式計算。ACC=MTM(t)/MTM(t-m)*100%
   //例:MTM_n=10，ACC_n=5，則ACC第1個值是ACC(15)
-  for(let i=MTM_n+ACC_n; i<STK_close.length; i++) {  // i=15 to 2000.
+  for(let i=MTM_n+ACC_n; i<=STK_close.length; i++) {  // i=15 to 2000.
     ACC[i]=MTM[i]/MTM[i-ACC_n]*100;   //第1個ACC(15)=MTM(15)/MTM(10)
   }  //ACC=15,16,...,2000.
   return { MTM, ACC };
@@ -1591,7 +1591,7 @@ function WilliamAccuDist(STK_high, STK_low, STK_close, esp) { //原名稱: WAD
   let TRH, TRL, AD=0;
   WAD[1]=STK_close[1];   //設定初值WAD(1)
   eWAD[1]=WAD[1];        //設定初值eWAD(1),自創新
-  for(let i=2; i<STK_close.length; i++) {     // i=2 to 2000.
+  for(let i=2; i<=STK_close.length; i++) {     // i=2 to 2000.
     TRH=Math.max(STK_close[i-1], STK_high[i]); //取大(昨收,今高)
     TRL=Math.min(STK_close[i-1], STK_low[i]);  //取小(昨收,今低)
     switch (true) {
@@ -1626,13 +1626,13 @@ function CostMA(STK_high, STK_low, STK_close, STK_vol, day_length) {
   let sum_Vol_P=0;   //分子加總
   let sum_Vol=0;     //分母加總
   let P=0;           //P=average(H+L+C)
-  for(let i=1; i<day_length; i++) {   //例:計算前10筆加總，i=1 to 10
+  for(let i=1; i<=day_length; i++) {   //例:計算前10筆加總，i=1 to 10
     P=(STK_high[i]+STK_low[i]+STK_close[i])/3;
     sum_Vol_P=sum_Vol_P+STK_vol[i]*P;  //分子加總
     sum_Vol=sum_Vol+STK_vol[i];        //分母加總
   }
   CostMA[day_length]=sum_Vol_P/sum_Vol;   //第1個成本均線，例:CostMA(10)
-  for(let i=day_length+1; i<STK_close.length; i++) {  //例:let i=11 to 2000
+  for(let i=day_length+1; i<=STK_close.length; i++) {  //例:let i=11 to 2000
     //先扣除10天前的分子加總、分母加總
     P=(STK_high[i-day_length]+STK_low [i-day_length]+STK_close[i-day_length])/3;
     sum_Vol_P=sum_Vol_P-STK_vol[i-day_length]*P;  //先扣除10天前的分子加總
@@ -1659,17 +1659,17 @@ function VolumeROC(K_vol, roc_length, ma_day) {
   // roc_length=10, =15, =20,... ,K_vol(i-roc_length)=第i-roc_length日的成交量
   // ma_day=5,10,... 移動平均天數
   const VolROC=[];    //=11,12,...,2000
-  for(let i=roc_length+1; i<K_vol.length; i++) {  // i=10+1, to 2000
+  for(let i=roc_length+1; i<=K_vol.length; i++) {  // i=10+1, to 2000
     VolROC[i]=(K_vol[i]/K_vol[i-roc_length]-1)*100;  // (Vol(11)/Vol(1)-1)*100
   }
   //計算：成交量變動率之移動平均(Moving Average of Volume Change Rate:)
   const VolROCma=[];   // =10+5  to 2000
   let sum=0;
-  for(let i=roc_length+1; i<roc_length+ma_day; i++) {  // i=10+1 to 10+5
+  for(let i=roc_length+1; i<=roc_length+ma_day; i++) {  // i=10+1 to 10+5
     sum=sum+VolROC[i];
   }
   VolROCma[roc_length+ma_day]=sum/ma_day;    // 第1個VolROCma(15)=sum/5
-  for(let i=roc_length+ma_day+1; i<K_vol.length; i++) { // i=10+5+1 to 2000
+  for(let i=roc_length+ma_day+1; i<=K_vol.length; i++) { // i=10+5+1 to 2000
     //先扣除5天前舊的，再加新的
     sum=sum-VolROC[i-ma_day]+VolROC[i];   //sum=sum-(第11個)+(第16個)
     VolROCma[i]=sum/ma_day;
@@ -1693,14 +1693,14 @@ function BTI(K_close, day) {
   const BTI=[];
   let sum_up=0;    //個股上漲天數_加總
   let sum_down=0;  //個股下跌天數_加總
-  for(let i=2; i<day+1; i++) {    //例：i=2 to 11
+  for(let i=2; i<=day+1; i++) {    //例：i=2 to 11
     if(K_close[i]>K_close[i-1]) {
       sum_up=sum_up+1; }
     else if(K_close[i]<K_close[i-1]) {
       sum_down=sum_down+1;  }
   }
   BTI[day+1]=(sum_up/(sum_up+sum_down))/day; //第1個，例:BTI(11)
-  for(let i=day+2; i<K_close.length; i++) {  //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {  //i=12 to 2000
     //先扣除10天前的分子加總、分母加總
     if(K_close[i-day]>K_close[i-day-1]) {   //(12-10=)2 >1
       sum_up=sum_up-1; }
@@ -1736,7 +1736,7 @@ function DPO(STK_close, MA_day, esp) {
     MA_day=MA_day+1;  //如果MA_day是奇數，則改為偶數。例MA_day=9,則改為10。
   }
   let lag_day=MA_day-(MA_day/2+1);  //例MA_day=10, 10-(10/2+1)=4
-  for(let i=MA_day+lag_day; i<STK_close.length; i++) { //例i=10+4 to 2000
+  for(let i=MA_day+lag_day; i<=STK_close.length; i++) { //例i=10+4 to 2000
     DPO[i]=STK_close[i]-MA[i-lag_day];  //DPO(14)=C(14)-MA(14-4)
     //例MA_day=10,則第1個DPO=DPO(14)
     if(i===MA_day+lag_day) {  //指數平滑移動平均
@@ -1759,7 +1759,7 @@ function EOM_EMV(STK_high, STK_low, STK_close, STK_vol, esp) {
   // Menu Name: EOM_EMV    //esp=9;    //指數平滑移動平均參數=9
   const EOM_EMV=[], eEOM_EMV=[];  //本人自創
   let MID, VPU;
-  for(let i=2; i<STK_close.length; i++) {
+  for(let i=2; i<=STK_close.length; i++) {
     // MID=MidPointMove
     MID=(STK_high[i]-STK_low[i])/2-(STK_high[i-1]-STK_low[i-1])/2;
     // VPU=VolumePerUnit
@@ -1798,7 +1798,7 @@ function PriceVolumTrend(K_close, K_vol, esp) {
   const PVT=[], ePVT=[];
   PVT[1]=K_vol[1];     //初值
   ePVT[1]=PVT[1];      //初值,指數平滑移動平均,自創
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     PVT[i]=PVT[i-1]+((K_close[i]-K_close[i-1])/K_close[i-1])*K_vol[i];
     ePVT[i]=(esp-1)/(esp+1)*ePVT[i-1]+2/(esp+1)*PVT[i];
     //ePVT今=(n-1)/(n+1)*ePVT昨+2/(n+1)*PVT今。參數=9,<本人自創>
@@ -1826,11 +1826,11 @@ function MAPriceVolumTrend(K_close, K_vol, ma_day, esp) {
   //================First calculate MA ===
   const MA=[];
   let sum=0;
-  for(let i=1; i<ma_day; i++) {
+  for(let i=1; i<=ma_day; i++) {
     sum=sum+K_close[i];
   }
   MA[ma_day]=sum/ma_day;   //first MA[10]
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=11 to 2000
     sum=sum-K_close[i-ma_day]+K_close[i];   //先減舊的再加新的
     MA[i]=sum/ma_day;      //second MA[11]
   }
@@ -1838,7 +1838,7 @@ function MAPriceVolumTrend(K_close, K_vol, ma_day, esp) {
   //if ma_day=10, then MAPVT[]=11 ,12,...,2000
   MAPVT[ma_day]=K_vol[ma_day];   //初值,MAPVT[10]
   eMAPVT[ma_day]=MAPVT[ma_day];  //初值,指數平滑移動平均
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=10+1 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=10+1 to 2000
     MAPVT[i]=MAPVT[i-1]+((MA[i]-MA[i-1])/MA[i-1])*K_vol[i];
     eMAPVT[i]=(esp-1)/(esp+1)*eMAPVT[i-1]+2/(esp+1)*MAPVT[i];
     //eMAPVT今=(n-1)/(n+1)*eMAPVT昨+2/(n+1)*MAPVT今。參數=9,<本人自創>
@@ -1862,7 +1862,7 @@ function CumulativeVolume(K_close, K_vol, esp) {
   // esp=9;    //指數平滑移動平均參數=9
   CumuVol[1]=K_close[1];     //初值
   eCumuVol[1]=CumuVol[1];    //初值,指數平滑移動平均
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     CumuVol[i]=CumuVol[i-1]+(K_close[i]-K_close[i-1])*K_vol[i];
     eCumuVol[i]=(esp-1)/(esp+1)*eCumuVol[i-1]+2/(esp+1)*CumuVol[i];
     //eCumuVol今=(n-1)/(n+1)*eCumuVol昨+2/(n+1)*CumuVol今。參數=9,<本人自創>
@@ -1889,11 +1889,11 @@ function NewCumulativeVolume(K_close, K_vol, ma_day, esp) {
   //================First calculate MA ===
   const MA=[];
   let sum=0;
-  for(let i=1; i<ma_day; i++) {
+  for(let i=1; i<=ma_day; i++) {
     sum=sum+K_close[i];
   }
   MA[ma_day]=sum/ma_day;   //first MA[10]
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=11 to 2000
     sum=sum-K_close[i-ma_day]+K_close[i];   //先減舊的再加新的
     MA[i]=sum/ma_day;      //second MA[11]
   }
@@ -1901,7 +1901,7 @@ function NewCumulativeVolume(K_close, K_vol, ma_day, esp) {
   //if ma_day=10, then MACumuVol[]=11 ,12,...,2000
   MACumuVol[ma_day]=K_vol[ma_day];       //初值,MACumuVol[10]
   eMACumuVol[ma_day]=MACumuVol[ma_day];  //初值,指數平滑移動平均
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=10+1 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=10+1 to 2000
     MACumuVol[i]=MACumuVol[i-1]+(MA[i]-MA[i-1])*K_vol[i];
     eMACumuVol[i]=(esp-1)/(esp+1)*eMACumuVol[i-1]+2/(esp+1)*MACumuVol[i];
     //eMACumuVol今=(n-1)/(n+1)*eMACumuVol昨+2/(n+1)*MACumuVol今。參數=9,<本人自創>
@@ -1926,7 +1926,7 @@ function MoneyFlowIndex(STK_high,STK_low, STK_close, day, esp) {
   const MFI=[], eMFI=[];    //=MoneyFlowIndex
   let PMF=0, NMF=0;   //PositiveMoneyFlow正資金流,NegativeMoneyFlow負資金流
   let yesterday_TpPrice, today_TpPrice;  //TypicalPrice 昨天的、今天的
-  for(let i=2; i<day; i++) {   //例:i=2 to 10
+  for(let i=2; i<=day; i++) {   //例:i=2 to 10
     yesterday_TpPrice=(STK_high[i-1]+STK_low[i-1]+STK_close[i-1])/3;
     //TypicalPrice 昨天的
     today_TpPrice=(STK_high[i]+STK_low[i]+STK_close[i])/3;
@@ -1939,7 +1939,7 @@ function MoneyFlowIndex(STK_high,STK_low, STK_close, day, esp) {
     MFI[day]=PMF/(PMF+NMF)*100;   //第1個MFI值，例：MFI(10)
     eMFI[day]=PMF/(PMF+NMF)*100;  //初值,指數平滑移動平均eMFI(10)=MFI(10)
   }
-  for(let i=day+1; i<STK_close.length; i++) {  //例:i=11 to 2000
+  for(let i=day+1; i<=STK_close.length; i++) {  //例:i=11 to 2000
     //下面是：先扣除10天前的PositiveMoneyFlow、NegativeMoneyFlow
     yesterday_TpPrice=(STK_high[i-day]+STK_low[i-day]+STK_close[i-day])/3;
     //TypicalPrice 昨天的,第1天
@@ -1983,7 +1983,7 @@ function PositiveVolIndex(STK_close, STK_vol, esp) {
   const PVI=[], ePVI=[];
   PVI[1]=100;        //初值
   ePVI[1]=PVI[1];    //初值,指數平滑移動平均,自創
-  for(let i=2; i<STK_close.length; i++) {   //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {   //i=2 to 2000
     if(STK_vol[i] > STK_vol[i-1]) {  //若第t日成交量大於前一日(t-1)成交量
       PVI[i]=PVI[i-1]*(STK_close[i]-STK_close[i-1])/STK_close[i-1]; }
     else {   //if(STK_vol[i]<STK_vol[i-1]) {
@@ -2010,7 +2010,7 @@ function NegativeVolIndex(STK_close, STK_vol, esp) {
   const NVI=[], eNVI=[];
   NVI[1]=100;        //初值
   eNVI[1]=NVI[1];    //初值,指數平滑移動平均
-  for(let i=2; i<STK_close.length; i++) {   //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {   //i=2 to 2000
     if(STK_vol[i] < STK_vol[i-1]) {  //若第t日成交量小於前一日(t-1)成交量
       NVI[i]=NVI[i-1]*((STK_close[i]-STK_close[i-1])/STK_close[i-1]); }
     else {   //else if(STK_vol[i]>STK_vol[i-1])
@@ -2034,7 +2034,7 @@ function MASS(STK_high, STK_low, esp) {
   // Menu Name: MASS Index     // esp=9
   const EMA1=[], EMA2=[], Mass=[], eMass=[];  //宣告EMA1,EMA2,Mass,eMass陣列
   let sum=0;          //前9天sum(最高價－最低價)等
-  for(let i=1; i<esp; i++) {   //計算前9筆加總，i=1 to 9
+  for(let i=1; i<=esp; i++) {   //計算前9筆加總，i=1 to 9
     let sum=sum+(STK_high[i]-STK_low[i]);
   }
   EMA1[esp]=sum/esp;        //第1個EMA1值,EMA1(9)
@@ -2042,7 +2042,7 @@ function MASS(STK_high, STK_low, esp) {
   sum=EMA1[esp]/EMA2[esp];  //暫時變數加總,EMA1(9)/EMA2(9)
   let mass_n=5;  //此處Mass參數N=5 (一般參數設為25天)
   //計算i=10 to 13
-  for(let i=esp+1; i<esp+mass_n-1; i++) {  //i=10 to 13
+  for(let i=esp+1; i<=esp+mass_n-1; i++) {  //i=10 to 13
     EMA1[i]=(esp-1)/(esp+1)*EMA1[i-1]+2/(esp+1)*(STK_high[i]-STK_low[i]);
     EMA2[i]=(esp-1)/(esp+1)*EMA2[i-1]+2/(esp+1)*EMA1[i];
     sum=sum+EMA1[i]/EMA2[i];  //前13天EMA1/EMA2的加總,即Mass(13)的值
@@ -2050,7 +2050,7 @@ function MASS(STK_high, STK_low, esp) {
   Mass[esp+mass_n-1]=sum;  //第1個Mass值,Mass(13)=Mass(9+5-1)
   eMass[esp+mass_n-1]=Mass[esp+mass_n-1];  //第1個eMass值,eMass(13)=Mass(13)
   //計算i=14 to 2000
-  for(let i=esp+mass_n; i<STK_close.length; i++) {  //i=14 to 2000
+  for(let i=esp+mass_n; i<=STK_close.length; i++) {  //i=14 to 2000
     EMA1[i]=(esp-1)/(esp+1)*EMA1[i-1]+2/(esp+1)*(STK_high[i]-STK_low[i]);
     EMA2[i]=(esp-1)/(esp+1)*EMA2[i-1]+2/(esp+1)*EMA1[i];
     //要移除第(i-5=9)天的EMA1/EMA2,即5天前的EMA1/EMA2
@@ -2084,7 +2084,7 @@ function PriceOSC(STK_close, short_day, long_day, esp) {
   }
   const shortMA = KingMA(STK_close, short_day);   //例如5天MA
   const longMA = KingMA(STK_close, long_day);     //例如10天MA
-  for(let i=long_day; i<STK_close.length; i++) {    //i=10 to 2000
+  for(let i=long_day; i<=STK_close.length; i++) {    //i=10 to 2000
     PriceOSC[i]=(shortMA[i]-longMA[i])/shortMA[i]*100;   //計算第1個OSCP(10)
     if(i==long_day) {      //令eOSCP初值=OSCP初值, 例i=10
       ePriceOSC[i]=PriceOSC[i]; }
@@ -2116,7 +2116,7 @@ function VolumeOSC(STK_vol, short_day, long_day, esp) {  //一般稱呼OSCV
   }
   const shortMA = SimpleMA_vol(STK_vol, short_day);  //例如5天MA
   const longMA = SimpleMA_vol(STK_vol, long_day);    //例如10天MA
-  for(let i=long_day; i<STK_close.length; i++) {     //i=10 to 2000
+  for(let i=long_day; i<=STK_close.length; i++) {     //i=10 to 2000
     VolOSC[i]=(shortMA[i]-longMA[i])/shortMA[i]*100;    //計算第1個OSCV(10)
     if(i==long_day) {      //令eOSCV初值=OSCV初值, 例i=10
       eVolOSC[i]=VolOSC[i]; }
@@ -2137,11 +2137,11 @@ window.VolumeOSC = VolumeOSC;
 function SimpleMA_vol(STK_vol, day) {
   const MA_vol = [];
   let sum = 0;
-  for (let i=1; i< day; i++) {  // i=1 to 10
+  for (let i=1; i<= day; i++) {  // i=1 to 10
     sum=sum+STK_vol[i];
   }
   MA_vol[day]=sum/day;   //第1個MA_vol值,MA_vol(10)
-  for (let i = day+1; i<STK_vol.length; i++) {   // i=11 to 2000
+  for (let i = day+1; i<=STK_vol.length; i++) {   // i=11 to 2000
     sum=sum-STK_vol[i-day]+STK_vol[i];     //移除day天前的，加上今天的
     MA_vol[i]=sum/day;     //MA_vol=11,12,...,2000.
   }
@@ -2170,7 +2170,7 @@ function AccuDistLine(K_high, K_low, K_close, K_vol) {  //原名: ADL, ADLine
     AccuDistLine[2]=(2*K_close[2]-K_high[2]-K_low[2])/(K_high[2]-K_low[2])*K_vol[2]+AccuDistLine[2];
   }
   //計算i=3 to 2000
-  for(let i=3; i<K_close.length; i++) {   //i=3 to 2000
+  for(let i=3; i<=K_close.length; i++) {   //i=3 to 2000
     if(K_high[i]-K_low[i]==0) {            //分母為0,避免除以0的錯誤
       AccuDistLine[i]=(K_close[i]/K_close[i-1]-1)*K_vol[i]+AccuDistLine[i-1]; }
     else {
@@ -2203,19 +2203,19 @@ function ChaikinOSC(K_high, K_low, K_close, K_vol, short_day, long_day, esp) {
   const shortEMA_ADLine = [];     // i=1 to 2000
   //simpleEMA, the first simpleEMA[1]=values[1]
   shortEMA_ADLine[1]=K_close[1];  //=1,2,...,2000
-  for(let i=2; i<K_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  //i=2 to 2000
     shortEMA_ADLine[i]=(short_day-1)/(short_day+1)*shortEMA_ADLine[i-1]+2/(short_day+1)*ADLine[i];
   }
   // longEMA(ADLine, long_day)的計算
   const longEMA_ADLine = [];     // i=1 to 2000
   //simpleEMA, the first simpleEMA[1]=values[1]
   longEMA_ADLine[1]=K_close[1];  //=1,2,...,2000
-  for(let i=2; i<K_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  //i=2 to 2000
     longEMA_ADLine[i]=(long_day-1)/(long_day+1)*longEMA_ADLine[i-1]+2/(long_day+1)*ADLine[i];
   }
   const ChaikinOSC = [];    //例如：1 to 2000
   const eChaikinOSC = [];   //例如：1 to 2000
-  for(let i=1; i<K_close.length; i++) {   //i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {   //i=1 to 2000
     ChaikinOSC[i]=shortEMA_ADLine[i]-longEMA_ADLine[i];   //計算第1個ChaikinOSC
     if(i==1) {      //令eChaikinOscillator初值=ChaikinOscillator初值, i=1
       eChaikinOSC[i]=ChaikinOSC[i]; }
@@ -2243,7 +2243,7 @@ window.ChaikinOSC = ChaikinOSC;
   const eChaikinOscillator = [];   //例如：10 to 2000, long_day=10,11,...,2000
   //let eChaikinOscillator_n=9;      //指數平滑移動平均參數=9,變數名稱太長
   //let eCO_n=9;      //指數平滑移動平均參數=9, eChaikinOscillator_n=9。參數=9,<本人自創>
-  for(let i=long_day; i<STK_close.length; i++) {   //i=10 to 2000
+  for(let i=long_day; i<=STK_close.length; i++) {   //i=10 to 2000
     ChaikinOscillator[i]=shortEMA[i]-longEMA[i];   //計算第1個ChaikinOscillator(10)
     if(i==long_day) {      //令eChaikinOscillator初值=ChaikinOscillator初值, 例i=10
       eChaikinOscillator[i]=ChaikinOscillator[i]; }
@@ -2267,21 +2267,21 @@ window.ChaikinOSC = ChaikinOSC;
 function ChaikinVolatility(K_high, K_low, N_days_ago, esp) { 
   // Menu Name: Chaikin Volatility    // N_days_ago=10, esp=9
   const Range = [];   // Range=High-Low, Range[]=1 to 2000
-  for(let i=1; i<K_high.length; i++) {   //i=1 to 2000
+  for(let i=1; i<=K_high.length; i++) {   //i=1 to 2000
     Range[i]=K_high[i]-K_low[i];
   }
   //compute RangeEMA[]=2 to 2000
   //RangeEMA=(n-1)/(n+1)*RangeEMA昨+2/(n+1)*Range今
   const RangeEMA = [];    //例如:N=10, RangeEMA=2 to 2000
   RangeEMA[1]=Range[1];   //令RangeEMA初值=Range初值, 例i=1
-  for(let i=2; i<K_high.length; i++) {   //i=2 to 2000
+  for(let i=2; i<=K_high.length; i++) {   //i=2 to 2000
     RangeEMA[i]=(esp-1)/(esp+1)*RangeEMA[i-1]+2/(esp+1)*Range[i];
   }
   //compute ChaikinVolatility[]=11 to 2000, 例如:N=10
   //Chaikin Volatility=(今RangeEMA-N日前的RangeEMA)/N日前的RangeEMA
   const ChaikinVolatility = [];
   const eChaikinVolatility = [];   //自創新
-  for(let i=N_days_ago+1; i<K_high.length; i++) {   //i=11 to 2000
+  for(let i=N_days_ago+1; i<=K_high.length; i++) {   //i=11 to 2000
     ChaikinVolatility[i]=(RangeEMA[i]-RangeEMA[i-N_days_ago])/RangeEMA[i-N_days_ago]*100;
     if(i==N_days_ago+1) {   //i=11, //自創新
       eChaikinVolatility[i]=ChaikinVolatility[i];} //令eChaikinVolatility初值=ChaikinVolatility初值, 例i=11
@@ -2307,13 +2307,13 @@ function ChaikinVolatilityMaxMin(K_high, K_low, N_days) {
   //111111111111111111111111111111------------compute Range=1 to 2000
   //compute Range, Range=High-Low, Range[]=1 to 2000
   const Range = [];  //也可取名:High_Low[]=High-Low, Range[]=1 to 2000
-  for(let i=1; i<K_high.length; i++) {   //i=1 to 2000
+  for(let i=1; i<=K_high.length; i++) {   //i=1 to 2000
     Range[i]=K_high[i]-K_low[i];
   }
   //222222222222222222222222222222---compute maxHigh_minLow=10 to 2000
   let maxHigh, minLow;
   maxHigh=K_high[1], minLow=K_low[1]; //設第1筆=最大值和最小值
-  for(let i=2; i<N_days; i++) {      //從i=2筆找到i=10筆
+  for(let i=2; i<=N_days; i++) {      //從i=2筆找到i=10筆
     if(K_high[i]>maxHigh) maxHigh=K_high[i];
     if(K_low[i]<minLow) minLow=K_low[i];
   }
@@ -2321,7 +2321,7 @@ function ChaikinVolatilityMaxMin(K_high, K_low, N_days) {
   //(maxHigh within 10 days)-(minLow within 10 days)
   maxHigh_minLow[N_days]=maxHigh-minLow;  //第1筆=10
   //從i=11 to 2000, 每次比較新的一筆和前10筆的最大值和最小值
-  for(let i=N_days+1; i<K_high.length; i++) {   //i=11 to 2000
+  for(let i=N_days+1; i<=K_high.length; i++) {   //i=11 to 2000
     maxHigh=K_high[i-N_days+1]; //設第2筆=最大值
     minLow=K_low[i-N_days+1];   //設第2筆=最小值
     for(let j=i-N_days+2; j<=i; j++) {  //從第3筆找到第11筆
@@ -2337,7 +2337,7 @@ function ChaikinVolatilityMaxMin(K_high, K_low, N_days) {
   const RangeEMA=[];      //例如:N_days=10, RangeEMA=1 to 2000
   RangeEMA[1]=Range[1];   //令RangeEMA初值=Range初值, 例i=1
   let esp=N_days;         //esp=10
-  for(let i=2; i<K_high.length; i++) {   //i=2 to 2000
+  for(let i=2; i<=K_high.length; i++) {   //i=2 to 2000
     RangeEMA[i]=(esp-1)/(esp+1)*RangeEMA[i-1]+2/(esp+1)*Range[i];
   }
   //4444444444444444444444444444---compute EMA_maxHigh_minLow=10 to 2000
@@ -2346,7 +2346,7 @@ function ChaikinVolatilityMaxMin(K_high, K_low, N_days) {
   const EMA_maxHigh_minLow=[];   //EMA_maxHigh_minLow=10 to 2000   
   EMA_maxHigh_minLow[N_days]=maxHigh_minLow[N_days]; //=10
   //令EMA_maxHigh_minLow初值=maxHigh_minLow初值, 例i=N_days
-  for(let i=N_days+1; i<K_high.length; i++) {   //i=11 to 2000
+  for(let i=N_days+1; i<=K_high.length; i++) {   //i=11 to 2000
     EMA_maxHigh_minLow[i]=(esp-1)/(esp+1)*EMA_maxHigh_minLow[i-1]+2/(esp+1)*maxHigh_minLow[i];
   }
   //555555555555555555555555555---compute ChaikinVolatility=10 to 2000
@@ -2354,7 +2354,7 @@ function ChaikinVolatilityMaxMin(K_high, K_low, N_days) {
   //Chaikin Volatility=(今EMA_maxHigh_minLow-N日前的EMA_maxHigh_minLow)/N日前的EMA_maxHigh_minLow
   const ChaikinVolatility = [];  
   const eChaikinVolatility = [];   //自創新
-  for(let i=N_days; i<K_high.length; i++) {   //i=10 to 2000
+  for(let i=N_days; i<=K_high.length; i++) {   //i=10 to 2000
     ChaikinVolatility[i]=(RangeEMA[i]-EMA_maxHigh_minLow[i])/EMA_maxHigh_minLow[i]*100;
     if(i==N_days) {   //i=10, //自創新
       eChaikinVolatility[i]=ChaikinVolatility[i];} //令eChaikinVolatility初值=ChaikinVolatility初值
@@ -2381,14 +2381,14 @@ function ChaikinMoneyFlow(K_high, K_low, K_close, K_vol, day, esp) {
   const CMF=[], eCMF=[];      //例如：=20,21,...,2000.  <本人自創>
   let sum_CLV, sum_Vol=0;     //分子與分母暫時變數,初值=0
   //先加總前20天的sum(今CLV X 今Vol)/sum(今Vol), 分子與分母
-  for(let i=1; i<day; i++) {   //例:i=1 to 20
+  for(let i=1; i<=day; i++) {   //例:i=1 to 20
     sum_CLV=sum_CLV+((2*K_close[i]-K_high[i]-K_low[i])/(K_high[i]-K_low[i]))*K_vol[i];
     sum_Vol=sum_Vol+K_vol[i];
   }
   //計算第1個CMF值, 例:CMF(20)
   CMF[day]=sum_CLV/sum_Vol;   
   eCMF[day]=CMF[day];    //令eCMF初值=CMF初值, <本人自創>
-  for(let i=day+1; i<K_close.length; i++) {   //例:i=21 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {   //例:i=21 to 2000
     //要移除第(i-20)天的CLV X Vol, 即20天前的CLV X Vol
     sum_CLV=sum_CLV-((2*K_close[i-day]-K_high[i-day]-K_low[i-day])/(K_high[i-day]-K_low[i-day]))*K_vol[i-day];
     sum_Vol=sum_Vol-K_vol[i-day];
@@ -2419,7 +2419,7 @@ function ASI(STK_open, STK_high, STK_low, STK_close, ma_day, esp) {
   ASI[1]=0;       //第1天的ASI[]無資料
   //計算第1天到第ma_day天(例如=10天)的ASI,它是從第1天開始累加的
   let aa=0,bb=0,cc=0,dd=0,ee=0,ff=0,gg=0,mm=0,kk=0,rr=0;  //宣告變數
-  for(let i=2; i<ma_day+1; i++) {   //例如: i=2 to 11,共10天
+  for(let i=2; i<=ma_day+1; i++) {   //例如: i=2 to 11,共10天
     aa=Math.abs(STK_high[i]-STK_close[i-1]);
     bb=Math.abs(STK_low[i]-STK_close[i-1]);
     cc=Math.abs(STK_high[i]-STK_low[i-1]);
@@ -2446,7 +2446,7 @@ function ASI(STK_open, STK_high, STK_low, STK_close, ma_day, esp) {
   eASIma[i]=ASIma[i];        //eASIma=11,第1個ASIma指數平滑移動平均=eASIma(11),令相等。
   sum_ASI=ASI[i];            //加總移動平均ASI的值
   //計算其餘的ASI等例如:i=12 to 2000, ASI的移動平均=ASIma,天數=ma_day=10天
-  for(let i=ma_day+2; i<STK_close.length; i++) {   //例如: i=12 to 2000.
+  for(let i=ma_day+2; i<=STK_close.length; i++) {   //例如: i=12 to 2000.
     aa=Math.abs(STK_high[i]-STK_close[i-1]);
     bb=Math.abs(STK_low[i]-STK_close[i-1]);
     cc=Math.abs(STK_high[i]-STK_low[i-1]);
@@ -2496,7 +2496,7 @@ function TRIX(K_close, esp) {
   EMA2[1]=EMA1[1];      //第1個EMA2值,EMA2(1)=EMA1(1)
   EMA3[1]=EMA2[1];      //第1個EMA3值,EMA3(1)=EMA2(1)
   //計算i=esp+1 to 2000
-  for(let i=2; i<K_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  //i=2 to 2000
     EMA1[i]=(esp-1)/(esp+1)*EMA1[i-1]+2/(esp+1)*K_close[i];
     EMA2[i]=(esp-1)/(esp+1)*EMA2[i-1]+2/(esp+1)*EMA1[i];
     EMA3[i]=(esp-1)/(esp+1)*EMA3[i-1]+2/(esp+1)*EMA2[i];
@@ -2518,7 +2518,7 @@ window.TRIX = TRIX;
 /*
  const EMA1=[], EMA2=[], EMA3=[], EMA4=[], TRIX=[];
   let sum=0;      //暫時變數,前esp天sum(close)等
-  for(let i=1; i<esp; i++) {   //計算前esp筆加總，i=1 to 9
+  for(let i=1; i<=esp; i++) {   //計算前esp筆加總，i=1 to 9
     let sum=sum+K_close[i];
   }
   EMA1[esp]=sum/esp;        //第1個EMA1值,EMA1(9)
@@ -2526,7 +2526,7 @@ window.TRIX = TRIX;
   EMA3[esp]=EMA2[esp];      //第1個EMA3值,EMA3(9)=EMA2(9)
   EMA4[esp]=EMA3[esp];      //第1個EMA4值,EMA4(9)=EMA3(9)
   //計算i=esp+1 to 2000
-  for(let i=esp+1; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=esp+1; i<=K_close.length; i++) {  //i=10 to 2000
     EMA1[i]=(esp-1)/(esp+1)*EMA1[i-1]+2/(esp+1)*K_close[i];
     EMA2[i]=(esp-1)/(esp+1)*EMA2[i-1]+2/(esp+1)*EMA1[i];
     EMA3[i]=(esp-1)/(esp+1)*EMA3[i-1]+2/(esp+1)*EMA2[i];
@@ -2566,7 +2566,7 @@ function MAoneMAtwo(STK_close, day1, day2) {    // day1<day2
     buy_price=STK_close[day1]; 
     bs_flag="Y";  //表示已買。此列好像可省略
   }
-  for(let i=day1+1; i<STK_close.length; i++) {  //例:i=5+1 to 2000
+  for(let i=day1+1; i<=STK_close.length; i++) {  //例:i=5+1 to 2000
     if((STK_close[i-1]<MA1[i-1]) & (STK_close[i]>MA1[i]) & bs_flag=="N") {
       buy_price=STK_close[i]; 
       bs_flag="Y"; }
@@ -2604,7 +2604,7 @@ function MAone(STK_close, day1) {
     buy_price=STK_close[day1]; 
     bs_flag="Y";  //表示已買。此列好像可省略
   }
-  for(let i=day1+1; i<STK_close.length; i++) {  //例:i=5+1 to 2000
+  for(let i=day1+1; i<=STK_close.length; i++) {  //例:i=5+1 to 2000
     if((STK_close[i-1]<MA1[i-1]) & (STK_close[i]>MA1[i]) & bs_flag=="N") {
       buy_price=STK_close[i]; 
       bs_flag="Y"; }
@@ -2643,26 +2643,26 @@ function CoppockCurve(STK_close, short_day, long_day, wgt_day) {
     long_day=short_day;
     short_day=temp;   }
   //計算short_day=10的ROC, //short_ROC[]= 11 to 2000
-  for(let i=short_day+1; i<STK_close.length; i++) {  //i=11 to 2000
+  for(let i=short_day+1; i<=STK_close.length; i++) {  //i=11 to 2000
     short_ROC[i]=((STK_close[i]-STK_close[i-short_day])/STK_close[i-short_day]);
   }
   //計算long_day=20的ROC,  //long_ROC[]= 21 to 2000
-  for(let i=long_day+1; i<STK_close.length; i++) {  //i=21 to 2000
+  for(let i=long_day+1; i<=STK_close.length; i++) {  //i=21 to 2000
     long_ROC[i]=((STK_close[i]-STK_close[i-long_day])/STK_close[i-long_day]);
   }
   //計算composite_ROC=short_ROC+long_ROC,add the two ROCs。composite_ROC[]= 21 to 2000
-  for(let i=long_day+1; i<STK_close.length; i++) {  //i=21 to 2000
+  for(let i=long_day+1; i<=STK_close.length; i++) {  //i=21 to 2000
     composite_ROC[i]=short_ROC[i]+long_ROC[i];
   }
   //計算Coppock Curve value, 即composite_ROC的MA, weight_day=10
   let sum=0;    //加總。 //i=21 tO 30, 第1個Coppock(30)
-  for(let i=long_day+1; i<long_day+wgt_day; i++) {
+  for(let i=long_day+1; i<=long_day+wgt_day; i++) {
     sum=sum+composite_ROC[i];
   }
   Coppock[long_day+wgt_day]=sum/wgt_day;   //第1個Coppock(30)
   eCoppock[long_day+wgt_day]=sum/wgt_day;  //第1個eCoppock(30)
   //計算其餘的Coppock=31,32,...,2000
-  for(let i=long_day+wgt_day+1; i<STK_close.length; i++) { //i=31 to 2000
+  for(let i=long_day+wgt_day+1; i<=STK_close.length; i++) { //i=31 to 2000
     sum=sum-composite_ROC[i-wgt_day+1];  //先扣除第22筆資料
     sum=sum+composite_ROC[i];            //再加新的第31筆資料
     Coppock[i]=sum/wgt_day;              //第2個Coppock(31)
@@ -2687,12 +2687,12 @@ function VolumeMA(STK_vol, ma_day, esp) {
   // Menu Name: VolumeMA     //ma_day=10,20,30,...  esp=9,10,...
   const VolMA=[], eVolMA=[];  //移動平均成交量,eVolMA=指數平滑移動平均成交量,自創
   let sum=0;
-  for(i=1; i<ma_day; i++) {
+  for(i=1; i<=ma_day; i++) {
     sum=sum+STK_vol[i];
   }
   VolMA[ma_day]=sum/ma_day;  //第1個移動平均成交量=VolMA(10),例:ma_day=10
   eVolMA[ma_day]=sum/ma_day;  //第1個移動平均成交量=eVolMA(10),例:ma_day=10
-  for(i=ma_day+1; i<STK_close.length; i++) { //i=11 to 2000.
+  for(i=ma_day+1; i<=STK_close.length; i++) { //i=11 to 2000.
     sum=sum-STK_vol[i-ma_day]+STK_vol[i];     //先減10天前的+今天第11天的
     VolMA[i]=sum/ma_day;                      //第2個VolMA(11)
     eVolMA[i]=(esp-1)/(esp+1)*eVolMA[i-1]+2/(esp+1)*VolMA[i];  //指數平滑移動平均,esp=9
@@ -2717,7 +2717,7 @@ function M3(STK_close, esp) {
   let avgFourMA;
   //如此設計是為了讓M3[]在前期(5-9)就有數值,以便觀察M3[]的變化趨勢,
   //而不是等到20才有第一個M3[]數值.
-  for (let i=5; i<STK_close.length; i++) {  // i=5 to 2000
+  for (let i=5; i<=STK_close.length; i++) {  // i=5 to 2000
     switch (true) {
       case i>=5 && i<10:
         avgFourMA=(MA5[i])/1;
@@ -2764,7 +2764,7 @@ function M4(STK_close, esp) {
   let avgFourMA;
   //如此設計是為了讓M4[]在前期(5-9)就有數值,以便觀察M4[]的變化趨勢,
   //而不是等到20才有第一個M4[]數值.
-  for (let i=5; i<STK_close.length; i++) {  // i=5 to 2000
+  for (let i=5; i<=STK_close.length; i++) {  // i=5 to 2000
     switch (true) {
       case i>=5 && i<10:
         avgFourMA=(MA5[i])/1;
@@ -2813,7 +2813,7 @@ function DiffMA(STK_close, short_day, long_day, esp) { //原名: DMA
   }
   const shortMA=KingMA(STK_close, short_day);
   const longMA=KingMA(STK_close, long_day);
-  for(let i=long_day; i<STK_close.length; i++) {   //例如: i=20 to 2000
+  for(let i=long_day; i<=STK_close.length; i++) {   //例如: i=20 to 2000
     DiffMA[i]=shortMA[i]-longMA[i];   //DiffMA=短MA-長MA
     if(i===long_day) {
       eDiffMA[i]=DiffMA[i]; }    //初值令相等
@@ -2849,11 +2849,11 @@ function HullMA(values, day, esp) {
   //每個WMA1權重為:1,2,3,4,5,...,(day/2=half_day)
   //例如day=10,則WMA1[]=5,6,...,2000
   let sum_wgt1=0;              //加總WMA1的總權重,要放分母
-  for(let i=1; i<half_day; i++) {   //i=1 to 5 (i=1 to day/2)
+  for(let i=1; i<=half_day; i++) {   //i=1 to 5 (i=1 to day/2)
     sum_wgt1=sum_wgt1+i;       //例如=1+2+3+4+5=15,加總WMA1的總權重,要放分母
   }
   let sum_close=0;   //分子=5天加權收盤價加總
-  for(let i=1; i<values.length-half_day+1; i++) {  //i=1 to 1996
+  for(let i=1; i<=values.length-half_day+1; i++) {  //i=1 to 1996
     sum_close=0;     //每5天加權收盤價加總之前要歸零
     for(let j=1; j<=half_day; j++) {   //j=1 to 5  (j=1 to day/2)
       sum_close=sum_close+values[i+j-1]*j;   //權重係數=1,2,3,4,5
@@ -2866,11 +2866,11 @@ function HullMA(values, day, esp) {
   //每個WMA2權重為:1,2,3,4,5,...,day
   //例如day=10,則WMA2[]=10,11,...,2000
   let sum_wgt2=0;         //加總WMA2的總權重,要放分母
-  for(let i=1; i<day; i++) {   //i=1 to 10 (i=1 to day)
+  for(let i=1; i<=day; i++) {   //i=1 to 10 (i=1 to day)
     sum_wgt2=sum_wgt2+i;  //例如=1+2+...+10=55,加總WMA2的總權重,要放分母
   }  
   sum_close=0;   //分子=10天加權收盤價加總
-  for(let i=1; i<values.length-day+1; i++) {  //i=1 to 1991
+  for(let i=1; i<=values.length-day+1; i++) {  //i=1 to 1991
     sum_close=0;     //每10天加權收盤價加總之前要歸零
     for(let j=1; j<=day; j++) {     //j=1 to 10  (j=1 to day)
       sum_close=sum_close+values[i+j-1]*j;   //權重係數=1,2,...,10
@@ -2880,7 +2880,7 @@ function HullMA(values, day, esp) {
   }
   //----------------------RawHMA-------------------------------------
   //計算RawHMA,從day=10開始,RawHMA=10 to 2000
-  for(let i=day; i<values.length; i++) {  //i=10 to 2000
+  for(let i=day; i<=values.length; i++) {  //i=10 to 2000
     RawHMA[i]=2*WMA1[i]-WMA2[i];
   }
   //----------------------HMA--eHMA----------------------------------
@@ -2888,12 +2888,12 @@ function HullMA(values, day, esp) {
   //m=HMA的移動平均天數,例如:m=4
   let m=Math.ceil(Math.sqrt(day)); //開根號後再無條件進位,m=HMA的移動平均天數=4
   let sum_wgt=0;         //加總RawHMA的總權重,要放分母
-  for(let i=1; i<m; i++) { //i=1 to 4 (i=1 to m)
+  for(let i=1; i<=m; i++) { //i=1 to 4 (i=1 to m)
     sum_wgt=sum_wgt+i;      //例如=1+2+3+4=10,加總RawHMA的總權重,要放分母
   }
   let sum_tp;
   let count;
-  for(let i=day+m-1; i<values.length; i++) {  //i=(10+4-1),14,...,2000
+  for(let i=day+m-1; i<=values.length; i++) {  //i=(10+4-1),14,...,2000
     sum_tp=0;
     count=1;
     for(let j=i-m+1; j<=i; j++) { //j=10 to 13  (j=i-m+1 to i)=(j=13-4+1 to 13)=(j=10 to 13)
@@ -2931,7 +2931,7 @@ function RandomWalkIndex(STK_high, STK_low, STK_close, RWI_n, esp) {
   const TR=[];   //True Range(TR)
   const ATR=[];  //ATR=Average True Range
   let tp1, tp2, tp3, max_high, min_low;
-  for(let i=2; i<STK_close.length; i++) {
+  for(let i=2; i<=STK_close.length; i++) {
     tp1=STK_high[i]-STK_low[i];
     tp2=Math.abs(STK_high[i]-STK_close[i-1]);
     tp3=Math.abs(STK_low[i]-STK_close[i-1]);
@@ -2942,7 +2942,7 @@ function RandomWalkIndex(STK_high, STK_low, STK_close, RWI_n, esp) {
     ATR[i]=(esp-1)/(esp+1)*ATR[i-1]+2/(esp+1)*TR[i];
   }
   //start to find RWI_high[] and RWI_low[] values
-  for(let i=RWI_n; i<STK_close.length; i++) {  //eg. i=10 to 2000
+  for(let i=RWI_n; i<=STK_close.length; i++) {  //eg. i=10 to 2000
     max_high=0;
     min_low=999;
     for(let j=i-RWI_n+1; j<=i; j++) {  //j=1 to 10(first time)
@@ -2977,7 +2977,7 @@ function Alligator(K_high, K_Low) {
   Teeth_t[1]=MP; 
   Lip_t[1]=MP;
   //compute the rest values of indicators.   e.g. i=2 to 2000
-  for(let i=2; i<K_high.length; i++) {      // i=2 to 2000  
+  for(let i=2; i<=K_high.length; i++) {      // i=2 to 2000  
     MP=(K_high[i]+K_Low[i])/2;
     Jaw_t[i]=(6/7)*Jaw_t[i-1]+(1/7)*MP;      //藍色顎線(jaw)_在下方
     Teeth_t[i]=(7/9)*Teeth_t[i-1]+(2/9)*MP;  //紅色齒線(teeth)_在中間
@@ -2987,7 +2987,7 @@ function Alligator(K_high, K_Low) {
   //取8天前的Jaw_emp值作為當天的藍色顎線值_在下方
   //取5天前的Teeth_emp值作為當天的紅色齒線值_在中間
   //取3天前的Lip_emp值作為當天的綠色唇線值_在上方
-  for(let i=4; i<K_high.length; i++) {   // i=4 to 2000
+  for(let i=4; i<=K_high.length; i++) {   // i=4 to 2000
     Lip_emp[i]=Lip_t[i-3];       //取3天前的Lip值作為當天的綠色唇線值,Lip_emp[4]
     if(i>5) {                    // i=6 to 2000
       Teeth_emp[i]=Teeth_t[i-5]; } //取5天前的Teeth值作為當天的紅色齒線值,Teeth_emp[6]
@@ -3013,7 +3013,7 @@ function GannHiLo(K_High, K_Low, K_Close, ma_day) {
   const MA_high=[], MA_low=[], MA_High_Low=[]; //每天最高價的MA,最低價的MA,整合後的MA
   let High_sum=0;
   let Low_sum=0;
-  for(let i=1; i<ma_day; i++) {    // i=1 to 10
+  for(let i=1; i<=ma_day; i++) {    // i=1 to 10
     High_sum=High_sum+K_High[i];
     Low_sum=Low_sum+K_Low[i];
   }
@@ -3025,7 +3025,7 @@ function GannHiLo(K_High, K_Low, K_Close, ma_day) {
     MA_High_Low[ma_day]=MA_high[ma_day];  //若在平均線之下，則會顯示最高價移動平均線  
   }
   //compute the remaining values of MA_high() and MA_low,  =>11,12,...,2000
-  for(let i=ma_day+1; i<K_High.length; i++) {   // i=11 to 2000
+  for(let i=ma_day+1; i<=K_High.length; i++) {   // i=11 to 2000
     //累加值先扣除前10日的值,再加新值
     High_sum=High_sum-K_High[i-ma_day]+K_High[i];
     Low_sum=Low_sum-K_Low[i-ma_day]+K_Low[i];
@@ -3061,7 +3061,7 @@ function MAmacd(values, ma_day1, ma_day2, esp) {
   const MA2 = KingMA(values, ma_day2);  //second MA
   //計算離差值DIF   (Calculate dispersion value DIF)
   const DIF=[];    //i=20 to 2000
-  for(let i=ma_day2; i<values.length; i++) {  //i=20 to 2000
+  for(let i=ma_day2; i<=values.length; i++) {  //i=20 to 2000
     DIF[i]=MA1[i]-MA2[i];
   }
   // compute MAmacd[]=20,21,...,2000. 指數平滑移動平均值
@@ -3069,7 +3069,7 @@ function MAmacd(values, ma_day1, ma_day2, esp) {
   MAmacd[ma_day2]=DIF[ma_day2]; //first MAmacd(20)=DIF(20)
   BarChart[ma_day2]=0;
   //let esp=9;             //指數平滑移動平均_參數esp=9
-  for(let i=ma_day2+1; i<values.length; i++) {   //i=21 to 2000
+  for(let i=ma_day2+1; i<=values.length; i++) {   //i=21 to 2000
     MAmacd[i]=(esp-1)/(esp+1)*MAmacd[i-1]+2/(esp+1)*DIF[i];
     BarChart[i]=(DIF[i]-MAmacd[i])*2   //柱狀圖,enlarge=2 times
   }
@@ -3094,7 +3094,7 @@ function VariantMA(values, ma_day, alpha, esp) {
   const eVariantMA=[];             //eVariantMA指數平滑變異移動均
   VariantMA[ma_day]=MA[ma_day];    //VariantMA(10)=MA(10),初值
   eVariantMA[ma_day]=VariantMA[ma_day];  //eVariantMA(10)=VariantMA(10),初值
-  for(let i=ma_day+1; i<values.length; i++) {   //i=10+1 to 2000
+  for(let i=ma_day+1; i<=values.length; i++) {   //i=10+1 to 2000
     VariantMA[i]=(alpha/10)*MA[i-1]+(10-alpha/10)*values[i];
     eVariantMA[i]=(esp-1)/(esp+1)*eVariantMA[i-1]+2/(esp+1)*VariantMA[i];
   }
@@ -3124,7 +3124,7 @@ function T3MA(K_close, esp, va) {
   const EMA2=[];       //EMA2()=EMA(EMA(C,N),N)
   EMA1[1]=K_close[1];  //EMA1(1)初值,EMA1()=1 to 2000
   EMA2[1]=K_close[1];  //EMA2(1)初值,EMA2()=1 to 2000
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     EMA1[i]=(esp-1)/(esp+1)*EMA1[i-1]+2/(esp+1)*K_close[i]; //EMA1=EMA(C,N)
     EMA2[i]=(esp-1)/(esp+1)*EMA2[i-1]+2/(esp+1)*EMA1[i];  //EMA2=EMA(EMA(C,N),N)
     T1[i]=EMA1[i]*(1+va)-EMA2[i]*va;   // T1=2 to 2000
@@ -3134,7 +3134,7 @@ function T3MA(K_close, esp, va) {
   const EMA4=[];  //EMA(EMA(T1,N),N)
   EMA3[2]=T1[2];  //EMA3(2)初值,EMA3()=2 to 2000
   EMA4[2]=T1[2];  //EMA4(2)初值,EMA4()=2 to 2000
-  for(let i=3; i<K_close.length; i++) {
+  for(let i=3; i<=K_close.length; i++) {
     EMA3[i]=(esp-1)/(esp+1)*EMA3[i-1]+2/(esp+1)*T1[i];
     EMA4[i]=(esp-1)/(esp+1)*EMA4[i-1]+2/(esp+1)*EMA3[i];
     T2[i]=EMA3[i]*(1+va)-EMA4[i]*va;   // T2=3 to 2000
@@ -3144,7 +3144,7 @@ function T3MA(K_close, esp, va) {
   const EMA6=[];  //EMA(EMA(T2,N),N)
   EMA5[3]=T2[3];  //EMA5(3)初值,EMA5()=3 to 2000
   EMA6[3]=T2[3];  //EMA6(3)初值,EMA6()=3 to 2000
-  for(let i=4; i<K_close.length; i++) {
+  for(let i=4; i<=K_close.length; i++) {
     EMA5[i]=(esp-1)/(esp+1)*EMA5[i-1]+2/(esp+1)*T2[i];
     EMA6[i]=(esp-1)/(esp+1)*EMA6[i-1]+2/(esp+1)*EMA5[i];
     T3[i]=EMA5[i]*(1+va)-EMA6[i]*va;   // T3=4 to 2000
@@ -3165,46 +3165,46 @@ function ZeroLagMACD(K_close, n12, n24, n9) {
   //EMAshort1 = 12-period EMA of close price
   const EMA_Short1=[];        // EMA_Short1()=1 to 2000. 
   EMA_Short1[1]=K_close[1];   // EMA_Short1(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000
     EMA_Short1[i]=(n12-1)/(n12+1)*EMA_Short1[i-1]+2/(n12+1)*K_close[i];
     // EMA_Short1()=1 to 2000
   }
   //EMAshort2 = 12-period EMA of (EMAshort1)
   const EMA_Short2=[];            // EMA_Short2()=1 to 2000. 
   EMA_Short2[1]=EMA_Short1[1];    // EMA_Short2(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000 )
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000 )
     EMA_Short2[i]=(n12-1)/(n12+1)*EMA_Short2[i-1]+2/(n12+1)*EMA_Short1[i];
     // EMA_Short2()=1 to 2000
   }
   // compute ZeroLag_Short()=2*EMA_Short1()-EMA_Short2()
   const ZeroLag_Short=[];             // i=1 to 2000
-  for(let i=1; i<K_close.length; i++) {   // i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {   // i=1 to 2000
     ZeroLag_Short[i]=2*EMA_Short1[i]-EMA_Short2[i];
   }
   //================================= Long-Period Zero Lag MA:
   //EMAlong1 = 24-period EMA of close price
   const EMA_Long1=[];        // EMA_Long1()=1 to 2000. 
   EMA_Long1[1]=K_close[1];   // EMA_Long1(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000
     EMA_Long1[i]=(n24-1)/(n24+1)*EMA_Long1[i-1]+2/(n24+1)*K_close[i];
     // EMA_Long1()=1 to 2000
   }
   //EMAlong2 = 24-period EMA of (EMAlong1)
   const EMA_Long2=[];            // EMA_Long2()=1 to 2000. 
   EMA_Long2[1]=EMA_Long1[1];     // EMA_Long2(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000 )
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000 )
     EMA_Long2[i]=(n24-1)/(n24+1)*EMA_Long2[i-1]+2/(n24+1)*EMA_Long1[i];
     // EMA_Long2()=1 to 2000
   }
   // compute ZeroLag_Long()=2*EMA_Long1()-EMA_Long2()
   const ZeroLag_Long=[];              // i=1 to 2000
-  for(let i=1; i<K_close.length; i++) {   // i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {   // i=1 to 2000
     ZeroLag_Long[i]=2*EMA_Long1[i]-EMA_Long2[i];
   }
   //================================= Zero Lag MACD:
   //Zero Lag MACD = ZeroLagShort-ZeroLagLong
   const ZeroLagMACD=[];    // ZeroLagMACD=ZeroLagShort-ZeroLagLong
-  for(let i=1; i<K_close.length; i++) {
+  for(let i=1; i<=K_close.length; i++) {
     ZeroLagMACD[i]=ZeroLag_Short[i]-ZeroLag_Long[i];
     // ZeroLagMACD()=1 to 2000
   }
@@ -3212,20 +3212,20 @@ function ZeroLagMACD(K_close, n12, n24, n9) {
   //Signal1 = 9-period EMA of (ZEROLAGMACD)
   const Signal1=[];     //Signal1=9-period EMA of (ZEROLAGMACD)
   Signal1[1]=ZeroLagMACD[1];   // Signal1(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000 )
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000 )
     Signal1[i]=(n9-1)/(n9+1)*Signal1[i-1]+2/(n9+1)*ZeroLagMACD[i];
     // Signal1()=1 to 2000
   }
   //Signal2 = 9-period EMA of (Signal1)
   const Signal2=[];         //Signal2=9-period EMA of (Signal1)
   Signal2[1]=Signal1[1];    // Signal2(1)初值
-  for(let i=2; i<K_close.length; i++) {   // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {   // i=2 to 2000
     Signal2[i]=(n9-1)/(n9+1)*Signal2[i-1]+2/(n9+1)*Signal1[i];
     // Signal2()=1 to 2000
   }
   // compute Zero Lag Signal Line=2*Signal1 -Signal2
   const Zero_Lag_Signal_Line=[];
-  for(let i=1; i<K_close.length; i++) {   // i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {   // i=1 to 2000
     Zero_Lag_Signal_Line=2*Signal1[i]-Signal2[i];
   }
   return { ZeroLagMACD, Zero_Lag_Signal_Line };
@@ -3243,14 +3243,14 @@ function PSY(K_close, psy_n, esp) {
   // K_close=STK_close, PSY_n=Time Length
   const PSY = [], ePSY = [];   //自創新
   let up_day=0; //PSY_n天內上漲天數(Number of days with price increases within n days)
-  for(let i=2; i<psy_n+1; i++) {    // i=2 to 11
+  for(let i=2; i<=psy_n+1; i++) {    // i=2 to 11
     if(K_close[i]>K_close[i-1]) {    // 第2天>第1天
       up_day=up_day+1; }  
   }
   PSY[psy_n+1]=up_day/psy_n*100;   //e.g. first PSY(11)=6/10*100
   ePSY[psy_n+1]=PSY[psy_n+1];      //e.g. first ePSY(11)
   //Calculate the remaining values of PSY
-  for(let i=psy_n+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=psy_n+2; i<=K_close.length; i++) {  // i=12 to 2000
     up_day=0;    //Reset to zero
     for(let j=(i-psy_n+1); j<=i; j++) {  // j=3 to 12
       if(K_close[j]>K_close[j-1]) {      // 第3天>第2天
@@ -3277,7 +3277,7 @@ function VolAccPct(K_high, K_low, K_close, K_vol, period, esp) {
   let sum_vol_p=0;   //分子加總 Vol*Price=0
   let sum_vol=0;     //分母加總 Vol=0
   let price_CHL;     //price_CHL=(2C-H-L)/(H-L)
-  for(let i=1; i<period; i++) {   // i=1 to 10
+  for(let i=1; i<=period; i++) {   // i=1 to 10
     price_CHL=(2*K_close[i]-K_high[i]-K_low[i])/(K_high[i]-K_low[i]);
     sum_vol_p=sum_vol_p + K_vol[i]*price_CHL;  //分子加總 Vol*Price
     sum_vol=sum_vol + K_vol[i];    //分母加總,累加成交量
@@ -3285,7 +3285,7 @@ function VolAccPct(K_high, K_low, K_close, K_vol, period, esp) {
   VolAccPct[period]=sum_vol_p/sum_vol*100;    //VolAccPct(10) 第1個
   eVolAccPct[period]=VolAccPct[period];       //eVAP(10) 第1個
   //Calculate the rest values
-  for(let i=period+1; i<K_close.length; i++) {  // i=11 to 2000
+  for(let i=period+1; i<=K_close.length; i++) {  // i=11 to 2000
     //先扣除10天前的加總
     price_CHL=(2*K_close[i-period]-K_high[i-period]-K_low[i-period])/(K_high[i-period]-K_low[i-period]);
     sum_vol_p=sum_vol_p - K_vol[i-period]*price_CHL;  //分子
@@ -3316,12 +3316,12 @@ function FourVolLine(K_vol, n1, n2, n3, n4, esp) {
   //求第1個=n1天數成交量Vol的移動平均
   let sum_vol=0;         //加總Vol=0,初值=0
   const avgVol1=[];      //第1個=n1天數成交量Vol的移動平均
-  for(let i=1; i<n1; i++) {   // i=1 to 5
+  for(let i=1; i<=n1; i++) {   // i=1 to 5
     sum_vol=sum_vol+K_vol[i];
   }
   avgVol1[n1]=sum_vol/n1;      // n1=5, 第1個avgVol1(5)
   //Calculate the rest values
-  for(let i=n1+1; i<K_vol.length; i++) {  // i=5+1 to 2000
+  for(let i=n1+1; i<=K_vol.length; i++) {  // i=5+1 to 2000
     //先扣除5天前的加總,再加新的值
     sum_vol=sum_vol-K_vol[i-n1]+K_vol[i];
     avgVol1[i]=sum_vol/n1;     // n1=5, 第2個avgVol1(6)
@@ -3330,12 +3330,12 @@ function FourVolLine(K_vol, n1, n2, n3, n4, esp) {
   //求第2個=n2天數成交量Vol的移動平均
   sum_vol=0;          //加總Vol=0,初值=0
   const avgVol2=[];   //第2個=n2天數成交量Vol的移動平均
-  for(let i=1; i<n2; i++) {  // i=1 to 10
+  for(let i=1; i<=n2; i++) {  // i=1 to 10
     sum_vol=sum_vol+K_vol[i];
   }
   avgVol2[n2]=sum_vol/n2;      // n2=10, 第1個avgVol2(10)
   //Calculate the rest values
-  for(let i=n2+1; i<K_vol.length; i++) {  // i=10+1 to 2000
+  for(let i=n2+1; i<=K_vol.length; i++) {  // i=10+1 to 2000
     //先扣除10天前的加總,再加新的值
     sum_vol=sum_vol-K_vol[i-n2]+K_vol[i];
     avgVol2[i]=sum_vol/n2;     // n2=10, 第2個avgVol2(11)
@@ -3344,12 +3344,12 @@ function FourVolLine(K_vol, n1, n2, n3, n4, esp) {
   //求第3個=n3天數成交量Vol的移動平均
   sum_vol=0;          //加總Vol=0,初值=0
   const avgVol3=[];   //第3個=n3天數成交量Vol的移動平均
-  for(let i=1; i<n3; i++) {  // i=1 to 15
+  for(let i=1; i<=n3; i++) {  // i=1 to 15
     sum_vol=sum_vol+K_vol[i];
   }
   avgVol3[n3]=sum_vol/n3;     // n3=15, 第1個avgVol3(15)
   //Calculate the rest values
-  for(let i=n3+1; i<K_vol.length; i++) {  // i=15+1 to 2000
+  for(let i=n3+1; i<=K_vol.length; i++) {  // i=15+1 to 2000
     //先扣除15天前的加總,再加新的值
     sum_vol=sum_vol-K_vol[i-n3]+K_vol[i];
     avgVol3[i]=sum_vol/n3;     // n3=15, 第2個avgVol3(16)
@@ -3358,12 +3358,12 @@ function FourVolLine(K_vol, n1, n2, n3, n4, esp) {
   //求第4個=n4天數成交量Vol的移動平均
   sum_vol=0;          //加總Vol=0,初值=0
   const avgVol4=[];   //第4個=n4天數成交量Vol的移動平均
-  for(let i=1; i<n4; i++) {   // i=1 to 20
+  for(let i=1; i<=n4; i++) {   // i=1 to 20
     sum_vol=sum_vol+K_vol[i];
   }
   avgVol4[n4]=sum_vol/n4;      // n4=20, 第1個avgVol4(20)
   //Calculate the rest values
-  for(let i=n4+1; i<K_vol.length; i++) {  // i=20+1 to 2000
+  for(let i=n4+1; i<=K_vol.length; i++) {  // i=20+1 to 2000
     //先扣除20天前的加總,再加新的值
     sum_vol=sum_vol-K_vol[i-n4]+K_vol[i];
     avgVol4[i]=sum_vol/n4;     // n4=20, 第2個avgVol4(21)
@@ -3371,7 +3371,7 @@ function FourVolLine(K_vol, n1, n2, n3, n4, esp) {
   // 計算FVI四量線指標, FourVolLine=[]
   let max_n=0;        //4個天數最大的,初值=0
   max_n=Math.max(n1,n2,n3,n4);   //找出4個天數最大的,以最大的起算,例如max_n=20天
-  for(let i=max_n; i<K_vol.length; i++) {  //例如 i=20 to 2000
+  for(let i=max_n; i<=K_vol.length; i++) {  //例如 i=20 to 2000
     FourVolLine[i]=(avgVol1[i]+avgVol2[i]+avgVol3[i]+avgVol4[i])/4;
     if(i==max_n) {  //例如 i=20, 第1個FourVolLine(20)
       eFourVolLine[i]=FourVolLine[i]; } // eFVI四量線指標,自行創新,第1個eFourVolLine(20)
@@ -3399,11 +3399,11 @@ function VolMaRoc(K_vol, roc_length, ma_day) {
   const VolMa=[];   //=5, to 2000 (移動平均成交量)
   //assume ma_day=5, then VolMa[]=5,6, ...,2000
   let sum=0;
-  for(let i=1; i<ma_day; i++) {  // i=1 to 5 (or i=1 to 10)
+  for(let i=1; i<=ma_day; i++) {  // i=1 to 5 (or i=1 to 10)
     sum=sum+K_vol[i];
   }
   VolMa[ma_day]=sum/ma_day;    // 第1個VolMa(5)=sum/5
-  for(let i=ma_day+1; i<K_vol.length; i++) { // i=5+1 to 2000
+  for(let i=ma_day+1; i<=K_vol.length; i++) { // i=5+1 to 2000
     //先扣除5天前舊的，再加新的
     sum=sum-K_vol[i-ma_day]+K_vol[i];   //sum=sum-(第1個)+(第6個)
     VolMa[i]=sum/ma_day;
@@ -3411,7 +3411,7 @@ function VolMaRoc(K_vol, roc_length, ma_day) {
   //計算：VOLmaROC移動平均成交量之變動率((VolMaRoc, MA Volume Rate of Change)
   //assume ma_day=5 and roc_length=10, then VolMaRoc[]=15,16, ...,2000
   const VolMaRoc=[];
-  for(let i=ma_day+roc_length; i<K_vol.length; i++) {  // i=5+10 to 2000
+  for(let i=ma_day+roc_length; i<=K_vol.length; i++) {  // i=5+10 to 2000
     VolMaRoc[i]=(VolMa[i]/VolMa[i-roc_length]-1)*100;  // (VolMa(15)/VolMa(5)-1)*100
   }
   return { VolMaRoc };
@@ -3430,7 +3430,7 @@ function WilliamVolConDiv(K_high, K_low, K_close, K_vol, WR_day) {
   // Menu Name: WilliamVolConDiv    // WR_day=5,10,15,... 天數
   // K_high=STK_igh, K_low=STK_low, K_close=STK_close, K_vol=STK_vol, 
   const WilliamVolConDiv=[];
-  for(let i=1; i<K_close.length-WR_day+1; i++) {   // i=1 to 2000-10+1=1991
+  for(let i=1; i<=K_close.length-WR_day+1; i++) {   // i=1 to 2000-10+1=1991
     let Max_high=0; 
     let Min_low=9999;   // initial value can not be zero
     for(j=i; j<=WR_day+i-1; j++) {  //找最大與最小, j=1 to 10
@@ -3465,7 +3465,7 @@ function WilliamVarAccuDist(K_open, K_high, K_low, K_close, K_vol, WR_day, esp) 
   const eWilliamVarAccuDist=[];  //if WR_day=10, =10,11,...,2000,自創新
   let sum=0;
   //從第1天到第WR_day天的加總
-  for(let i=1; i<WR_day; i++) {  //i=1 to 10
+  for(let i=1; i<=WR_day; i++) {  //i=1 to 10
     if(K_high[i]==K_low[i]) {     //分母為0之處理
       sum=sum+K_vol[i];  }    
     else {
@@ -3475,7 +3475,7 @@ function WilliamVarAccuDist(K_open, K_high, K_low, K_close, K_vol, WR_day, esp) 
   WilliamVarAccuDist[WR_day]=sum;  //第1個:WilliamVarAccuDist[10]
   eWilliamVarAccuDist[WR_day]=sum; //第1個:eWilliamVarAccuDist[10]
   //從第WR_day+1天開始，扣除舊的加總，加入新的加總
-  for(let i=WR_day+1; i<K_close.length; i++) {  //WR_day=10+1 to 2000
+  for(let i=WR_day+1; i<=K_close.length; i++) {  //WR_day=10+1 to 2000
     //扣除舊的加總
     if(K_high[i-WR_day]==K_low[i-WR_day]) {  //分母為0之處理
       sum=sum-K_vol[i-WR_day]; }
@@ -3509,7 +3509,7 @@ function VolumeKD(K_vol, KD_day, esp) {
   const Vol_K=[], Vol_D=[];
   const Vol_K2=[], Vol_D2=[];
   let rsv, maxHigh, minLow;
-  for(let i=KD_day; i<K_vol.length; i++) {   // i=9 to 2000
+  for(let i=KD_day; i<=K_vol.length; i++) {   // i=9 to 2000
     maxHigh = K_vol[i-KD_day+1];
     minLow = K_vol[i-KD_day+1];
     for(let j=i-KD_day+2; j<=i; j++) {         // j=2 to 9
@@ -3549,7 +3549,7 @@ function MarketFacilitation(K_high, K_low, K_vol, esp) {
   //K_high=STK_close, K_low=STK_low, K_vol=STK_vol, esp=9,10,...
   const MFI=[];   //MFI=[]
   const eMFI=[];  //eMFI=[]  //自創的指數平滑移動平均。
-  for(let i=1; i<K_high.length; i++) {
+  for(let i=1; i<=K_high.length; i++) {
     MFI[i]=(K_high[i]-K_low[i])/K_vol[i];
     if(i==1) {
       eMFI[i]=MFI[i]; }    //eMFI[1]=MFI[1]
@@ -3575,7 +3575,7 @@ function NewMarketFacilitation(K_high, K_low, K_vol, esp) {
   const NewMFI=[];   //newMFI=[]
   const eNewMFI=[];  //eNewMFI=[]  //自創的指數平滑移動平均。
   let tp1, tp2;  //分子,分母
-  for(let i=2; i<K_high.length; i++) {
+  for(let i=2; i<=K_high.length; i++) {
     if(K_high[i-1]===K_low[i-1]) {     //分母=0避開。
       NewMFI[i]=0; }
     else {
@@ -3618,7 +3618,7 @@ function PriVolRiFaPtMu(K_close, K_vol, esp) {
   const PriVolRFPM=[];   //原取名:const PriceVolRiseFallPctMulti=[]
   const ePriVolRFPM=[];  //自己創新
   let tp1, tp2;  //價漲跌百分比, 量漲跌百分比
-  for(let i=2; i<K_close.length; i++) {  // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  // i=2 to 2000
     tp1=(K_close[i]-K_close[i-1])/(K_close[i-1])*100;  //價漲跌百分比,正負不一定
     tp2=Math.abs((K_vol[i]-K_vol[i-1]))/K_vol[i-1];    //量漲跌百分比,取絕對值
     PriVolRFPM[i]=tp1*tp2;
@@ -3647,7 +3647,7 @@ function PriVolRiFaPtSum(K_close, K_vol) {
   const PriRiseFallPct=[];        //價漲跌百分比,正負不一定
   const VolRiseFallPct=[];        //量漲跌百分比,正負不一定
   const PriVolRiseFallPctSum=[];  //價量漲跌百分比相加
-  for(let i=2; i<K_close.length; i++) {  // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  // i=2 to 2000
     PriRiseFallPct[i]=(K_close[i]-K_close[i-1])/(K_close[i-1])*100; //價漲跌百分比,正負不一定
     VolRiseFallPct[i]=(K_vol[i]-K_vol[i-1])/K_vol[i-1];           //量漲跌百分比,正負不一定
     PriVolRiseFallPctSum[i]=PriRiseFallPct[i]+VolRiseFallPct[i];  //價量漲跌百分比相加
@@ -3674,7 +3674,7 @@ function VolWgtAvgPrice(K_high, K_low, K_close, K_vol, period, esp) {
   let sum_vol=0;     //分母加總 Vol=0
   // price_CHL;      //price_CHL=(2C-H-L)/(H-L)
   TypicalPrice=0;    //Typical Price=(H+L+2C)/4
-  for(let i=1; i<period; i++) {   // i=1 to 10
+  for(let i=1; i<=period; i++) {   // i=1 to 10
     TypicalPrice=(2*K_close[i]+K_high[i]+K_low[i])/4;  //=(H+L+2C)/4
     sum_vol_p=sum_vol_p + K_vol[i]*TypicalPrice;       //分子加總 Vol*Price
     sum_vol=sum_vol + K_vol[i];    //分母加總,累加成交量
@@ -3682,7 +3682,7 @@ function VolWgtAvgPrice(K_high, K_low, K_close, K_vol, period, esp) {
   VolWgtAvgPrice[period]=sum_vol_p/sum_vol;        //VolWgtAvgPrice(10),第1個
   eVolWgtAvgPrice[period]=VolWgtAvgPrice[period];  //創新
   //Calculate the rest values
-  for(let i=period+1; i<K_close.length; i++) {  // i=11 to 2000
+  for(let i=period+1; i<=K_close.length; i++) {  // i=11 to 2000
     //先扣除10天前的加總
     //price_CHL=(2*K_close[i-period]-K_high[i-period]-K_low[i-period])/(K_high[i-period]-K_low[i-period]);
     TypicalPrice=(2*K_close[i-period]+K_high[i-period]+K_low[i-period])/4;
@@ -3718,7 +3718,7 @@ function CDP(K_high, K_low, K_close) {
   const AL=[];    //最低值AL (Arriba Low)
   const Support=[];  //支撐值(support)
   const Pressure=[]; //壓力值(pressure)
-  for(let i=2; i<K_close.length; i++) {           // i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {           // i=2 to 2000
     CDP[i]=(2*K_close[i-1]+K_high[i-1]+K_low[i-1])/4;   //=(H+L+2C)/4
     AH[i]= CDP[i] + (K_high[i-1]-K_low[i-1]);
     NH[i]= 2*CDP[i] - K_low[i-1];
@@ -3755,7 +3755,7 @@ function PIVG(K_high, K_low, K_close) {
   const S2=[];      // S2=P-(H-L)=(4L+C-2H)/3.
   const R3=[];      // 第三層(Third layer): R3=H+2(P-L)=(5H+2C-4L)/3.
   const S3=[];      // S3=L-2(H-P)=3L+2C.
-  for(let i=1; i<K_close.length; i++) {         // i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {         // i=1 to 2000
     Pivot[i]=(K_high[i]+K_low[i]+K_close[i])/3; //中心樞軸,P=(H+L+C)/3
     BC[i]=(K_high[i]+K_low[i])/2;               //區間下緣,BC=(H+L)/2
     TC[i]=2*Pivot[i]-BC[i];       //區間上緣TC=2P-BC=(H+L+4C)/6
@@ -3795,7 +3795,7 @@ function MIKE(K_high, K_low, K_close, day) {
   let TP;           //TP=TYP=Typical Price=(H+L+C)/3, or =(H+L+2C)/4
   let max_Hn  ;     //Maximum value within the day, for example: day=10
   let min_Ln ;      //Minimum value within the day
-  for(let i=day; i<K_close.length; i++) {         // i=10 to 2000
+  for(let i=day; i<=K_close.length; i++) {         // i=10 to 2000
     max_Hn=K_high[i-day+1];  //set the first value =max, max_High=K_high[1]
     min_Ln=K_low[i-day+1];    //set the first value =min, min_Low=K_low[1]
     for(let j=i-day+2; j<=i; j++) {  //j=2 to 10, find out the Hn and Ln
@@ -3828,13 +3828,13 @@ function REXOscillator(K_high, K_low, K_close, esp) {
   // Menu Name: REX Oscillator     //ma_day=5, 10, 15, 20,...//esp=9, 10, 11,...
   const TVB=[], REX=[];   //TVB=2C-(H+L), REX=MA(TVB,n)
   //================ calculate all TVB[]=1,2,...,2000 ===
-  for(let i=1; i<K_close.length; i++) {   // i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {   // i=1 to 2000
     TVB[i]=2*K_close[i]-(K_high[i]+K_low[i]);
   }
   //== calculate REX Oscillator=MA(TVB,n), REX[]=1,2,...,2000
   //This case uses the exponential moving average method.
   REX[1]=TVB[1];      //first value, REX[1]=TVB[1]
-  for(let i=2; i<K_close.length; i++) {    //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {    //i=2 to 2000
     REX[i]=(esp-1)/(esp+1)*REX[i-1]+2/(esp+1)*TVB[i];
     //REX今=(n-1)/(n+1)*REX昨+2/(n+1)*TVB今。參數=9, <本人自創>
   }
@@ -3861,7 +3861,7 @@ function AvgTRPct(K_high, K_low, K_close, esp) {
   AvgTR[2]=TR[2];
   AvgTRpct[2]=(AvgTR[2]/K_close[2])*100;
   //====== calculate the rest of TR[],ATR[],ATRperct[]=3,4,...,2000 ===
-  for(let i=3; i<K_close.length; i++) {   // i=3 to 2000
+  for(let i=3; i<=K_close.length; i++) {   // i=3 to 2000
     TR[i]=Math.max((K_high[i]-K_low[i]),Math.abs(K_close[i-1]-K_high[i]),Math.abs(K_close[i-1]-K_low[i]) );
     AvgTR[i]=(esp-1)/(esp+1)*AvgTR[i-1]+2/(esp+1)*TR[i];
     //AvgTR今=(n-1)/(n+1)*AvgTR昨+2/(n+1)*TR今。參數=9,  <本人自創>
@@ -3886,13 +3886,13 @@ function VolumeRSI(K_close, K_vol, RSI_day, esp) {
   // First calculate RSI
   const VolRSI=[], eVolRSI=[];   //自創新eVolRSI
   const dif=[];                  //dif=今收盤-昨收盤
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     dif[i]=K_close[i]-K_close[i-1];   // dif[]=2,3,...,2000
   }
   //compute the first RSI(). if day=10, RSI()=11,12,...,2000.
   let sum_Up = 0;   //最近 n 日收盤價漲幅之和,改為上漲時成交量累加
   let sum_Dn = 0;   //最近 n 日收盤價跌幅之和,改為下跌時成交量累加
-  for(let i=2; i<RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
     if(dif[i] > 0) {  //Up
       //sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
       sum_Up = sum_Up + K_vol[i]; }    //上漲時成交量累加
@@ -3910,7 +3910,7 @@ function VolumeRSI(K_close, K_vol, RSI_day, esp) {
   }
   eVolRSI[RSI_day+1]=VolRSI[RSI_day+1]   //eRSI的初值=eRSI[11],自創
   //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     // 先加新的成交量(收盤價)差值！
     if(dif[i] > 0) {
       //sum_Up=sum_Up+dif[i]; }           //收盤價漲幅之和
@@ -3961,7 +3961,7 @@ function GatorOscillator(K_high, K_low) {
   Teeth_t[1]=MP; 
   Lip_t[1]=MP;
   //compute the rest values of indicators.   e.g. i=2 to 2000
-  for(let i=2; i<K_high.length; i++) {      // i=2 to 2000  
+  for(let i=2; i<=K_high.length; i++) {      // i=2 to 2000  
     MP=(K_high[i]+K_low[i])/2;
     Jaw_t[i]=(12/14)*Jaw_t[i-1]+(2/14)*MP;   //藍色顎線(jaw)_在下方
     Teeth_t[i]=(7/9)*Teeth_t[i-1]+(2/9)*MP;  //紅色齒線(teeth)_在中間
@@ -3971,7 +3971,7 @@ function GatorOscillator(K_high, K_low) {
   //取8天前的Jaw_emp值作為當天的藍色顎線值_在下方
   //取5天前的Teeth_emp值作為當天的紅色齒線值_在中間
   //取3天前的Lip_emp值作為當天的綠色唇線值_在上方
-  for(let i=4; i<K_high.length; i++) {   // i=4 to 2000
+  for(let i=4; i<=K_high.length; i++) {   // i=4 to 2000
     Lip_emp[i]=Lip_t[i-3];       //取3天前的Lip值作為當天的綠色唇線值,Lip_emp[4]
     if(i>5) {                    // i=6 to 2000
       Teeth_emp[i]=Teeth_t[i-5]; } //取5天前的Teeth值作為當天的紅色齒線值,Teeth_emp[6]
@@ -3981,7 +3981,7 @@ function GatorOscillator(K_high, K_low) {
   //上述整合原本需要用三個LOOP的，變為一個LOOP
   //本例方法： Gator=[在上方綠色唇線(lip)] 減 [在下方藍色顎線(jaw)]
   const Gator=[];   //短吻鱷魚線(Gator Oscillator)
-  for(let i=9; i<K_high.length; i++) {   // i=9 to 2000
+  for(let i=9; i<=K_high.length; i++) {   // i=9 to 2000
     Gator[i]=Lip_emp[i]-Jaw_emp[i];
   }
   //return {Lip_emp, Teeth_emp, Jaw_emp}; //鱷魚線(Alligator Indicator)則傳回左列三陣列
@@ -4005,7 +4005,7 @@ function PVIRiseFall(K_close, K_vol, day, esp) {
   const PVIRiseFall=[], ePVIRiseFall=[];
   let sum_Up=0;   //分子加總
   let sum_Dn=0;   //分母加總
-  for(let i=2; i<day+1; i++) {    //ex. i=2 to 11
+  for(let i=2; i<=day+1; i++) {    //ex. i=2 to 11
     if(K_close[i]>K_close[i-1]) {  //價格上漲
       sum_Up=sum_Up+(K_close[i]-K_close[i-1])*K_vol[i]; }
     if(K_close[i]<K_close[i-1]) {  //價格下跌
@@ -4018,7 +4018,7 @@ function PVIRiseFall(K_close, K_vol, day, esp) {
   }
   ePVIRiseFall[day+1]=PVIRiseFall[day+1];  //first value=ePVIRiseFall[11]
   //calculate the remaining values
-  for(let i=day+2; i<K_close.length; i++) {  //ex. i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {  //ex. i=12 to 2000
     //先減舊的
     if(K_close[i-day]>K_close[i-day-1]) {  //價格上漲
       sum_Up=sum_Up-(K_close[i-day]-K_close[i-day-1])*K_vol[i-day]; }
@@ -4057,7 +4057,7 @@ function PVIpercentRiseFall(K_close, K_vol, day, esp) {
   const PVIpercentRiseFall=[], ePVIpercentRiseFall=[];
   let sum_Up=0;   //分子加總
   let sum_Dn=0;   //分母加總
-  for(let i=2; i<day+1; i++) {    //ex. i=2 to 11
+  for(let i=2; i<=day+1; i++) {    //ex. i=2 to 11
     if(K_close[i]>K_close[i-1]) {  //價格上漲
       sum_Up=sum_Up+(K_close[i]-K_close[i-1])/K_close[i-1]*K_vol[i]; }
     if(K_close[i]<K_close[i-1]) {  //價格下跌
@@ -4070,7 +4070,7 @@ function PVIpercentRiseFall(K_close, K_vol, day, esp) {
   }
   ePVIpercentRiseFall[day+1]=PVIpercentRiseFall[day+1]; //first value=PVIpercentRiseFall[11]
   //calculate the remaining values
-  for(let i=day+2; i<K_close.length; i++) {  //ex. i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {  //ex. i=12 to 2000
     //先減舊的
     if(K_close[i-day]>K_close[i-day-1]) {  //價格上漲
       sum_Up=sum_Up-(K_close[i-day]-K_close[i-day-1])/K_close[i-day-1]*K_vol[i-day]; }
@@ -4116,7 +4116,7 @@ function RSIKD(K_close, KD_day, RSI_day) {
   let sum_Up = 0;   //最近 n 日收盤價漲幅之和
   let sum_Dn = 0;   //最近 n 日收盤價跌幅之和
   //for(let i=2; i<RSI_day; i++){  // Fahmi輸入此，應該錯誤!
-  for(let i=2; i<RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
     else {
@@ -4131,7 +4131,7 @@ function RSIKD(K_close, KD_day, RSI_day) {
     RSI[RSI_day+1]=sum_Up/(sum_Up+sum_Dn)*100;
   }
   //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     // 先加新的！
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }           //收盤價漲幅之和
@@ -4157,7 +4157,7 @@ function RSIKD(K_close, KD_day, RSI_day) {
   // KD_day=9,...
   const RSIKD_K=[], RSIKD_D=[];
   // if RSI_day=10, then first RSI is RSI[11]
-  for(let i=RSI_day+KD_day; i<K_close.length; i++) { //i=(10+9),20,...,2000
+  for(let i=RSI_day+KD_day; i<=K_close.length; i++) { //i=(10+9),20,...,2000
     let maxHigh=RSI[i-KD_day+1];   //令第一筆 RSI 為最大=RSI[11]
     let minLow=RSI[i-KD_day+1];    //令第一筆 RSI 為最小=RSI[11]
     // 第一輪：在 RSI 第12-19筆之間找最大與最小的RSI.因為第11筆已經設為最大與最小。
@@ -4209,7 +4209,7 @@ function newRSIKD(K_close, KD_day, RSI_day, esp) {
   //compute the first RSI(). if day=5, RSI()=6,7,...,2000.
   let sum_Up = 0;   //最近 n 日收盤價漲幅之和
   let sum_Dn = 0;   //最近 n 日收盤價跌幅之和
-  for(let i=2; i<RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
     else {
@@ -4224,7 +4224,7 @@ function newRSIKD(K_close, KD_day, RSI_day, esp) {
     RSI[RSI_day+1]=sum_Up/(sum_Up+sum_Dn)*100;
   }
   //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     // 先加新的！
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }           //收盤價漲幅之和
@@ -4250,7 +4250,7 @@ function newRSIKD(K_close, KD_day, RSI_day, esp) {
   // KD_day=9,...
   const newRSIKD_K=[], newRSIKD_D=[];
   // if RSI_day=10, then first RSI is RSI[11]
-  for(let i=RSI_day+KD_day; i<K_close.length; i++) { //i=(10+9),20,...,2000
+  for(let i=RSI_day+KD_day; i<=K_close.length; i++) { //i=(10+9),20,...,2000
     let maxHigh=RSI[i-KD_day+1];   //令第一筆 RSI 為最大=RSI[11]
     let minLow=RSI[i-KD_day+1];    //令第一筆 RSI 為最小=RSI[11]
     // 第一輪：在 RSI 第12-19筆之間找最大與最小的RSI.因為第11筆已經設為最大與最小。
@@ -4293,7 +4293,7 @@ function KeltnerChannels(K_high, K_low, K_close, esp1) {
   const TR=[];  //TR=真實波幅(True Range),TR是陣列不是變數
   let temp1, temp2, temp3;
   esp1 = (esp1 == null ? 10 : esp1);  //exponential smoothing parameter(esp)
-  for(let i=2; i<K_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {  //i=2 to 2000
     temp1 = K_high[i] - K_low[i];
     temp2 = Math.abs(K_high[i] - K_close[i-1]);
     temp3 = Math.abs(K_low[i] - K_close[i-1]);
@@ -4311,7 +4311,7 @@ function KeltnerChannels(K_high, K_low, K_close, esp1) {
   let esp2=20;         //exponential smoothing parameter(esp)
   middleEMA[1]=K_close[1];    //simpleEMA[]=1,2,...,2000
   // upperEMA, lowerEMA=2,3,...,2000.
-  for(let i=2; i<K_close.length; i++) {  
+  for(let i=2; i<=K_close.length; i++) {  
     middleEMA[i]=(esp2-1)/(esp2+1)*middleEMA[i-1]+2/(esp2+1)*K_close[i];
     //EMA今=(n-1)/(n+1)*EMA昨+2/(n+1)*MA今
     upperEMA[i]=middleEMA[i]+2*ATR[i];  //上軌=中軌+2*ATR, Blue Color
@@ -4341,7 +4341,7 @@ function ChandeMomOsc(K_close, day, esp) {   //CMO
   // Menu Name: ChandeMomOsc    // day=10, 20, ...,  esp=9
   const up = [];    //例如:N=10, up=2 to 2000, 上漲
   const down = [];  //例如:N=10, down=2 to 2000, 下跌
-  for(let i=2; i<K_close.length; i++) {   //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {   //i=2 to 2000
     if(K_close[i]>K_close[i-1]) {   //今收盤價>昨收盤價
       up[i]=K_close[i]-K_close[i-1]; }
     else {
@@ -4357,14 +4357,14 @@ function ChandeMomOsc(K_close, day, esp) {   //CMO
   const CMO = [], eCMO = [];  //例如:N=10, CMO=11 to 2000
   let sum_up=0;    //加總N日內漲幅總和
   let sum_down=0;  //加總N日內跌幅總和
-  for(let i=2; i<day+1; i++) {   //i=2 to 11, 例如:N=10
+  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
     sum_up+=up[i];
     sum_down+=down[i];
   }
   CMO[day+1]=(sum_up-sum_down)/(sum_up+sum_down)*100;  //例如:first CMO[11]
   eCMO[day+1]=CMO[day+1];               //<自創>,令eCMO初值=CMO初值, 例如:first eCMO[11]
   //compute CMO[]=12 to 2000, 例如:N=10, i=day+2 to 2000
-  for(let i=day+2; i<K_close.length; i++) {   //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
     sum_up=sum_up-up[i-day]+up[i];          //例如:N=10,sum_up=sum_up-up[2]+up[12]
     sum_down=sum_down-down[i-day]+down[i];  //例如:N=10,sum_down=sum_down-down[2]+down[12]
     CMO[i]=(sum_up-sum_down)/(sum_up+sum_down)*100;     //例如:N=10,second CMO[12]
@@ -4392,7 +4392,7 @@ function Arms_TRIN(K_close, K_vol, day, esp) {   //ARMS指標(Arms Index, TRIN)
   let sum_down_price=0;  //加總N日內(C今<C昨)天數總和
   let sum_up_vol=0;      //加總N日內(C今>C昨)成交量總和
   let sum_down_vol=0;    //加總N日內(C今<C昨)成交量總和
-  for(let i=2; i<day+1; i++) {    //i=2 to 11, 例如:N=10
+  for(let i=2; i<=day+1; i++) {    //i=2 to 11, 例如:N=10
     if(K_close[i]>K_close[i-1]) {  //C今>C昨,上漲
       sum_up_price=sum_up_price+1; //C今>C昨的天數加1
       sum_up_vol += K_vol[i]; }    //C今>C昨的成交量累加
@@ -4407,7 +4407,7 @@ function Arms_TRIN(K_close, K_vol, day, esp) {   //ARMS指標(Arms Index, TRIN)
   }
   Arms[day+1]=(sum_up_price/sum_down_price)/(sum_up_vol/sum_down_vol);  //例如:N=10, first Arms[11]
   eArms[day+1]=Arms[day+1];  //compute eArms[]=11 to 2000, 例如:N=10
-  for(let i=day+2; i<K_close.length; i++) {   //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
     //先扣除第i-day日的資料,再加入第i日的資料
     if(K_close[i-day]>K_close[i-day-1]) {  //C[2]>C[1],上漲
       sum_up_price=sum_up_price-1;         //C[2]>C[1],上漲的天數扣除1
@@ -4448,7 +4448,7 @@ function ForceIndex(K_close, K_vol, esp) {   //FI指標(Force Index, FI)
   const FI = [];    //例如:N=10, FI[]=2 to 2000
   const eFI = [];   //例如:N=10, eFI[]=2 to 2000
   //compute first FI[2], 例如:N=10, FI[2 to 2000]
-  for(let i=2; i<K_close.length; i++) {    //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {    //i=2 to 2000
     FI[i]=(K_close[i]-K_close[i-1])*K_vol[i]; //first eFI[2],例如:N=10, eFI[2 to 2000]
     if(i==2) {         //i=2, first eFI[2]初始值等於FI[2]
       eFI[2]=FI[2]; }  //first eFI[2]
@@ -4473,7 +4473,7 @@ function RiseFallRatioFI(K_close, K_vol, esp) {
   const RiseFallRatioFI = [];    //例如:N=10, RiseFallRatioFI=2 to 2000
   const eRiseFallRatioFI = [];   //例如:N=10, eRiseFallRatioFI=2 to 2000
   //compute first FI[]=2, 例如:N=10, FI[2 to 2000]
-  for(let i=2; i<K_close.length; i++) {    //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {    //i=2 to 2000
     RiseFallRatioFI[i]=(K_close[i]-K_close[i-1])/K_close[i-1]*K_vol[i]; 
     //first eFI[]=2,例如:N=10, eFI[2 to 2000]
     if(i==2) {         //i=2, first eFI[2]初始值等於FI[2]
@@ -4500,14 +4500,14 @@ function AvgRiseFallRatioFI(K_close, K_vol, day, esp) {
   const eAvgRiseFallRatioFI = [];   //例如:N=10, eAvgRiseFallRatioFI=2 to 2000
   //compute AvgRiseFallRatioFI and eAvgRiseFallRatioFI from i=2 to day+1
   let sum=0;
-  for(let i=2; i<day+1; i++) {    //i=2 to 11
+  for(let i=2; i<=day+1; i++) {    //i=2 to 11
     sum=sum+(K_close[i]-K_close[i-1])/K_close[i-1]*K_vol[i];
   }
   AvgRiseFallRatioFI[day+1]=sum/day;   //first AvgRiseFallRatioFI[11] for day=10
   eAvgRiseFallRatioFI[day+1]=AvgRiseFallRatioFI[day+1];  //first eAvgRiseFallRatioFI[day+1]
   //compute average rise/fall ratio,first AvgRiseFallRatioFI[11] for day=10, 
   // then AvgRiseFallRatioFI[21] for day=20, and so on.
-  for(let i=day+2; i<K_close.length; i++) {    //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {    //i=12 to 2000
     //remove the first term of the previous sum
     sum=sum-(K_close[i-day]-K_close[i-day-1])/K_close[i-day-1]*K_vol[i-day];  
     //add the new term to the sum
@@ -4535,7 +4535,7 @@ function GravityOsc_COG(K_close, day, esp) {   //原名:CenterOfGravityOscillato
   const eCOG=[];  //自創,指數平滑移動平均=EMA of COG, =10,11,...,2000
   sum_weight=day*(day+1)/2;  //sum of weights=1+2+...+day=day*(day+1)/2
   let counter;
-  for(let i=day; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=day; i<=K_close.length; i++) {  //i=10 to 2000
     sum_weighted_price=0;  //分子=加權價格總和=sum of weighted price=0,歸零.
     counter=1;             //counter=1 to day,計數器=1, 2,...,day
     for(let j=i-day+1; j<=i; j++) {    //j=1 to 10
@@ -4567,7 +4567,7 @@ function PriceDifCOG(K_close, day, esp) {  //完全自創新
   const ePriceDifCOG=[];  //自創,指數平滑移動平均=exponential moving average(EMA) of COG, =11,12,...,2000
   sum_weight=day*(day+1)/2;  //sum of weights=1+2+...+day=day*(day+1)/2
   let counter;
-  for(let i=day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {  //i=11 to 2000
     sum_weighted_PriceDif=0;  //分子=加權價格總和=sum of weighted price difference=0,歸零.
     counter=1;                //counter=1 to day,計數器=1, 2,...,day
     for(let j=i-day+1; j<=i; j++) {    //j=2 to 11
@@ -4599,7 +4599,7 @@ function RiseFallRatioCOG(K_close, day, esp) {  //完全自創新
   const eRiseFallRatioCOG=[];  //自創,指數平滑移動平均=exponential moving average(EMA) of COG, =11,12,...,2000
   sum_weight=day*(day+1)/2;    //sum of weights=1+2+...+day=day*(day+1)/2
   let counter;
-  for(let i=day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {  //i=11 to 2000
     sum_weighted_RiseFallRatio=0;  //分子=加權漲跌比率總和=sum of weighted rise/fall ratio=0,歸零.
     counter=1;                //counter=1 to day,計數器=1, 2,...,day
     for(let j=i-day+1; j<=i; j++) {    //j=2 to 11
@@ -4628,7 +4628,7 @@ function BalanceOfPower(K_open, K_high, K_low, K_close, day, esp) {
   // Menu Name: BalanceOfPower    //day=10, 20, ...,  esp=9, 10, ...
   let sum=0;  //sum of (C-O)/(H-L)
   //原作者method_1, Simple MA=SMA(BOP), sum=(C-O)/(H-L)
-  for(let i=1; i<day; i++) {     //i=1 to day, day=10, 20, ...
+  for(let i=1; i<=day; i++) {     //i=1 to day, day=10, 20, ...
     if(K_high[i]-K_low[i]!==0) {  //當H-L不等於0時，才計算BOP，避免除以0的錯誤 
       sum=sum+(K_close[i]-K_open[i])/(K_high[i]-K_low[i]); }
     else {  //當H-L等於0時，BOP定義為0，因為價格沒有波動
@@ -4638,7 +4638,7 @@ function BalanceOfPower(K_open, K_high, K_low, K_close, day, esp) {
   //first BOP_SMA[10]=sum/10
   const BOP_SMA=[];
   BOP_SMA[day]=sum/day;  //第1個BOP_SMA[10}=10日BOP的簡單移動平均
-  for(let i=day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {  //i=11 to 2000
     //先扣除10天前的BOP，再加上當天的BOP，得到新的sum，再除以10，得到新的BOP_SMA
     if(K_high[i-day]-K_low[i-day]!==0) {  //當10天前的H-L不等於0時，才扣除10天前的BOP，避免除以0的錯誤
       sum=sum-(K_close[i-day]-K_open[i-day])/(K_high[i-day]-K_low[i-day]); }
@@ -4657,7 +4657,7 @@ function BalanceOfPower(K_open, K_high, K_low, K_close, day, esp) {
   //method_2, 指數平滑移動平均esp=9, sum=(C-O)/(H-L)
   let BOP=0;  //BOP=(C-O)/(H-L)
   const BOP_esp=[];  //BOP_esp=exponential moving average of BOP, =1,2,...,2000
-  for(let i=1; i<K_close.length; i++) {  //i=1 to 2000
+  for(let i=1; i<=K_close.length; i++) {  //i=1 to 2000
     if(K_high[i]-K_low[i]!==0) {          //當H-L不等於0時，才計算BOP，避免除以0的錯誤 
       BOP=(K_close[i]-K_open[i])/(K_high[i]-K_low[i]); }
     else {  //當H-L等於0時，BOP定義為0，因為價格沒有波動
@@ -4703,12 +4703,12 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //每個WMA1權重為:1,2,3,4,5,...,(day1/2=half_day1)
   //例如day1=10,則WMA1[]=5,6,...,2000
   let sum_wgt1=0;              //加總WMA1的總權重,要放分母 //sum_wgt1=15
-  for(let i=1; i<half_day1; i++) {   //i=1 to 5 (i=1 to day1/2)
+  for(let i=1; i<=half_day1; i++) {   //i=1 to 5 (i=1 to day1/2)
     sum_wgt1=sum_wgt1+i;       //例如=1+2+3+4+5=15,加總WMA1的總權重,要放分母
   }
   let wgt_count;     //權重計數, 1,2,...,5 或 1,2,...,10     
   let sum_close;     //分子=5天加權收盤價加總
-  for(let i=half_day1; i<K_close.length; i++) {  //i=5 to 2000
+  for(let i=half_day1; i<=K_close.length; i++) {  //i=5 to 2000
     sum_close=0;
     wgt_count=1;     //權重計數
     for(let j=i-half_day1+1; j<=i; j++) {  //j=1 to 5, j=2 to 6,...
@@ -4723,10 +4723,10 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //每個WMA2權重為:1,2,3,4,5,...,day1
   //例如day1=10,則WMA2[]=10,11,...,2000
   let sum_wgt2=0;         //加總WMA2的總權重,要放分母 //sum_wgt2=55
-  for(let i=1; i<day1; i++) {   //i=1 to 10 (i=1 to day1)
+  for(let i=1; i<=day1; i++) {   //i=1 to 10 (i=1 to day1)
     sum_wgt2=sum_wgt2+i;  //例如=1+2+...+10=55,加總WMA2的總權重,要放分母
   }  
-  for(let i=day1; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=day1; i<=K_close.length; i++) {  //i=10 to 2000
     sum_close=0;    //分子=10天加權收盤價加總
     wgt_count=1;    //權重計數
     for(let j=i-day1+1; j<=i; j++) {  //j=1 to 10, j=2 to 11,...
@@ -4738,7 +4738,7 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
 
   //3-----計算 RawHMA2-------------------------------------------
   //計算RawHMA, day1=10, RawHMA=10 to 2000
-  for(let i=day1; i<K_close.length; i++) {  //i=10 to 2000
+  for(let i=day1; i<=K_close.length; i++) {  //i=10 to 2000
     RawHMA[i]=2*WMA1[i]-WMA2[i];             //RawHMA[]=10 to 2000
   }  // if day1=10 , RawHMA[i]=10 to 2000
 
@@ -4747,13 +4747,13 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //m=HMA的移動平均天數,例如:m=4
   let m1=Math.ceil(Math.sqrt(day1)); //開根號後再無條件進位,m1=HMA的移動平均天數=4
   let sum_wgt3=0;           //加總RawHMA的總權重,要放分母  //sum_wgt3=10
-  for(let i=1; i<m1; i++) { //i=1 to 4 (i=1 to m1)
+  for(let i=1; i<=m1; i++) { //i=1 to 4 (i=1 to m1)
     sum_wgt3=sum_wgt3+i;      //例如=1+2+3+4=10,加總RawHMA的總權重,要放分母
   }
   // what kind of type is sum_temp ??? 
   let sum_temp = 0;    //暫時加總用
   wgt_count=1;     //權重計數, 1,2,...,5 或 1,2,...,10 或 1,2,...m1=4
-  for(let i=day1+m1-1; i<K_close.length; i++) {  //i=(10+4-1)=13,14,...,2000
+  for(let i=day1+m1-1; i<=K_close.length; i++) {  //i=(10+4-1)=13,14,...,2000
     sum_temp=0;
     wgt_count=1;   //原設計count=1;
     for(let j=i-m1+1; j<=i; j++) { //j=10 to 13  (j=i-m1+1 to i)=(j=13-4+1 to 13)=(j=10 to 13)
@@ -4791,14 +4791,14 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //每個WMA1權重為:1,2,3,4,5,...,(day2/2=half_day2)
   //例如day2=10,WMA_HMA1[]=,...,2000
   sum_wgt1=0;              //加總WMA1的總權重,要放分母  //sum_wgt1=15
-  for(let i=1; i<half_day2; i++) {   //i=1 to 5 (i=1 to day2/2)
+  for(let i=1; i<=half_day2; i++) {   //i=1 to 5 (i=1 to day2/2)
     sum_wgt1=sum_wgt1+i;   //例如=1+2+3+4+5=15,加總WMA1的總權重,要放分母
   }
   // m=Math.ceil(Math.sqrt(day2)); //開根號後再無條件進位,m=HMA的移動平均天數=4
   wgt_count=0;     //權重計數, 1,2,...,5 或 1,2,...,10     
   sum_close=0;     //分子=5天加權收盤價加總
   //let first_HMA_is=day1+m1-1;    //第1個HMA[]是13， =10+4-1=13, if day1=10
-  for(let i=first_HMA_is+half_day2-1; i<K_close.length; i++) { //i=17 to 2000,13+5-1=17 
+  for(let i=first_HMA_is+half_day2-1; i<=K_close.length; i++) { //i=17 to 2000,13+5-1=17 
     sum_close=0;
     wgt_count=1;  //權重計數
     for(let j=i-half_day2+1; j<=i; j++) {     //j=13 to 17, j=14 to 18,...
@@ -4813,10 +4813,10 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //每個WMA_HMA2權重為:1,2,3,4,5,...,day2
   //例如day2=10,則WMA_HMA2[]=,,...,2000
   sum_wgt2=0;         //加總WMA_HMA2的總權重,要放分母  //sum_wgt2=55
-  for(let i=1; i<day2; i++) {  //i=1 to 10 (i=1 to day2)
+  for(let i=1; i<=day2; i++) {  //i=1 to 10 (i=1 to day2)
     sum_wgt2=sum_wgt2+i;        //例如=1+2+...+10=55,加總WMA2的總權重,要放分母
   }  
-  for(let i=first_HMA_is+day2-1; i<K_close.length; i++) {  //i=22 to 2000, (13+10-1=22)
+  for(let i=first_HMA_is+day2-1; i<=K_close.length; i++) {  //i=22 to 2000, (13+10-1=22)
     sum_close=0;    //分子=10天加權收盤價加總
     wgt_count=1;    //權重計數
     for(let j=i-day2+1; j<=i; j++) {        //j=13 to 22, j=14 to 23,...
@@ -4828,7 +4828,7 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
 
   //3-----計算 RawHMA2---if day1=10 and day2=10, then RawHMA2=22 to 2000-----------
   // first_HMA_is+day2-1 = 13+10-1=22
-  for(let i=first_HMA_is+day2-1; i<K_close.length; i++) {  //i=22 to 2000
+  for(let i=first_HMA_is+day2-1; i<=K_close.length; i++) {  //i=22 to 2000
     RawHMA2[i]=2*WMA_HMA1[i]-WMA_HMA2[i];             //RawHMA2[]=22 to 2000
   } // if day2=10 , RawHMA2[i]=22 to 2000
 
@@ -4837,14 +4837,14 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   //m2=HMA的移動平均天數,例如:m2=4
   let m2=Math.ceil(Math.sqrt(day2)); //開根號後再無條件進位,m2=HMA的移動平均天數=4
   sum_wgt3=0;                //加總RawHMA2的總權重,要放分母  //sum_wgt3=10
-  for(let i=1; i<m2; i++) { //i=1 to 4 (i=1 to m2)
+  for(let i=1; i<=m2; i++) { //i=1 to 4 (i=1 to m2)
     sum_wgt3=sum_wgt3+i;      //例如=1+2+3+4=10,加總RawHMA的總權重,要放分母
   }
   // let sum_temp;    //暫時加總用
   wgt_count=1;     //權重計數, 1,2,...,5 或 1,2,...,10 或 1,2,...m=4
   // let first_HMA_is=day1+m1-1;     //第1個HMA[]是13， =10+4-1=13
   let day_temp=first_HMA_is+day2+m2-2;  //=(day1+m1-1)+(day2+m2-2)=day1+day2+m1+m2-3=25
-  for(let i=day_temp; i<K_close.length; i++) {  //i=(13+10+4-2)=25 to 2000
+  for(let i=day_temp; i<=K_close.length; i++) {  //i=(13+10+4-2)=25 to 2000
     sum_temp=0;
     wgt_count=1;   //權重計數
     for(let j=i-m2+1; j<=i; j++) { //j=22 to 25  (j=i-m2+1 to i)=(j=25-4+1 to 25)=(j=22 to 25)
@@ -4882,7 +4882,7 @@ function StochasticSMI(K_high, K_low, K_close, day, rr, ss, esp) {
   //calculate the midpoint of the price range over the chosen period (day). =Midpoint
   //Calculate the difference between the price and the midpoint. =Dif[]
   //Calculate half of the price range. =Range[]
-  for(let i=day; i<K_high.length; i++) { //i=9 to 2000
+  for(let i=day; i<=K_high.length; i++) { //i=9 to 2000
     max_High=K_high[i-day+1];   //令第1筆為最大
     min_Low=K_low[i-day+1];     //令第1筆為最小
     for(let j=i-day+1; j<=i; j++) {  //j=1 to 9, j=2 to 10, ...
@@ -4903,7 +4903,7 @@ function StochasticSMI(K_high, K_low, K_close, day, rr, ss, esp) {
   const eRange=[];    //第1次做EMA, eRange=EMA(Range,rr), =9 to 2000
   eDif[day]=Dif[day];       //第1次第1個EMA初值, =9 to 2000
   eRange[day]=Range[day];   //第1次第1個EMA初值, =9 to 2000
-  for(let i=day+1; i<K_high.length; i++) {     //i=9+1 to 2000
+  for(let i=day+1; i<=K_high.length; i++) {     //i=9+1 to 2000
     eDif[i]=(rr-1)/(rr+1)*eDif[i-1]+2/(rr+1)*Dif[i];
     eRange[i]=(rr-1)/(rr+1)*eRange[i-1]+2/(rr+1)*Range[i];
   }
@@ -4916,7 +4916,7 @@ function StochasticSMI(K_high, K_low, K_close, day, rr, ss, esp) {
   deDif[day]=eDif[day];                  //第2次第1個EMA初值, =9 to 2000
   deRange[day]=eRange[day];              //第2次第1個EMA初值, =9 to 2000
   SMI[day]=deDif[day]/deRange[day]*100;  //第1個EMA初值, =9 to 2000
-  for(let i=day+1; i<K_high.length; i++) {     //i=9+1 to 2000
+  for(let i=day+1; i<=K_high.length; i++) {     //i=9+1 to 2000
     deDif[i]=(ss-1)/(ss+1)*deDif[i-1]+2/(ss+1)*eDif[i];
     deRange[i]=(ss-1)/(ss+1)*deRange[i-1]+2/(ss+1)*eRange[i];
     SMI[i]=deDif[i]/deRange[i]*100;
@@ -4925,7 +4925,7 @@ function StochasticSMI(K_high, K_low, K_close, day, rr, ss, esp) {
   // Signal Line=EMA(SMI,esp)
   const SignalLine=[];           //Signal Line=EMA(SMI,esp)
   SignalLine[day]=SMI[day];      //第1個EMA初值, =9 to 2000
-  for(let i=day+1; i<K_high.length; i++) {     //i=9+1 to 2000  
+  for(let i=day+1; i<=K_high.length; i++) {     //i=9+1 to 2000  
     SignalLine[i]=(esp-1)/(esp+1)*SignalLine[i-1]+2/(esp+1)*SMI[i];
   }
   return { SMI, SignalLine };
@@ -4947,11 +4947,11 @@ function PGO(K_high, K_low, K_close, ma_day, n_period, esp) {
   // calculate simpleMA, from (ma_day=14) to 2000
   const simpleMA=[];
   let sum=0;
-  for(let i=1; i<ma_day; i++) {  //i=1 to 5, or //i=1 to 14
+  for(let i=1; i<=ma_day; i++) {  //i=1 to 5, or //i=1 to 14
     sum=sum+K_close[i];
   }
   simpleMA[ma_day]=sum/ma_day;  //first =5, 10, 14
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=5+1 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
     sum=sum-K_close[i-ma_day+1]+K_close[i];      //減舊加新
     simpleMA[i]=sum/ma_day;     //second =5+1, 10+1, 14+1
   }
@@ -4960,7 +4960,7 @@ function PGO(K_high, K_low, K_close, ma_day, n_period, esp) {
   const TR=[], ATR=[];
   const PGO=[], ePGO=[];  //ePGO[]=自創新
   sum=0;
-  for(let i=2; i<n_period+1; i++) {  //i=2 to 14+1
+  for(let i=2; i<=n_period+1; i++) {  //i=2 to 14+1
     TR[i]=Math.max((K_high[i]-K_low[i]),Math.abs(K_high[i]-K_close[i-1]),Math.abs(K_low[i]-K_close[i-1]));
     sum=sum+TR[i];    //sum from i=2 to 14+1
   }
@@ -4969,7 +4969,7 @@ function PGO(K_high, K_low, K_close, ma_day, n_period, esp) {
   PGO[tp]=(K_close[tp]-simpleMA[tp])/ATR[tp];   //first PGO[14+1]
   ePGO[tp]=PGO[tp];       //first ePGO[14+1]=自創新
   //Calculate the rest of TR[], ATR[], PGO[]. from 14+2 to 2000
-  for(let i=n_period+2; i<K_close.length; i++) {  //i=14+2 to 2000
+  for(let i=n_period+2; i<=K_close.length; i++) {  //i=14+2 to 2000
     TR[i]=Math.max((K_high[i]-K_low[i]),Math.abs(K_high[i]-K_close[i-1]),Math.abs(K_low[i]-K_close[i-1]));
     //first smoothing method: ATR=((n-1)/n)*ATR昨+(1/n)*TR今
     ATR[i]=((n_period-1)/n_period)*ATR[i-1] + (1/n_period)*TR[i];    //second=14+2
@@ -5001,19 +5001,19 @@ function KairiRI(K_close, ma_day, esp) {
   // calculate simpleMA, from (ma_day) to 2000
   const simpleMA=[];
   let sum=0;
-  for(let i=1; i<ma_day; i++) {  //i=1 to 5, or //i=1 to 10
+  for(let i=1; i<=ma_day; i++) {  //i=1 to 5, or //i=1 to 10
     sum=sum+K_close[i];
   }
 
   simpleMA[ma_day]=sum/ma_day;  //first =5, 10
-  for(let i=ma_day+1; i<K_close.length; i++) {  //i=5+1 to 2000
+  for(let i=ma_day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
     sum=sum-K_close[i-ma_day+1]+K_close[i];      //減舊加新
     simpleMA[i]=sum/ma_day;     //second =5+1, 10+1, 14+1
   }
   // calculate KRI=[(Close-simpleMA)/simpleMA]*100
   const KRI=[]
   const eKRI=[];  //eKRI[]=自創新, =5 to 2000.
-  for(let i=ma_day; i<K_close.length; i++) {  //i=5 to 2000
+  for(let i=ma_day; i<=K_close.length; i++) {  //i=5 to 2000
 
     // ======================= made by FAMI, 2026-05-02 =======================
     //  changing [ma_day] into [i] because it [ma_day] will cause the KRI[] to be only one value, and the chart will not be drawn.
@@ -5044,7 +5044,7 @@ function Gaussian(K_close, day, sigma, esp) {
   let sum_wgt_price=0;  //=sum(wgt*price), 加總,放分子
   let weight=0;         //weight=exp(-x^2/(2*sigma^2))
   // Calculate Gaussian weights
-  for(let i=1; i<day; i++) {  //i=1 to 5, or //i=1 to 10
+  for(let i=1; i<=day; i++) {  //i=1 to 5, or //i=1 to 10
     weight=Math.exp(-(i-1)*(i-1)/(2*sigma*sigma));
     sum_wgt=sum_wgt + weight;
     sum_wgt_price=sum_wgt_price + weight*K_close[i];
@@ -5053,7 +5053,7 @@ function Gaussian(K_close, day, sigma, esp) {
   eGaussianMA[day]=GaussianMA[day];        //自創新, eGaussianMA[]=5 to 2000
   // Calculate the price of Gaussian filtering, from (day) to 2000
   let count=1;
-  for(let i=day+1; i<K_close.length; i++) {  //i=5+1 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {  //i=5+1 to 2000
     sum_wgt_price=0;
     count=1;
     for(let j=i-day+1; j<=i; j++) {  //j=2 to 6
@@ -5082,7 +5082,7 @@ function DVO(K_high, K_low, K_close, smooth_day, m) {
   const DVO=[];        //DVO=PercentileRank(L,m)*100.
   const Ratio=[];      //Ratio=C/((H+L)/2)
   // Calculate Ratio[], =1 TO 2000
-  for(let i=1; i<K_close.length; i++) {
+  for(let i=1; i<=K_close.length; i++) {
     Ratio[i]=K_close[i]/((K_high[i]+K_low[i])/2);  //Ratio=C/((H+L)/2)
   }  // Ratio[]=1 to 2000
   // Smooth Ratio=SMA(RAtio,n)   //Rr=Ratio/(Smooth Ratio)
@@ -5092,14 +5092,14 @@ function DVO(K_high, K_low, K_close, smooth_day, m) {
   const Rr=[];            // =smooth_day to 2000 =5 to 2000
   const LL=[];            // L=ln(Rr).   // = 5 to 2000
   let sum=0;
-  for(let i=1; i<smooth_day; i++) {  //i=1 to 5
+  for(let i=1; i<=smooth_day; i++) {  //i=1 to 5
     sum=sum+Ratio[i];
   }
   smooth_Ratio[smooth_day]=sum/smooth_day;  //first =[5]
   Rr[smooth_day]=Ratio[smooth_day]/smooth_Ratio[smooth_day];  //first =[5] 
   //在 JavaScript 裡，自然對數（ln）是用內建的 Math.log() 函式來計算的
   LL[smooth_day]=Math.log(Rr[smooth_day]);            //first =[5]
-  for(let i=smooth_day+1; i<K_close.length; i++ ) {  // 6 to 2000
+  for(let i=smooth_day+1; i<=K_close.length; i++ ) {  // 6 to 2000
     sum = sum-Ratio[i- smooth_day+1]+Ratio[i];  //減舊加新
     smooth_Ratio[i] = sum/smooth_day;  //second =[6] to 2000
     Rr[i] = Ratio[i]/smooth_Ratio[i];  //second =[6] to 2000
@@ -5111,7 +5111,7 @@ function DVO(K_high, K_low, K_close, smooth_day, m) {
   // for a yearly lookback, or shorter for more active trading).
   const PercentileRank=[];
   let count;
-  for(let i=(smooth_day+m-1); i<K_close.length; i++) {  //i=5+100-1 to 2000.
+  for(let i=(smooth_day+m-1); i<=K_close.length; i++) {  //i=5+100-1 to 2000.
     //第104(5+100-1)個陣列元素,往前看100筆資料內,有幾個比它小的,即從第5個比較到第103個。
     //例如有60個比它小,則Percentile Rank=(60/100)*100=60.
     count=0;
@@ -5140,7 +5140,7 @@ function Vortex(K_high, K_low, K_close, day) {
   const TR=[];  //TR=真實波幅(True Range)
   let temp1, temp2, temp3;
   //Calculate VM+, VM-, TR
-  for(let i=2; i<K_close.length; i++) {    //i=2 to 2000
+  for(let i=2; i<=K_close.length; i++) {    //i=2 to 2000
     pVM[i]=Math.abs(K_high[i]-K_low[i-1]);  //今高-昨低, =2 to 2000
     nVM[i]=Math.abs(K_low[i]-K_high[i-1]);  //今低-昨高, =2 to 2000
     temp1 = K_high[i] - K_low[i];
@@ -5154,7 +5154,7 @@ function Vortex(K_high, K_low, K_close, day) {
   // ========made by FAMI, 2026-05-08======================
   // let sum_pVM, sum_nVM, sum_TR;   //加總用 old 
   let sum_pVM = 0, sum_nVM = 0, sum_TR = 0;  // new
-  for(let i=2; i<day+1; i++) {   // i=2 to 11
+  for(let i=2; i<=day+1; i++) {   // i=2 to 11
     sum_pVM=sum_pVM+pVM[i];
     sum_nVM=sum_nVM+nVM[i];
     sum_TR=sum_TR+TR[i];
@@ -5162,7 +5162,7 @@ function Vortex(K_high, K_low, K_close, day) {
   pVI[day+1]=sum_pVM/sum_TR;  //first pVI[11]
   nVI[day+1]=sum_nVM/sum_TR;  //first nVI[11]
   //Calculate the rest values, =12 to 2000
-  for(let i=day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {  // i=12 to 2000
     //先減舊,再加新
     sum_pVM=sum_pVM-pVM[i-day]+pVM[i];
     sum_nVM=sum_nVM-nVM[i-day]+nVM[i];
@@ -5191,13 +5191,13 @@ function TDI(K_close, RSI_day) {
   // First calculate RSI
   const RSI=[];
   const dif=[];   //dif=今收盤-昨收盤
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     dif[i]=K_close[i]-K_close[i-1];   // dif[]=2,3,...,2000
   }
   //compute the first RSI(). if day=10, RSI()=11,12,...,2000.
   let sum_Up = 0;   //最近 n 日收盤價漲幅之和
   let sum_Dn = 0;   //最近 n 日收盤價跌幅之和
-  for(let i=2; i<RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
     else {
@@ -5212,7 +5212,7 @@ function TDI(K_close, RSI_day) {
     RSI[RSI_day+1]=sum_Up/(sum_Up+sum_Dn)*100;
   }
   //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     // 先加新的收盤價差值！
     if(dif[i] > 0) {
       sum_Up=sum_Up+dif[i]; }           //收盤價漲幅之和
@@ -5239,14 +5239,14 @@ function TDI(K_close, RSI_day) {
   const PriceLine=[];  //Price Line(綠線)=PL=EMA(RSI,2)
   PriceLine[RSI_day+1]=RSI[RSI_day+1]; //first=[11], set the same values
   let esp=3;
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     PriceLine[i]=(esp-1)/(esp+1)*PriceLine[i-1]+2/(esp+1)*RSI[i]; //second=[12]
   }
   //Calculate Signal Line(紅線), Signal Line(紅線)=SL=EMA(PriceLine,7)
   const SignalLine=[];  //Signal Line(紅線)=SL=EMA(PriceLine,7)
   SignalLine[RSI_day+1]=PriceLine[RSI_day+1]; //first=[11], set the same values
   esp=7;
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     SignalLine[i]=(esp-1)/(esp+1)*SignalLine[i-1]+2/(esp+1)*PriceLine[i]; //second=[12]
   } 
   // 較長週期平滑=Market Base Line(黃線)=MBL=SMA(RSI,34) 
@@ -5256,13 +5256,13 @@ function TDI(K_close, RSI_day) {
   let sum=0;
   const MBL=[]; //Market Base Line(黃線)=MBL=SMA(RSI,34)=>中線Mid=SMA(RSI,34)
   const Mu=[];  //Population Mean母體平均數, =30 to 2000
-  for(let i=RSI_day+1; i<RSI_day+N20; i++) { //i=11 to 30
+  for(let i=RSI_day+1; i<=RSI_day+N20; i++) { //i=11 to 30
     sum=sum+RSI[i];  //累加, from 11 to 30
   }
   MBL[RSI_day+N20]=sum/N20;   //first MBL=[30], 30 to 2000, MBL[]=Mid[]
   Mu[RSI_day+N20]=sum/N20;    //first Population Mean母體平均數, =30 to 2000
   //Calculate the rest MBL[]=31 to 2000
-  for(i=RSI_day+N20+1; i<K_close.length; i++) {  // i=31 to 2000
+  for(i=RSI_day+N20+1; i<=K_close.length; i++) {  // i=31 to 2000
     //先減舊的,再加新的
     sum=sum-RSI[i-N20]+RSI[i];  //舊的=RSI[11],新的=RSI[31]
     MBL[i]=sum/N20;             //second MBL=[31], 31 to 2000, MBL[]=Mid[]
@@ -5272,7 +5272,7 @@ function TDI(K_close, RSI_day) {
   //不能用此思考設計程式-----------------先減舊的,再加新的
   const Sigma=[];  //母體標準差(Population Standard Deviation), =30 to 2000
   const Upper=[], Lower=[]; //上軌=Upper=Mid+1.6185*Sigma,下軌=Mid-1.6185*Sigma
-  for(let i=RSI_day+N20; i<K_close.length; i++) { //i=10+20 to 2000
+  for(let i=RSI_day+N20; i<=K_close.length; i++) { //i=10+20 to 2000
     sum=0;
     for(let j=i-N20+1; j<=i; j++) {  // j=(30-20+1)=11 to 30
       sum=sum+(RSI[j]-Mui[i])**2;    //累加, from 11 to 30
@@ -5302,7 +5302,7 @@ function KlingerOsc(K_high, K_low, K_close, K_vol, day1, day2, day3) {
   const DM=[];     //Daily Measurement(DM), DM=High[i]-Low[i]
   const VF=[];     //Volume Force(VF), VF=DVolume*Trend*abs(2(DM/sum_DM-1)*100
   let sum_DM=0;    //DM_sum
-  for(let i=1; i<K_close.length; i++) {
+  for(let i=1; i<=K_close.length; i++) {
     TP[i]=(K_high[i]+K_low[i]+K_close[i])/3;  // TP[]=1,2,...,2000
     DM[i]=K_high[i]-K_low[i];                 // DM[]=1,2,...,2000
     if(i>1) {    //i>=2, then can compute Trend[] and VF[]
@@ -5333,7 +5333,7 @@ function KlingerOsc(K_high, K_low, K_close, K_vol, day1, day2, day3) {
   EMA_day2[2]=VF[2];  //first=[2], set the same values
   KO[2]=EMA_day1[2]-EMA_day2[2]; //=0; //first=[2], set the same values
   SignalLine[2]=KO[2]; //first=[2], set the same values
-  for(let i=3; i<K_close.length; i++) {  // i=3 to 2000
+  for(let i=3; i<=K_close.length; i++) {  // i=3 to 2000
     EMA_day1[i]=(day1-1)/(day1+1)*EMA_day1[i-1]+2/(day1+1)*VF[i]; //second=[3]
     EMA_day2[i]=(day2-1)/(day2+1)*EMA_day2[i-1]+2/(day2+1)*VF[i]; //second=[3]
     KO[i]=EMA_day1[i]-EMA_day2[i];    //KO[]=3,4,...,2000
@@ -5364,13 +5364,13 @@ function QstickBodyAvg(K_open, K_close, day, esp) {   //QstickBodyAvg
   const eQstickBodyAvg = [];   //例如:N=10, eQstickBodyAvg=10 to 2000
   //compute first Qstick[]=10, 例如:N=10, Qstick[10]
   let sum=0;  //加總N日內(C-O)總和
-  for(let i=1; i<day; i++) {   //i=1 to 10, 例如:N=10}
+  for(let i=1; i<=day; i++) {   //i=1 to 10, 例如:N=10}
     sum=sum+Math.abs((K_close[i]-K_open[i]));  //例如:N=10
   }
   QstickBodyAvg[day]=sum/day;  //例如:N=10, first QstickBodyAvg[10]
   eQstickBodyAvg[day]=QstickBodyAvg[day];  //<自創>,令eQstickBodyAvg初值=QstickBodyAvg初值
   //compute QstickBodyAvg[]=11 to 2000, 例如:N=10, i=day+1 to 2000
-  for(let i=day+1; i<K_close.length; i++) {   //i=11 to 2000
+  for(let i=day+1; i<=K_close.length; i++) {   //i=11 to 2000
     sum=sum-Math.abs((K_close[i-day]-K_open[i-day]))+Math.abs((K_close[i]-K_open[i]));  
     //例如:N=10, sum=sum-(C[1]-O[1])+(C[11]-O[11]), 減去N日前的C-O, 加上今天的C-O
     QstickBodyAvg[i]=sum/day;  //例如:N=10, second QstickBodyAvg[11]
@@ -5396,7 +5396,7 @@ function OBOS(K_close, day, esp) {   //OBOS
   //compute first OBOS[]=10, 例如:N=10, OBOS[10]
   let sum_up=0;       //加總N日內(C-Cprev)總和,上漲天數總和
   let sum_down=0;     //加總N日內(C-Cprev)總和,下跌天數總和 
-  for(let i=2; i<day+1; i++) {   //i=2 to 11, 例如:N=10
+  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
     if(K_close[i] > K_close[i-1]) {       //上漲天數總和
       sum_up=sum_up+(K_close[i]-K_close[i-1]); }
     else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
@@ -5406,7 +5406,7 @@ function OBOS(K_close, day, esp) {   //OBOS
   OBOS[day+1]=sum_up-sum_down;  //例如:N=10, first OBOS[11]
   eOBOS[day+1]=OBOS[day+1];     //<自創>,令eOBOS初值=OBOS初值
   //compute OBOS[]=12 to 2000, 例如:N=10, i=day+2 to 2000
-  for(let i=day+2; i<K_close.length; i++) {   //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
     //先減去N日前的K_close[i-day-1],再加上當天的K_close[i],以更新sum_up和sum_down
     if(K_close[i-day] > K_close[i-day-1]) {       //N日前的K_close[i-day-1]對sum_up的貢獻
       sum_up=sum_up-(K_close[i-day]-K_close[i-day-1]); }
@@ -5453,7 +5453,7 @@ function McClellanOSC(K_close, day, esp1, esp2) {   //McClellanOSC
   //compute first ANA[]=11, 例如:N=10, ANA[11]
   let sum_up=0;       //加總N日內(C-Cprev)總和,上漲天數總和
   let sum_down=0;     //加總N日內(C-Cprev)總和,下跌天數總和 
-  for(let i=2; i<day+1; i++) {   //i=2 to 11, 例如:N=10
+  for(let i=2; i<=day+1; i++) {   //i=2 to 11, 例如:N=10
     if(K_close[i] > K_close[i-1]) {       //上漲天數總和
       sum_up=sum_up+(K_close[i]-K_close[i-1]); }
     else if(K_close[i] < K_close[i-1]) {  //下跌天數總和
@@ -5466,7 +5466,7 @@ function McClellanOSC(K_close, day, esp1, esp2) {   //McClellanOSC
   McClellanOSC[day+1]=EMA19[day+1]/EMA39[day+1];     //first McClellanOSC[11]
   SI[day+1]=McClellanOSC[day+1];     //first SI[11]
   //compute ANA[]=12 to 2000, 例如:N=10, i=day+2 to 2000
-  for(let i=day+2; i<K_close.length; i++) {   //i=12 to 2000
+  for(let i=day+2; i<=K_close.length; i++) {   //i=12 to 2000
     //先減去N日前的K_close[i-day-1],再加上當天的K_close[i],以更新sum_up和sum_down
     if(K_close[i-day] > K_close[i-day-1]) {       //N日前的K_close[i-day-1]對sum_up的貢獻
       sum_up=sum_up-(K_close[i-day]-K_close[i-day-1]); }
@@ -5622,12 +5622,11 @@ window.AdaptiveMA = AdaptiveMA;
 //===designed by Prof Wang, 2026-May-30====================
 //DeMarker Indicator (DeM) is a technical analysis oscillator 
 // developed by Tom DeMark. 	<No.95>
-function DeMarker(STK_high, STK_low, STK_close, day) {
+function DeMarker(STK_high, STK_low, day) {
   // Menu Name: DeMarker      // day=14,...
   // Calculate Calculate DeMax[] and DeMin[]
-  const DeMax = [];
-  const DeMin = [];     //DeMax[], DeMin[]=2,...,2000
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  const DeMax = [];   const DeMin = [];     //DeMax[], DeMin[]=2,...,2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     if(STK_high[i]>STK_high[i-1]) {
       DeMax[i] = STK_high[i]-STK_high[i-1]; }
     else {
@@ -5637,12 +5636,12 @@ function DeMarker(STK_high, STK_low, STK_close, day) {
       DeMin[i] = STK_low[i-1]-STK_low[i]; }
     else {
       DeMin[i] = 0;
-    }
+    }   
   }
   // Calculate Simple Moving Average(SMA), the DeMarker Indicator
   let sumDeMax = 0;  let sumDeMin = 0;
   let avgDeMax = 0;  let avgDeMin = 0;
-  for(let i=2; i<day+1; i++) {  //i=2 to 15(=day+1)
+  for(let i=2; i<=day+1; i++) {  //i=2 to 15(=day+1)
     sumDeMax = sumDeMax+DeMax[i];
     sumDeMin = sumDeMin+DeMin[i];
   }
@@ -5650,7 +5649,7 @@ function DeMarker(STK_high, STK_low, STK_close, day) {
   avgDeMin = sumDeMin / day;  //求得前day(=14)天的DeMin平均值
   const DeMarker = [];        //first DeMarker[]=15,...,2000
   DeMarker[day+1] = avgDeMax/(avgDeMax + avgDeMin);  //first DeMarker[15]
-  for(let i=day+2; i<STK_close.length; i++) {  //i=16 to 2000
+  for(let i=day+2; i<=STK_close.length; i++) {  //i=16 to 2000
     sumDeMax = sumDeMax-DeMax[i-day]+DeMax[i];  //先減舊的再加新的
     sumDeMin = sumDeMin-DeMin[i-day]+DeMin[i];  //先減舊的再加新的
     avgDeMax = sumDeMax / day;  //求得前day(=14)天的DeMax平均值,分子
@@ -5676,7 +5675,7 @@ function WilliamsVolatilityChannel(STK_high, STK_low, STK_close, day, esp) {
   const ATR=[]; //ATR[]=TR的指數平滑移動平均, ATR[]=2 to 2000
   let TR;       //TR=真實波幅(True Range),TR改為變數,不是陣列
   let temp1, temp2, temp3;
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]);
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -5691,15 +5690,15 @@ function WilliamsVolatilityChannel(STK_high, STK_low, STK_close, day, esp) {
   const MiddleLine=[];  //Middle Line, =SMA(Close, N)=10,11,...,2000
   // applying Price=(H+L+2C)/4 instead of Close.
   const Price=[];       //Price=(H+L+2C)/4, =1,2,...,2000
-  for(let i=1; i<STK_close.length; i++) {  //i=1 to 2000
+  for(let i=1; i<=STK_close.length; i++) {  //i=1 to 2000
     Price[i]=(STK_high[i]+STK_low[i]+2*STK_close[i])/4;
   }
   let sum=0;
-  for(let i=1; i<day; i++) {   //i=1 to day, day=10,15,20,...
+  for(let i=1; i<=day; i++) {   //i=1 to day, day=10,15,20,...
     sum = sum + Price[i];
   } 
   MiddleLine[day] = sum/day;  //first MiddleLine[day]=[10]
-  for(let i=day+1; i<STK_close.length; i++) {  //i=day+1 to 2000
+  for(let i=day+1; i<=STK_close.length; i++) {  //i=day+1 to 2000
     sum = sum + Price[i] - Price[i-day];        //加新減舊
     MiddleLine[i] = sum/day;  //second=11
   } 
@@ -5709,7 +5708,7 @@ function WilliamsVolatilityChannel(STK_high, STK_low, STK_close, day, esp) {
   const LowerLine = [];  //LowerLine=MiddleLine-ATR*Multiplier
   let Multiplier = 2;    //volatility multiplier(commonly 1.5, 2, or 2.5) 
   // Multiplier determines how wide the channel is around the Middle Line.
-  for(let i=day; i<STK_close.length; i++) {  //i=10(day) to 2000
+  for(let i=day; i<=STK_close.length; i++) {  //i=10(day) to 2000
     UpperLine[i] = MiddleLine[i] + ATR[i] * Multiplier;
     LowerLine[i] = MiddleLine[i] - ATR[i] * Multiplier;
   }
@@ -5730,7 +5729,7 @@ function VolumeZoneOsc( STK_close, STK_vol, esp) {
   // Menu Name: VolZoneOsc      // esp=9, 10,...
   // 1.Determine Signed Volume, SignedVol[]=2 to 2000
   const SignedVol=[];     //SignedVol[]=2 to 2000
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     if(STK_close[i] > STK_close[i-1]) {
       SignedVol[i] = STK_vol[i]; }  //當日成交量為正值 
     else if(STK_close[i] < STK_close[i-1]) {
@@ -5748,7 +5747,7 @@ function VolumeZoneOsc( STK_close, STK_vol, esp) {
   EMA_SignedVol[2] = SignedVol[2];  //initial value of EMA_SignedVol[2]
   EMA_TotalVol[2] = STK_vol[2];     //initial value of EMA_TotalVol[2]
   VolZoneOsc[2] = 100*EMA_SignedVol[2]/EMA_TotalVol[2];  //initial value
-  for(let i=3; i<STK_close.length; i++) {  //i=3 to 2000
+  for(let i=3; i<=STK_close.length; i++) {  //i=3 to 2000
     EMA_SignedVol[i] = (esp-1)/(esp+1)*EMA_SignedVol[i-1]+2/(esp+1)*SignedVol[i];
     EMA_TotalVol[i] = (esp-1)/(esp+1)*EMA_TotalVol[i-1]+2/(esp+1)*STK_vol[i];
     VolZoneOsc[i] = 100*EMA_SignedVol[i]/EMA_TotalVol[i];
@@ -5771,13 +5770,13 @@ function DynamicZoneRSI(K_close, RSI_day, esp) {
   // First calculate RSI
   const RSI=[], eRSI=[];  //if RSI_day=10, RSI[],eRSI[]=11,12,...,2000
   const dif=[];   //dif=今收盤-昨收盤
-  for(let i=2; i<K_close.length; i++) {
+  for(let i=2; i<=K_close.length; i++) {
     dif[i]=K_close[i]-K_close[i-1];   // dif[]=2,3,...,2000
   }
   //compute the first RSI[]. if day=10, RSI[]=11,12,...,2000.
   let sum_Up = 0;   //最近 n 日收盤價漲幅之和
   let sum_Dn = 0;   //最近 n 日收盤價跌幅之和
-  for(let i=2; i<RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
+  for(let i=2; i<=RSI_day+1; i++) {  //if RSI_day=10 then i=2 to 11
     if(dif[i] > 0) {
       sum_Up = sum_Up + dif[i]; }   //收盤價漲幅之和
     else {
@@ -5793,7 +5792,7 @@ function DynamicZoneRSI(K_close, RSI_day, esp) {
   }
   eRSI[RSI_day+1]=RSI[RSI_day+1]   //eRSI的初值=eRSI[11]
   //下述程式是計算第2筆之後的RSI值。if RSI_day=10 則第2筆RSI值=RSI[12]
-  for(let i=RSI_day+2; i<K_close.length; i++) {  // i=12 to 2000
+  for(let i=RSI_day+2; i<=K_close.length; i++) {  // i=12 to 2000
     // 先加新的收盤價差值！
     if(dif[i] > 0) {
       sum_Up=sum_Up+dif[i]; }           //收盤價漲幅之和
@@ -5831,26 +5830,26 @@ function DynamicZoneRSI(K_close, RSI_day, esp) {
   let avg_RSI = 0; //RSI的平均值=DZ_mid=[],可以用eRSI[]替代,但此處為了清晰起見,仍然使用avg_RSI[]來表示RSI的平均值.
   let avgRSI2 = 0; //RSI的平均值2,用於保存前一個RSI的平均值avg_RSI.
   let SD_RSI = 0;  //RSI的標準差
-  for(let i=RSI_day+1; i<RSI_day+RSI_day; i++) {  //11 t0 20
+  for(let i=RSI_day+1; i<=RSI_day+RSI_day; i++) {  //11 t0 20
     sum_RSI = sum_RSI + RSI[i];  //第1個_RSI的總和
   }
   avg_RSI = sum_RSI/RSI_day;          //第1個_RSI的平均值
   DZ_mid[RSI_day+RSI_day] = avg_RSI;  //第1個_RSI的動態區域中線=[20]=[10+10]
   avgRSI2 = avg_RSI;   //保存第1個_RSI的平均值,用於計算第2個_RSI的標準差.
   let sum_squared_diff = 0;  
-  for(let i=RSI_day+1; i<RSI_day+RSI_day; i++) {  //11 to 20
+  for(let i=RSI_day+1; i<=RSI_day+RSI_day; i++) {  //11 to 20
     sum_squared_diff = sum_squared_diff+Math.pow(RSI[i]-avg_RSI,2);
   }
   SD_RSI = Math.sqrt(sum_squared_diff/RSI_day);  //第1個_RSI的標準差
   DZ_upper[RSI_day+RSI_day] = avg_RSI+K*SD_RSI;  //第1個_RSI的動態區域上限
   DZ_lower[RSI_day+RSI_day] = avg_RSI-K*SD_RSI;  //第1個_RSI的動態區域下限
   //計算其餘的值.
-  for(let i=RSI_day+RSI_day+1; i<K_close.length; i++) {  //21 to 2000
+  for(let i=RSI_day+RSI_day+1; i<=K_close.length; i++) {  //21 to 2000
     //計算第2個_RSI的平均值,標準差,動態區域上限和下限. if RSI_day=10 then second RSI value=RSI[12]
     sum_RSI = sum_RSI + RSI[i] - RSI[i-RSI_day];  //第2個_RSI的總和,加新減舊=+[21]-[11]
     avg_RSI = sum_RSI/RSI_day;       //第2個_RSI的平均值,RSI的平均值=DZ_mid=[],可以用eRSI[]替代
     DZ_mid[i] = avg_RSI;   //第2個_RSI的動態區域中線=eRSI[]
-    sum_squared_diff = sum_squared_diff+Math.pow(RSI[i]-avg_RSI,2)-Math.pow(RSI[i-RSI_day]-avgRSI2,2);
+    sum_squared_diff = sum_squared_diff+Math.pow(RSI[i]-avg_RSI,2)-Math.pow(RSI[i-RSI_day]-avg_RSI2,2);
     avgRSI2 = avg_RSI;     //保存前RSI的平均值,用於計算下一輪的值.
     SD_RSI = Math.sqrt(sum_squared_diff/RSI_day);  //第2個_RSI的標準差
     DZ_upper[i] = avg_RSI+K*SD_RSI;  //第2個_RSI的動態區域上限
@@ -5875,7 +5874,7 @@ function CKstop(STK_high, STK_low, STK_close, num) {
   const ATR=[]; //ATR[]=TR的指數平滑移動平均, ATR[]=2,3,...,2000.
   let TR; //TR=真實波幅(True Range)是變數,以前設為陣列,現改為變數,因TR只需當前的值,不需儲存過去的值.
   let temp1, temp2, temp3;
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]);
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -5894,7 +5893,7 @@ function CKstop(STK_high, STK_low, STK_close, num) {
   let max_High;  //num=10內的最高價
   let min_Low;   //num=10內的最低價
   let xx=1.5;    //CKS的參數,可調整,預設為1.5
-  for(let i=num+1; i<STK_close.length; i++) {  //i=11 to 2000
+  for(let i=num+1; i<=STK_close.length; i++) {  //i=11 to 2000
     //在2到11共10天中找最高價與最低價.
     max_High = STK_high[i-num+1];    //max_High=STK_high[2].
     min_Low = STK_low[i-num+1];      //min_Low=STK_low[2].
@@ -5912,7 +5911,7 @@ function CKstop(STK_high, STK_low, STK_close, num) {
   const CKS_Short = [];  //=19(num+M) to 2000
   let M=9;   //CKS的平滑參數,可調整,預設為9
   let max_Long, min_Short;  //M期內的最高LongStop與最低ShortStop
-  for(let i=num+M; i<STK_close.length; i++) {  //i=19(10+9) to 2000
+  for(let i=num+M; i<=STK_close.length; i++) {  //i=19(10+9) to 2000
     //首輪：在11到19共9天中找最高LongStop與最低ShortStop.
     max_Long = LongStop[i-M+1];    //max_Long=LongStop[11]
     min_Short = ShortStop[i-M+1];  //min_Short=ShortStop[11]
@@ -5949,9 +5948,7 @@ function DonchianChannel(STK_high, STK_low, num) {
   const MiddleChannel = []; //=num=10 to 2000, 中軌(Middle Channel)
   const ChannelWidth = [];  //=num=10 to 2000, 百分比寬度=(上軌-下軌)/中軌*100%
   let max_High, min_Low;    //num=10內的最高價和最低價
-  //edited by fami 2026-06-05, using STK_high instead of STK_close 
-  // for(let i=num; i<STK_close.length; i++) 
-  for(let i=num; i<STK_high.length; i++) {  //i=10 to 2000 // 
+  for(let i=num; i<=STK_close.length; i++) {  //i=10 to 2000 
     //在1到10共10天中找最高價與最低價.
     max_High = STK_high[i-num+1];     //max_High=STK_high[1]
     min_Low = STK_low[i-num+1];       //min_Low=STK_low[1]
@@ -5991,7 +5988,7 @@ function ChandelierExit(STK_high, STK_low, STK_close, num) {
   const ATR=[]; //ATR[]=TR的指數平滑移動平均, ATR[]=20,...,2000.
   let TR=0; //TR=真實波幅(True Range)是變數,以前設為陣列,現改為變數,因TR只需當前的值,不需儲存過去的值.
   let temp1, temp2, temp3;
-  for(let i=2; i<num+1; i++) {  //i=2 to 21,因為i=2才開始計算TR,所以i=2 to num+1.
+  for(let i=2; i<=num+1; i++) {  //i=2 to 21,因為i=2才開始計算TR,所以i=2 to num+1.
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]);
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -6001,7 +5998,7 @@ function ChandelierExit(STK_high, STK_low, STK_close, num) {
   //計算其餘的ATR[]=22,...,2000.
   //ATR[i]=(num-1)/(num+1)*ATR[i-1]+2/(num+1)*TR;
   //Wilder平滑：ATR[i]=(num-1)/num*ATR[i-1]+1/num*TR;
-  for(let i=num+2; i<STK_close.length; i++) {  //i=22 to 2000
+  for(let i=num+2; i<=STK_close.length; i++) {  //i=22 to 2000
     temp1 = STK_high[i] - STK_low[i];
     temp2 = Math.abs(STK_high[i] - STK_close[i-1]); 
     temp3 = Math.abs(STK_low[i] - STK_close[i-1]);
@@ -6015,7 +6012,7 @@ function ChandelierExit(STK_high, STK_low, STK_close, num) {
   let max_High;  //num=20內的最高價
   let min_Low;   //num=20內的最低價
   let kk=3;      //CKS的參數,可調整,預設為3
-  for(let i=num+1; i<STK_close.length; i++) {  //i=21 to 2000
+  for(let i=num+1; i<=STK_close.length; i++) {  //i=21 to 2000
     //在2到21共20天中找最高價與最低價.
     max_High = STK_high[i-num+1];    //max_High=STK_high[2].
     min_Low = STK_low[i-num+1];      //min_Low=STK_low[2].
@@ -6045,12 +6042,12 @@ function VolumeFlowIndicator(STK_high, STK_low, STK_close,STK_vol, num) {
   // Menu Name: VolFlowIndicator     // num=20
   // 1.Calculate Typical Price典型價格
   const TypicalPrice = [];  //1 to 2000
-  for(let i=1; i<STK_close.length; i++) {  //i=1 to 2000
+  for(let i=1; i<=STK_close.length; i++) {  //i=1 to 2000
     TypicalPrice[i] = (STK_high[i] + STK_low[i] + 2 * STK_close[i]) / 4;
   }
   // 2.對數價格變化(Logarithmic Price Change)
   const LogPriceChange = [];  //=Rt, =2 to 2000
-  for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
     LogPriceChange[i] = Math.log(TypicalPrice[i] / TypicalPrice[i-1]);
   } 
   // 3.Calculate波動率估計(Volatility),num=20,計算最近N期對數報酬標準差
@@ -6058,16 +6055,16 @@ function VolumeFlowIndicator(STK_high, STK_low, STK_close,STK_vol, num) {
   let sum=0; 
   let mu=0;  //mu=x_bar
   let sum_square=0;
-  for(let i=2; i<num+1; i++) {  //i=2 to 21
+  for(let i=2; i<=num+1; i++) {  //i=2 to 21
     sum=sum+LogPriceChange[i];
   }
   mu=sum/num;  //calculate average of LogPriceChange[]
-  for(let i=2; i<num+1; i++) {  //i=2 to 21
+  for(let i=2; i<=num+1; i++) {  //i=2 to 21
     sum_square=sum_square+(LogPriceChange[i]-mu)**2;
   }
   StdDev[num+1]=Math.sqrt(sum_square/num);  //第1個標準差StdDev[21]
   //計算其餘的標準差StdDev[]=22 to 2000
-  for(let i=num+2; i<STK_close.length; i++) {  //i=22 to 2000
+  for(let i=num+2; i<=i<=STK_close.length; i++) {  //i=22 to 2000
     sum=sum-LogPriceChange[i-num]+LogPriceChange[i]; //先減舊=2,再加新=22
     mu=sum/num;   //平均數mu=x_bar
     sum_square=0; //歸零
@@ -6079,18 +6076,18 @@ function VolumeFlowIndicator(STK_high, STK_low, STK_close,STK_vol, num) {
   // 4.波動門檻(Volatility Cutoff)=Cut_off[]=21(num+1) to 2000
   let Coefficient=0.2;
   const Cut_off=[];   //波動門檻, =21(num+1) to 2000
-  for(i=num+1; i<STK_close.length; i++) {  //i=21 to 2000
+  for(i=num+1; i<=STK_close.length; i++) {  //i=21 to 2000
     Cut_off[i]=Coefficient*StdDev[i]*STK_close[i];
   }
   // 5.平均成交量Average Volume,通常N=130,此處仍然取num=20
   const avg_Vol=[];  //平均成交量, =20(num) to 2000
   sum=0;
-  for(let i=1; i<num; i++) {  //i=1 to 20(num)
+  for(let i=1; i<=num; i++) {  //i=1 to 20(num)
     sum=sum+STK_vol[i];
   }
   avg_Vol[num]=sum/num;  //第1個平均成交量avg_Vol[]=20
   //計算其餘的平均成交量, =21,22,...,2000
-  for(i=num+1; i<STK_close.length; i++) {
+  for(i=num+1; i<=STK_close.length; i++) {
     sum=sum-STK_vol[i-num]+STK_vol[i];   //先減舊=1,再加新=21
     avg_Vol[i]=sum/num;  //第2個平均成交量avg_Vol[]=21
   }
@@ -6102,36 +6099,36 @@ function VolumeFlowIndicator(STK_high, STK_low, STK_close,STK_vol, num) {
   const Vol_star=[];   //Actual transaction volume實際使用成交量,=20 to 2000
   let MoneyFlow;       //MF[t]=TP[t]-TP[t-1]
   const Vol_Flow=[];   //=21 to 2000
-  for(let i=num+1; i<STK_close.length; i++) { //i=21(num+1) to 2000
+  for(let i=num+1; i<=STK_close.length; i++) { //i=21(num+1) to 2000
     Vol_Cap=avg_Vol[i]*Vol_Coefficient;
     Vol_star[i]=Math.min(STK_vol[i], Vol_Cap);
     MoneyFlow=TypicalPrice[i]-TypicalPrice[i-1];   //例如:[20]-[19]
     if(MoneyFlow>Cut_off[i]) {
       Vol_Flow[i]=(+1)*Vol_star[i]; }
-    else if(MoneyFlow < -Cut_off[i]) {
+    else if(MoneyFlow>Cut_off[i]) {
       Vol_Flow[i]=(-1)*Vol_star[i]; }
-    else {
-      Vol_Flow[i]=0;
+    else if(Math.abs(MoneyFlow)<=Cut_off[i]) {
+      Vol_Flow[i]=0; 
     }
   }
   // 9.VFI 主公式(Main VFI Formula), //=40(num+num) to 2000
   const VolFlowIndicator=[];   //=40(num+num) to 2000
   sum=0;
   //Vol_Flow=[]=40(num+num) to 2000
-  for(let i=num+1; i<num+num; i++) { //i=21 to 40
+  for(let i=num+1; i<=num+num; i++) { //i=21 to 40
     sum=sum+Vol_Flow[i];
   }
   VolFlowIndicator[num+num]=sum/avg_Vol[num+num];  //first value=[40]=[num+num]
   //計算其餘的值,=41,42,...,2000
-  for(let i=2*num+1; i<STK_close.length; i++) {  //i=41 to 2000
+  for(let i=2*num+1; i<=STK_close.length; i++) {  //i=41 to 2000
     sum=sum-Vol_Flow[i-num]+Vol_Flow[i] ;  //先減舊=21,再加新=41
     VolFlowIndicator[i]=sum/avg_Vol[i];    //second=[41]
   }
   // 10.平滑版VFI(Smoothed VFI), MM=3
   const eVolFlowIndicator=[];   //[]=40 to 2000
-  let MM=3;
+  MM=3;
   eVolFlowIndicator[2*num]=VolFlowIndicator[2*num];  //first value
-  for(let i=2*num+1; i<STK_close.length; i++) {  //i=41 to 2000
+  for(let i=2*num+1; i<=STK_close.length; i++) {  //i=41 to 2000
     eVolFlowIndicator[i]=(MM-1)/MM*eVolFlowIndicator[i-1]+1/MM*VolFlowIndicator[i];
     //Wilder Smoothed MA
   }
@@ -6141,46 +6138,7 @@ function VolumeFlowIndicator(STK_high, STK_low, STK_close,STK_vol, num) {
 }
 window.VolumeFlowIndicator = VolumeFlowIndicator;
 //----------------------------------------------------------------------
-//===designed by Prof Wang, 2026-June-09====================================
-//Fractal Dimension Index(FDI,分形維度指數)  <No.76>
-//是用來衡量市場價格走勢是偏向「趨勢(Trend)」還是「隨機(Random)」的一種技術指標。
-// 其理論基礎來自於 Benoit Mandelbrot 的分形幾何(Fractal Geometry)
-//指數平滑移動平均的參數:exponential smoothing parameter(esp=num)
-function FractalDimensionIndex(STK_high, STK_low, STK_close, num) {
-  // Menu Name: Fractal Dim     // num=20, 30, ...
-  // 1.Calculate Typical Price典型價格, 以此替代收盤價.
-  const TypicalPrice = [];  //1 to 2000. =TP
-  for(let i=1; i<=STK_close.length; i++) {  //i=1 to 2000
-    TypicalPrice[i] = (STK_high[i] + STK_low[i] + 2 * STK_close[i]) / 4;
-  }
-  // 2.求價格區間
-  // 3.計算價格路徑長度Length
-  // 4.計算分形維度Fractal Dimension Index (FDI)
-  const FDI=[];
-  let Range;  // Range=max(TP)-min(TP)
-  let Length;
-  let max_TP, min_TP;
-  for(let i=num; i<=STK_close.length; i++) {  //i=20(num) to 2000
-    Length=0;
-    max_TP=TypicalPrice[i-num+1];    //let first=max
-    min_TP=TypicalPrice[i-num+1];    //let first=min
-    for(let j=i-num+2; j<=i; j++) {  //j=2 to 20
-      if(TypicalPrice[j]>max_TP) {   //find the max
-         max_TP=TypicalPrice[j];
-      }
-      if(TypicalPrice[j]<min_TP) {   //find the min
-         min_TP=TypicalPrice[j];
-      }
-      Length=Length+Math.abs(TypicalPrice[j]-TypicalPrice[j-1]);
-    }
-    Range=max_TP-min_TP;
-    FDI[i]=1+Math.log(Length/Range)/Math.log(2*(num-1));  //20(num) to 2000
-  }  
-  return { FDI };  
-  // Drawing FDI[] figures in the small windows.
-  // if num=20, FDI[]=20,...,2000.
-}
-window.FractalDimensionIndex = FractalDimensionIndex;
+
 
 
 
@@ -6208,18 +6166,18 @@ function KingEMA(values, esp) {
   const completeEMA=[], simpleEMA=[];
   //First EMA value is SMA
   let sum=0;
-  for(let i=1; i<esp; i++) {  //例如: i=1 to 10
+  for(let i=1; i<=esp; i++) {  //例如: i=1 to 10
     sum=sum+values[i]; }
   EMA[esp]=sum/esp;      //EMA(10)=sum/10
   //Subsequent EMA values
-  for(let i=esp+1; i<values.length; i++) {  //i=11 to 2000
+  for(let i=esp+1; i<=values.length; i++) {  //i=11 to 2000
     completeEMA[i]=(esp-1)/(esp+1)*completeEMA[i-1]+2/(esp+1)*values[i];
     //EMA今=(n-1)/(n+1)*EMA昨+2/(n+1)*MA今
   }
   //simpleEMA, the first simpleEMA[1]=values[1]
   simpleEMA[1]=values[1];
   //simpleEMA[]=1,2,...,2000
-  for(let i=2; i<values.length; i++) {  
+  for(let i=2; i<=values.length; i++) {  
     simpleEMA[i]=(esp-1)/(esp+1)*simpleEMA[i-1]+2/(esp+1)*values[i];
   }
   return { completeEMA, simpleEMA };
@@ -6440,17 +6398,17 @@ function BollingerBands(K_close, MA_day, SD_day) {
   const Bandwith=[];   // wide the Bollinger Bands 
   let sum=0;
   //compute MA[], MA_day=10, MA[]=10,11,...,2000
-  for(let i=1; i<MA_day; i++) {   //i=1 to 10
+  for(let i=1; i<=MA_day; i++) {   //i=1 to 10
     sum=sum+K_close[i];
   }
   MA[MA_day]=sum/MA_day;     //first MA[10]=sum/10
-  for(let i=MA_day+1; i<K_close.length; i++) {  //i=11 to 2000
+  for(let i=MA_day+1; i<=K_close.length; i++) {  //i=11 to 2000
     sum=sum-K_close[i-MA_day]+K_close[i];   //先扣除舊的，再加新的
     MA[i]=sum/MA_day;       //second MA[11]=sum/10
   }
   //compute SD(Standard Deviation), SD[]=29,30,...,2000
   let sum_SD=0;
-  for(let i=MA_day; i<MA_day+SD_day-1; i++) {  //i=10 to 29(=10+20-1)
+  for(let i=MA_day; i<=MA_day+SD_day-1; i++) {  //i=10 to 29(=10+20-1)
     sum_SD=sum_SD+(K_close[i]-MA[i])**2;   //平方=x**2，或=Math.pow(x,2)
   }
   let tp;
@@ -6463,7 +6421,7 @@ function BollingerBands(K_close, MA_day, SD_day) {
   Bandwith[tp]=(upperBand[tp]-lowerBand[tp])/MA[tp]*100;
   //======================以上計算是所有指標的第1個數值。
   //======以下計算所有指標的其餘數值  SD[]=30,31,...2000
-  for(let i=MA_day+SD_day; i<K_close.length; i++) {  //i=30(10+20) to 2000
+  for(let i=MA_day+SD_day; i<=K_close.length; i++) {  //i=30(10+20) to 2000
     //sum_SD先扣除舊的，再加新的
     sum_SD=sum_SD-(K_close[i-SD_day]-MA[i-SD_day])**2+(K_close[i]-MA[i])**2;
     SD[i]=Math.sqrt(sum_SD/SD_day);   //second SD[30]
@@ -6617,22 +6575,22 @@ if (typeof window !== 'undefined') {
   window.computeMACD = computeMACD;
   window.computeRSI = computeRSI;
   // window.computeKD = computeKD;
-  // window.computeWilliamsR = computeWilliamsR;
-  // window.computeCCI = computeCCI;
+  window.computeWilliamsR = computeWilliamsR;
+  window.computeCCI = computeCCI;
   window.computeADX = computeADX;
   window.computeSmoothedAverage = computeSmoothedAverage;
-  // window.computeBollingerBands = computeBollingerBands;
-  // window.computeATR = computeATR;
+  window.computeBollingerBands = computeBollingerBands;
+  window.computeATR = computeATR;
   window.computeParabolicSAR = computeParabolicSAR;
   window.computeIchimoku = computeIchimoku;
-  // window.computeDMA = computeDMA;
-  // window.computeK2D2 = computeK2D2;
-  // window.computeCoppockCurve = computeCoppockCurve;
-  // window.computeVolMA = computeVolMA;
-  // window.computeTRIX = computeTRIX;
-  // window.computeASI = computeASI;
-  // window.computeMFI = computeMFI;
-  // window.computeOBV = computeOBV;
-  // window.computeROC = computeROC;
-  // window.computeADI = computeADI;
+  window.computeDMA = computeDMA;
+  window.computeK2D2 = computeK2D2;
+  window.computeCoppockCurve = computeCoppockCurve;
+  window.computeVolMA = computeVolMA;
+  window.computeTRIX = computeTRIX;
+  window.computeASI = computeASI;
+  window.computeMFI = computeMFI;
+  window.computeOBV = computeOBV;
+  window.computeROC = computeROC;
+  window.computeADI = computeADI;
 }
