@@ -161,7 +161,7 @@
     try {
       const out = window.AdaptiveMA(highs, lows, closes, day);
       const src = out && out.AdaptiveMA ? out.AdaptiveMA : [];
-      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+      return data.map((d, i) => ({ time: d.time, value: (src[i+1] != null && Number.isFinite(src[i+1])) ? src[i+1] : null }));
     } catch (e) { return null; }
   }
 
@@ -172,7 +172,7 @@
     try {
       const out = fn(closes, day, 9);
       const src = out && out.HMA ? out.HMA : [];
-      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+      return data.map((d, i) => ({ time: d.time, value: (src[i+1] != null && Number.isFinite(src[i+1])) ? src[i+1] : null }));
     } catch (e) { return null; }
   }
 
@@ -183,7 +183,7 @@
     try {
       const out = fn(closes, esp);
       const src = out && out.DEMA ? out.DEMA : [];
-      return data.map((d, i) => ({ time: d.time, value: (src[i] != null && Number.isFinite(src[i])) ? src[i] : null }));
+      return data.map((d, i) => ({ time: d.time, value: (src[i+1] != null && Number.isFinite(src[i+1])) ? src[i+1] : null }));
     } catch (e) { return null; }
   }
 
@@ -847,12 +847,8 @@
 
   async function loadCandlesAndDisplay(symbol, tf) {
     chartData = [];
-    // Remove stale overlay series from chart before loading new data
+    // Remove stale overlay series from chart before loading new data; keep activeOverlays so refreshOverlays() re-applies them after new data is set
     [...activeOverlays].forEach(id => removeOverlayFromChart(id));
-    activeOverlays.clear();
-    saveLS('stock_overlays_v2', []);
-    document.querySelectorAll('.overlay-check').forEach(cb => { cb.checked = false; });
-    updateOverlayBtn();
     if (candleSeries) {
       candleSeries.setData([]);
     }

@@ -4712,7 +4712,7 @@ function ZeroLagHullMA(K_close, day1, day2, esp) {
   for(let i=half_day1; i<K_close.length; i++) {  //i=5 to 2000
     sum_close=0;
     wgt_count=1;     //權重計數
-    for(let j=i-half_day1+1; j<=i; j++) {  //j=1 to 5, j=2 to 6,...
+    for(let j=i-half_day1+1; j<i; j++) {  //j=1 to 5, j=2 to 6,...
       sum_close=sum_close+K_close[j]*wgt_count;   //權重係數=1,2,3,4,5
       wgt_count=wgt_count+1;
     }
@@ -6304,8 +6304,8 @@ function PctPriceOSC(STK_close, short_day, long_day) {
   }
 //Calculate longEMA[] ================================
   const longEMA=[];    //=20 to 2000
-  const PPO=[];        //=20 to 2000,百分比價格擺動指標
-  const ePPO=[];       //=20 to 2000,ePPO[]=Signal[]
+  // const PPO=[];        //=20 to 2000,百分比價格擺動指標
+  // const ePPO=[];       //=20 to 2000,ePPO[]=Signal[]
   const Histogram=[];  //柱狀圖=PPO[]-ePPO[]=PPO[]-Signal[]
   //First EMA value is SMA
   sum=0;
@@ -8461,6 +8461,79 @@ function InternalBarStrength(STK_high, STK_low, STK_close, esp) {
 window.InternalBarStrength = InternalBarStrength;
 //----------------------------------------------------------------------
 
+//===designed by Prof Wang, 2026-July-19==================================
+//Williams %R(Williams Percent Range，簡稱 Williams %R 或 WPR)是由Larry Williams
+// 提出的動能震盪指標，用來衡量目前收盤價在最近 N個交易期間價格區間中的相對位置。
+//%R=-100*(Hn-C)/(Hn-Ln)   (No.7)
+function WilliamsPercentRange(STK_high, STK_low, STK_close, WPR_day) {
+  // Menu Name: WilliamsPctRange    //WPR_day=10,...
+  const WilliamsPctRange=[];    //10(=WPR_day) to 2000.
+  let max_High; let min_Low;
+  for(let i=WPR_day; i<=STK_high.length; i++) {  //i=10 to 2000
+    max_High=STK_high[i-WPR_day+1];  //=[1]
+    min_Low=STK_low[i-WPR_day+1];    //=[1]
+    for(let j=i-WPR_day+2; j<=i; j++) {  //=2 to 10
+      if(STK_high[j]>max_High) {
+        max_High=STK_high[j];  }
+      if(STK_low[j]<min_Low) {
+        min_Low=STK_low[j];  }
+    }
+    if(max_High===min_Low) {
+      WilliamsPctRange[i]=0; }
+    else {
+      WilliamsPctRange[i]=(-100)*(max_High-STK_close[i])/(max_High-min_Low);
+    }
+  }
+  return { WilliamsPctRange };
+  // drawing these figures in the small windows.
+  // if WPR_day=10, then WilliamsPctRange[]=10 to 2000.
+}
+window.WilliamsPercentRange = WilliamsPercentRange;
+
+//===designed by Prof Wang, 2026-July-18==================================
+//Follow-The-Way Strategy,完全自行創新投資哲學 
+function AlphaBetaMA(STK_high, STK_low, STK_close, ma_day, alpha, beta) {
+  // Menu Name: AlphaBetaMA     //ma_day=10,..., alpha=3%, beta=5%
+  const TypicalPrice=[];    //=1 to 2000
+  for(let i=1; i<=STK_high.length; i++) {  //i=1 to 2000
+    TypicalPrice[i]=(STK_high[i]+STK_low[i]+6*STK_close[i])/8;
+  }
+  //Calculate MA[] of TypicalPrice
+  const MA=[];   //=10 to 2000
+  let sum=0;
+  for(let i=ma_day; i<=STK_high.length; i++) {  //i=10 to 2000
+    sum=0;
+    for(j=i-ma_day+1; j<=i; j++) {  //j=1 to 10
+      sum=sum+TypicalPrice[j];
+    }
+    MA[i]=sum/ma_day;  //first value MA[]=[10], =10 to 2000
+  }
+  let BuyPrice=0; let SellPrice=0; 
+  let ROI=0;     //Return On Investment=ROI
+  let sum_ROI=0; //Cumulative ROI
+  let sum_Buy_Sell_times=0;  //Cumulative number of transations
+  for(let i=ma_day+2; i<=STK_high.length; i++) {  //i=12 to 2000
+    //買點：(前天MA大),(昨天MA小),(今天MA大), 而且今天MA大於昨天MA有alpha%,例如3%
+    if((MA[i-1]<MA[i-2] && MA[i-1]<MA[i]) && (MA[i]>(1+alpha/100)*MA[i-1])) { //大,小,大
+      BuyPrice=STK_close[i]; }
+    //賣點：(前天MA小),(昨天MA大),(今天MA小), 而且今天MA小於昨天MA有beta%,例如4%
+    else if((MA[i-1]>MA[i-2] && MA[i-1]>MA[i]) && (MA[i]<(1-beta/100)*MA[i-1])) { //小,大,小
+      SellPrice=STK_close[i];
+      if(BuyPrice!=0) {
+        ROI=(SellPrice-BuyPrice)/BuyPrice*100;   //Return On Investment=ROI
+        sum_ROI=sum_ROI+ROI;                     //Cumulative ROI
+        sum_Buy_Sell_times=sum_Buy_Sell_times+1; //Cumulative number of transations
+      }
+    }
+  }
+
+  console.log( "sum buy sell : ", sum_Buy_Sell_times,"sum_ROI:", sum_ROI)
+  return { MA, STK_close };
+  // drawing these figures in the small windows.
+  // TypicalPrice[]=1 to 2000, if ma_day=10, then MA[]=10 to 2000.
+}
+window.AlphaBetaMA = AlphaBetaMA;
+
 
 
 
@@ -8505,9 +8578,6 @@ function KingEMA(values, esp) {
 }
 window.KingEMA = KingEMA;
 //----------------------------------------------------------------------
-
-
-
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------

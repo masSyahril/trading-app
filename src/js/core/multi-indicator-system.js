@@ -1089,12 +1089,280 @@ class MultiIndicatorSystem {
           minPeriod: 10,
           compute: (data, params) => this.computeFractalDimensionIndex(data, params.day),
           render: (chart, data, colors, seriesMap) => this.renderFractalDimensionIndex(chart, data, colors, seriesMap)
-         },
+        },
+        EfficiencyRatio: {
+          name: 'Efficiency Ratio',
+          type: 'volatility',
+          defaultParams: { day: 10, esp: 9 },
+          paramLabels: { day: 'Period', esp: 'Smooth' },
+          minPeriod: 11,
+          compute: (data, params) => this.computeEfficiencyRatio(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderEfficiencyRatio(chart, data, colors, seriesMap)
+        },
+        AccuDistLine: {
+          name: 'Accum Dist Line',
+          type: 'volume',
+          defaultParams: { esp: 9 },
+          paramLabels: { esp: 'Smooth' },
+          minPeriod: 2,
+          compute: (data, params) => this.computeAccuDistLine(data, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderAccuDistLine(chart, data, colors, seriesMap)
+        },
+        ZeroLagKD: {
+          name: 'Zero Lag KD',
+          type: 'oscillator',
+          defaultParams: { KD_day: 9, esp: 9 },
+          paramLabels: { KD_day: 'KD Period', esp: 'Smooth' },
+          minPeriod: 9,
+          overbought: 80,
+          oversold: 20,
+          compute: (data, params) => this.computeZeroLagKD(data, params.KD_day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderZeroLagKD(chart, data, colors, seriesMap)
+        },
+        WaveVolume: {
+          name: 'Wave Volume',
+          type: 'volume',
+          defaultParams: {},
+          paramLabels: {},
+          minPeriod: 2,
+          compute: (data, params) => this.computeWaveVolume(data),
+          render: (chart, data, colors, seriesMap) => this.renderWaveVolume(chart, data, colors, seriesMap)
+        },
+        ElderForceIndex: {
+          name: 'Elder Force Index',
+          type: 'momentum',
+          defaultParams: { esp: 9 },
+          paramLabels: { esp: 'Smooth' },
+          minPeriod: 2,
+          compute: (data, params) => this.computeElderForceIndex(data, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderElderForceIndex(chart, data, colors, seriesMap)
+        },
+        TimeSegVol: {
+          name: 'Time Segmented Vol',
+          type: 'volume',
+          defaultParams: { day: 10 },
+          paramLabels: { day: 'Period' },
+          minPeriod: 11,
+          compute: (data, params) => this.computeTimeSegVol(data, params.day),
+          render: (chart, data, colors, seriesMap) => this.renderTimeSegVol(chart, data, colors, seriesMap)
+        },
+        TimeSegVolTP: {
+          name: 'Time Seg Vol (TP)',
+          type: 'volume',
+          defaultParams: { day: 10 },
+          paramLabels: { day: 'Period' },
+          minPeriod: 11,
+          compute: (data, params) => this.computeTimeSegVolTP(data, params.day),
+          render: (chart, data, colors, seriesMap) => this.renderTimeSegVolTP(chart, data, colors, seriesMap)
+        },
+        RSI_Mom: {
+          name: 'RSI Momentum',
+          type: 'momentum',
+          defaultParams: { RSI_day: 10 },
+          paramLabels: { RSI_day: 'RSI Period' },
+          minPeriod: 12,
+          compute: (data, params) => this.computeRSI_Mom(data, params.RSI_day),
+          render: (chart, data, colors, seriesMap) => this.renderRSI_Mom(chart, data, colors, seriesMap)
+        },
+        RSI_CenteredCumul: {
+          name: 'RSI Centered Cumulative',
+          type: 'momentum',
+          defaultParams: { RSI_day: 10 },
+          paramLabels: { RSI_day: 'RSI Period' },
+          minPeriod: 12,
+          compute: (data, params) => this.computeRSI_CenteredCumul(data, params.RSI_day),
+          render: (chart, data, colors, seriesMap) => this.renderRSI_CenteredCumul(chart, data, colors, seriesMap)
+        },
+        SchaffTrend: {
+          name: 'Schaff Trend Cycle',
+          type: 'oscillator',
+          defaultParams: { short_day: 10, long_day: 20, kd_day: 9 },
+          paramLabels: { short_day: 'Short EMA', long_day: 'Long EMA', kd_day: 'KD Period' },
+          minPeriod: 20,
+          overbought: 75,
+          oversold: 25,
+          compute: (data, params) => this.computeSchaffTrend(data, params.short_day, params.long_day, params.kd_day),
+          render: (chart, data, colors, seriesMap) => this.renderSchaffTrend(chart, data, colors, seriesMap)
+        },
+        FisherTransform: {
+          name: 'Fisher Transform',
+          type: 'oscillator',
+          defaultParams: { Fisher_day: 10, esp: 9 },
+          paramLabels: { Fisher_day: 'Period', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeFisherTransform(data, params.Fisher_day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderFisherTransform(chart, data, colors, seriesMap)
+        },
+        AwesomeOsc: {
+          name: 'Awesome Oscillator',
+          type: 'momentum',
+          defaultParams: { day1: 5, day2: 34 },
+          paramLabels: { day1: 'Short', day2: 'Long' },
+          minPeriod: 34,
+          compute: (data, params) => this.computeAwesomeOsc(data, params.day1, params.day2),
+          render: (chart, data, colors, seriesMap) => this.renderAwesomeOsc(chart, data, colors, seriesMap)
+        },
+        ChoppinessIdx: {
+          name: 'Choppiness Index',
+          type: 'volatility',
+          defaultParams: { num: 10 },
+          paramLabels: { num: 'Period' },
+          minPeriod: 11,
+          compute: (data, params) => this.computeChoppinessIdx(data, params.num),
+          render: (chart, data, colors, seriesMap) => this.renderChoppinessIdx(chart, data, colors, seriesMap)
+        },
+        TSI: {
+          name: 'True Strength Index',
+          type: 'momentum',
+          defaultParams: { esp1: 25, esp2: 13, m: 7 },
+          paramLabels: { esp1: 'Long EMA', esp2: 'Short EMA', m: 'Signal' },
+          minPeriod: 3,
+          compute: (data, params) => this.computeTSI(data, params.esp1, params.esp2, params.m),
+          render: (chart, data, colors, seriesMap) => this.renderTSI(chart, data, colors, seriesMap)
+        },
+        RVI_Vol: {
+          name: 'Relative Volatility Index',
+          type: 'volatility',
+          defaultParams: { SD_num: 10, esp: 14 },
+          paramLabels: { SD_num: 'SD Period', esp: 'Smooth' },
+          minPeriod: 10,
+          overbought: 60,
+          oversold: 40,
+          compute: (data, params) => this.computeRVI_Vol(data, params.SD_num, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderRVI_Vol(chart, data, colors, seriesMap)
+        },
+        REI: {
+          name: 'Range Expansion Index',
+          type: 'oscillator',
+          defaultParams: { REI_length: 8, esp: 9 },
+          paramLabels: { REI_length: 'Length', esp: 'Smooth' },
+          minPeriod: 14,
+          overbought: 60,
+          oversold: -60,
+          compute: (data, params) => this.computeREI(data, params.REI_length, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderREI(chart, data, colors, seriesMap)
+        },
+        RelVigorIndex: {
+          name: 'Relative Vigor Index',
+          type: 'oscillator',
+          defaultParams: { RVI_day: 10 },
+          paramLabels: { RVI_day: 'Period' },
+          minPeriod: 16,
+          compute: (data, params) => this.computeRelVigorIndex(data, params.RVI_day),
+          render: (chart, data, colors, seriesMap) => this.renderRelVigorIndex(chart, data, colors, seriesMap)
+        },
+        AroonOsc: {
+          name: 'Aroon Oscillator',
+          type: 'oscillator',
+          defaultParams: { Aroon_day: 25 },
+          paramLabels: { Aroon_day: 'Period' },
+          minPeriod: 25,
+          overbought: 50,
+          oversold: -50,
+          compute: (data, params) => this.computeAroonOsc(data, params.Aroon_day),
+          render: (chart, data, colors, seriesMap) => this.renderAroonOsc(chart, data, colors, seriesMap)
+        },
+        StdDevIndicator: {
+          name: 'Standard Deviation',
+          type: 'volatility',
+          defaultParams: { SD_num: 10, esp: 9 },
+          paramLabels: { SD_num: 'Period', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeStdDevIndicator(data, params.SD_num, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderStdDevIndicator(chart, data, colors, seriesMap)
+        },
+        RainbowOscillator: {
+          name: 'Rainbow Oscillator',
+          type: 'momentum',
+          defaultParams: { ma_day: 10 },
+          paramLabels: { ma_day: 'MA Period' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeRainbowOscillator(data, params.ma_day),
+          render: (chart, data, colors, seriesMap) => this.renderRainbowOscillator(chart, data, colors, seriesMap)
+        },
+        RainbowMA: {
+          name: 'Rainbow MA (overlay)',
+          type: 'trend',
+          defaultParams: { num: 10 },
+          paramLabels: { num: 'Period' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeRainbowMA(data, params.num),
+          render: (chart, data, colors, seriesMap) => this.renderRainbowMA(chart, data, colors, seriesMap)
+        },
+        LinearReg: {
+          name: 'Linear Regression',
+          type: 'trend',
+          defaultParams: { N: 10, K: 2 },
+          paramLabels: { N: 'Period', K: 'Multiplier' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeLinearReg(data, params.N, params.K),
+          render: (chart, data, colors, seriesMap) => this.renderLinearReg(chart, data, colors, seriesMap)
+        },
+        LinearRegTP: {
+          name: 'Linear Regression (TP)',
+          type: 'trend',
+          defaultParams: { N: 10, K: 2 },
+          paramLabels: { N: 'Period', K: 'Multiplier' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeLinearRegTP(data, params.N, params.K),
+          render: (chart, data, colors, seriesMap) => this.renderLinearRegTP(chart, data, colors, seriesMap)
+        },
+        AdaptiveLaguerre: {
+          name: 'Adaptive Laguerre',
+          type: 'trend',
+          defaultParams: { day: 10 },
+          paramLabels: { day: 'Period' },
+          minPeriod: 18,
+          compute: (data, params) => this.computeAdaptiveLaguerre(data, params.day),
+          render: (chart, data, colors, seriesMap) => this.renderAdaptiveLaguerre(chart, data, colors, seriesMap)
+        },
+        HighLowBands: {
+          name: 'High Low Bands',
+          type: 'trend',
+          defaultParams: { day: 10, esp: 10 },
+          paramLabels: { day: 'Period', esp: 'Smooth' },
+          minPeriod: 11,
+          compute: (data, params) => this.computeHighLowBands(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderHighLowBands(chart, data, colors, seriesMap)
+        },
+        StollerBands: {
+          name: 'Stoller Avg Rng Chnl',
+          type: 'trend',
+          defaultParams: { day: 10, esp: 9 },
+          paramLabels: { day: 'EMA Period', esp: 'ATR Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeStollerBands(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderStollerBands(chart, data, colors, seriesMap)
+        },
+        MA_Envelope: {
+          name: 'MA Envelope',
+          type: 'trend',
+          defaultParams: { esp: 9, kk: 3 },
+          paramLabels: { esp: 'EMA Period', kk: 'Band %' },
+          minPeriod: 9,
+          compute: (data, params) => this.computeMA_Envelope(data, params.esp, params.kk),
+          render: (chart, data, colors, seriesMap) => this.renderMA_Envelope(chart, data, colors, seriesMap)
+        },
+        WilliamsPercentRange:{
+          name: 'Williams %R',
+          type: 'oscillator',
+          defaultParams: { day: 10 },
+          paramLabels: { day: 'Period' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeWilliamsPercentRange(data, params.day),
+          render: (chart, data, colors, seriesMap) => this.renderWilliamsPercentRange(chart, data, colors, seriesMap)
+        },
+        AlphaBetaMA: {
+          name: 'Alpha Beta MA',
+          type: 'trend',
+          defaultParams: { ma_day: 10, alpha:0, beta:0 },
+          paramLabels: { ma_day: 'Period', alpha: 'Alpha', beta: 'Beta' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeAlphaBetaMA(data, params.ma_day, params.alpha, params.beta),
+          render: (chart, data, colors, seriesMap) => this.renderAlphaBetaMA(chart, data, colors, seriesMap)
+        },
 
-       
-
-
-    // last definition 
+    // last definition
     };
   }
 
@@ -1909,7 +2177,8 @@ class MultiIndicatorSystem {
             <input type="number"
                    id="${panelId}-param-${key}"
                    value="${value}"
-                   min="1"
+                   min="0"
+                   step="any"
                    style="width: 50px;">
           </div>
         `;
@@ -1935,8 +2204,9 @@ class MultiIndicatorSystem {
           const targetPanel = this.panels.get(panelId);
           if (!targetPanel) return;
           
-          const newValue = input.tagName === 'SELECT' ? e.target.value : 
-                          (parseInt(e.target.value) || targetPanel.params[key]);
+          const _raw = parseFloat(e.target.value);
+          const newValue = input.tagName === 'SELECT' ? e.target.value :
+                          (!isNaN(_raw) ? _raw : targetPanel.params[key]);
           
           // Set flag to indicate this is a parameter-driven update
           this.isParameterUpdate = true;
@@ -4908,7 +5178,434 @@ computeFractalDimensionIndex(data, day = 10) {
   return { FDI };
 }
 
+
+computeWilliamsPercentRange(data, day = 10) {
+  const highs = data.map(d => d.high); 
+  const lows = data.map(d => d.low); 
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const WilliamsPctRange = new Array(len).fill(null);
+  if (len === 0) return { WilliamsPctRange: [] };
+
+  const fn = (typeof window !== 'undefined' && window.WilliamsPercentRange) ? window.WilliamsPercentRange : null;
+  if (!fn) return { WilliamsPctRange };
+  const out = fn(highs, lows, closes, day);
+  const srcWilliamsPctRange = out && out.WilliamsPercentRange ? out.WilliamsPercentRange : [];
+  for (let i = 0; i < len; i++) { 
+    const w1 = srcWilliamsPctRange[i];
+    WilliamsPctRange[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { WilliamsPctRange };
+}
+
+computeAlphaBetaMA(data, ma_day = 10, alpha = 1, beta = 1) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const STK_close = new Array(len).fill(null);
+  const MA = new Array(len).fill(null);
+  // const TypicalPrice = new Array(len).fill(null);
+  if (len === 0) return { MA: [], STK_close: [] };
+
+  const fn = (typeof window !== 'undefined' && window.AlphaBetaMA) ? window.AlphaBetaMA : null;
+  if (!fn) return { MA, STK_close };
+  const out = fn(highs, lows, closes, ma_day, alpha, beta);
+  const srcMA = out && out.MA ? out.MA : [];
+  const srcSTK_close = out && out.STK_close ? out.STK_close : [];
+
+  for (let i = 0; i < len; i++) {
+    const w1 = srcMA[i];
+    MA[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    const w2 = srcSTK_close[i];
+    STK_close[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  }
+  return { MA, STK_close };
+}
+
+// ===================================NEW INDICATORS (Wang prods lines 6145-8461):===========
+
+computeEfficiencyRatio(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const ER = new Array(len).fill(null); const eER = new Array(len).fill(null);
+  if (len === 0 || typeof window.EfficiencyRatio !== 'function') return { ER, eER };
+  const out = window.EfficiencyRatio(highs, lows, closes, day, esp);
+  const s1 = out.ER || []; const s2 = out.eER || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; ER[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eER[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { ER, eER };
+}
+
+computeAccuDistLine(data, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length; const ADL = new Array(len).fill(null); const eADL = new Array(len).fill(null);
+  if (len === 0 || typeof window.AccuDistLine !== 'function') return { ADL, eADL };
+  const out = window.AccuDistLine(highs, lows, closes, volumes, esp);
+  const s1 = out.AccuDistLine || []; const s2 = out.eAccuDistLine || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; ADL[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eADL[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { ADL, eADL };
+}
+
+computeZeroLagKD(data, KD_day = 9, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const ZeroLag_K = new Array(len).fill(null); const ZeroLag_D = new Array(len).fill(null);
+  if (len === 0 || typeof window.ZeroLag_KD !== 'function') return { ZeroLag_K, ZeroLag_D };
+  const out = window.ZeroLag_KD(highs, lows, closes, KD_day, esp);
+  const s1 = out.ZeroLag_K || []; const s2 = out.ZeroLag_D || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; ZeroLag_K[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; ZeroLag_D[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { ZeroLag_K, ZeroLag_D };
+}
+
+computeWaveVolume(data) {
+  const closes = data.map(d => d.close); const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length; const WaveVol = new Array(len).fill(null);
+  if (len === 0 || typeof window.WaveVolume !== 'function') return { WaveVol };
+  const out = window.WaveVolume(closes, volumes);
+  const s1 = out.WaveVolume || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; WaveVol[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { WaveVol };
+}
+
+computeElderForceIndex(data, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length; const EFI = new Array(len).fill(null); const eEFI = new Array(len).fill(null);
+  if (len === 0 || typeof window.ElderForce !== 'function') return { EFI, eEFI };
+  const out = window.ElderForce(highs, lows, closes, volumes, esp);
+  const s1 = out.EFI || []; const s2 = out.eEFI || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; EFI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eEFI[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { EFI, eEFI };
+}
+
+computeTimeSegVol(data, day = 10) {
+  const closes = data.map(d => d.close); const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length; const TimeSegVol = new Array(len).fill(null);
+  if (len === 0 || typeof window.TimeSegmentedVol !== 'function') return { TimeSegVol };
+  const out = window.TimeSegmentedVol(closes, volumes, day);
+  const s1 = out.TimeSegVol || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; TimeSegVol[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { TimeSegVol };
+}
+
+computeTimeSegVolTP(data, day = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+  const len = closes.length; const TimeSegVol_TP = new Array(len).fill(null);
+  if (len === 0 || typeof window.TimeSegmentedVol_TP !== 'function') return { TimeSegVol_TP };
+  const out = window.TimeSegmentedVol_TP(highs, lows, closes, volumes, day);
+  const s1 = out.TimeSegVol_TP || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; TimeSegVol_TP[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { TimeSegVol_TP };
+}
+
+computeRSI_Mom(data, RSI_day = 10) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; const RSI_Mom = new Array(len).fill(null);
+  if (len === 0 || typeof window.RSI_Momentum !== 'function') return { RSI_Mom };
+  const out = window.RSI_Momentum(closes, RSI_day);
+  const s1 = out.RSI_Momentum || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; RSI_Mom[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { RSI_Mom };
+}
+
+computeRSI_CenteredCumul(data, RSI_day = 10) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; const CenteredCumulRSI = new Array(len).fill(null);
+  if (len === 0 || typeof window.RSI_CenteredCumulative !== 'function') return { CenteredCumulRSI };
+  const out = window.RSI_CenteredCumulative(closes, RSI_day);
+  const s1 = out.CenteredCumul_RSI || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; CenteredCumulRSI[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { CenteredCumulRSI };
+}
+
+computeSchaffTrend(data, short_day = 10, long_day = 20, kd_day = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const STC = new Array(len).fill(null);
+  if (len === 0 || typeof window.SchaffTrend !== 'function') return { STC };
+  const out = window.SchaffTrend(highs, lows, closes, short_day, long_day, kd_day);
+  const s1 = out.STC || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; STC[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { STC };
+}
+
+computeFisherTransform(data, Fisher_day = 10, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const Fisher = new Array(len).fill(null); const FisherSignal = new Array(len).fill(null);
+  if (len === 0 || typeof window.FisherTransform !== 'function') return { Fisher, FisherSignal };
+  const out = window.FisherTransform(highs, lows, closes, Fisher_day, esp);
+  const s1 = out.Fisher || []; const s2 = out.Signal || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; Fisher[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; FisherSignal[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { Fisher, FisherSignal };
+}
+
+computeAwesomeOsc(data, day1 = 5, day2 = 34) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low);
+  const len = highs.length; const AwesomeOsc = new Array(len).fill(null);
+  if (len === 0 || typeof window.AwesomeOscillator !== 'function') return { AwesomeOsc };
+  const out = window.AwesomeOscillator(highs, lows, day1, day2);
+  const s1 = out.AwesomeOsc || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; AwesomeOsc[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { AwesomeOsc };
+}
+
+computeChoppinessIdx(data, num = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const Choppiness = new Array(len).fill(null);
+  if (len === 0 || typeof window.ChoppinessIndex !== 'function') return { Choppiness };
+  const out = window.ChoppinessIndex(highs, lows, closes, num);
+  const s1 = out.Choppiness || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; Choppiness[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { Choppiness };
+}
+
+computeTSI(data, esp1 = 25, esp2 = 13, m = 7) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; const TSI = new Array(len).fill(null); const TSI_Signal = new Array(len).fill(null);
+  if (len === 0 || typeof window.TrueStrengthIndex !== 'function') return { TSI, TSI_Signal };
+  const out = window.TrueStrengthIndex(closes, esp1, esp2, m);
+  const s1 = out.TSI || []; const s2 = out.Signal || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; TSI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; TSI_Signal[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { TSI, TSI_Signal };
+}
+
+computeRVI_Vol(data, SD_num = 10, esp = 14) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; const RVI_Vol = new Array(len).fill(null); const eRVI_Vol = new Array(len).fill(null);
+  if (len === 0 || typeof window.RelativeVolatilityIndex !== 'function') return { RVI_Vol, eRVI_Vol };
+  const out = window.RelativeVolatilityIndex(closes, SD_num, esp);
+  const s1 = out.RVI || []; const s2 = out.eRVI || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; RVI_Vol[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eRVI_Vol[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { RVI_Vol, eRVI_Vol };
+}
+
+computeREI(data, REI_length = 8, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low);
+  const len = highs.length; const REI = new Array(len).fill(null); const eREI = new Array(len).fill(null);
+  if (len === 0 || typeof window.RangeExpansionIndex !== 'function') return { REI, eREI };
+  const out = window.RangeExpansionIndex(highs, lows, REI_length, esp);
+  const s1 = out.REI || []; const s2 = out.eREI || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; REI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eREI[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { REI, eREI };
+}
+
+computeRelVigorIndex(data, RVI_day = 10) {
+  const opens = data.map(d => d.open); const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const VigorRVI = new Array(len).fill(null); const VigorSignal = new Array(len).fill(null);
+  if (len === 0 || typeof window.RelativeVigorIndex !== 'function') return { VigorRVI, VigorSignal };
+  const out = window.RelativeVigorIndex(opens, highs, lows, closes, RVI_day);
+  const s1 = out.RVI || []; const s2 = out.Signal || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; VigorRVI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; VigorSignal[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { VigorRVI, VigorSignal };
+}
+
+computeAroonOsc(data, Aroon_day = 25) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low);
+  const len = highs.length; const AroonOsc = new Array(len).fill(null);
+  if (len === 0 || typeof window.AroonOscillator !== 'function') return { AroonOsc };
+  const out = window.AroonOscillator(highs, lows, Aroon_day);
+  const s1 = out.AroonOsc || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; AroonOsc[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { AroonOsc };
+}
+
+computeStdDevIndicator(data, SD_num = 10, esp = 9) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; const SD = new Array(len).fill(null); const eSD = new Array(len).fill(null);
+  if (len === 0 || typeof window.StandardDeviationIndicator !== 'function') return { SD, eSD };
+  const out = window.StandardDeviationIndicator(closes, SD_num, esp);
+  const s1 = out.SD || []; const s2 = out.eSD || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; SD[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; eSD[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { SD, eSD };
+}
+
+computeRainbowOscillator(data, ma_day = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const Rainbow = new Array(len).fill(null);
+  if (len === 0 || typeof window.RainbowOsc !== 'function') return { Rainbow };
+  const out = window.RainbowOsc(highs, lows, closes, ma_day);
+  const s1 = out.Rainbow || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; Rainbow[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { Rainbow };
+}
+
+computeRainbowMA(data, num = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length;
+  const rma1 = new Array(len).fill(null); const rma2 = new Array(len).fill(null);
+  const rma3 = new Array(len).fill(null); const rma4 = new Array(len).fill(null);
+  const rma5 = new Array(len).fill(null); const rma = new Array(len).fill(null);
+  if (len === 0 || typeof window.RainbowMA !== 'function') return { rma1, rma2, rma3, rma4, rma5, rma };
+  const out = window.RainbowMA(highs, lows, closes, num);
+  const keys = ['SMA1','SMA2','SMA3','SMA4','SMA5','RMA'];
+  const tgts = [rma1, rma2, rma3, rma4, rma5, rma];
+  keys.forEach((k, idx) => {
+    const s = out[k] || [];
+    for (let i = 0; i < len; i++) { const v = s[i]; tgts[idx][i] = (v != null && Number.isFinite(v)) ? v : null; }
+  });
+  return { rma1, rma2, rma3, rma4, rma5, rma };
+}
+
+computeLinearReg(data, N = 10, K = 2) {
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const LRI = new Array(len).fill(null); const LRI_upper = new Array(len).fill(null); const LRI_lower = new Array(len).fill(null);
+  if (len === 0 || typeof window.LinearRegression !== 'function') return { LRI, LRI_upper, LRI_lower };
+  const out = window.LinearRegression(closes, N, K);
+  const s1 = out.LRI || []; const s2 = out.LRI_upper || []; const s3 = out.LRI_lower || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; LRI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; LRI_upper[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; LRI_lower[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { LRI, LRI_upper, LRI_lower };
+}
+
+computeLinearRegTP(data, N = 10, K = 2) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length;
+  const LRI = new Array(len).fill(null); const LRI_upper = new Array(len).fill(null); const LRI_lower = new Array(len).fill(null);
+  if (len === 0 || typeof window.LinearRegressionTP !== 'function') return { LRI, LRI_upper, LRI_lower };
+  const out = window.LinearRegressionTP(highs, lows, closes, N, K);
+  const s1 = out.LRI || []; const s2 = out.LRI_upper || []; const s3 = out.LRI_lower || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; LRI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; LRI_upper[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; LRI_lower[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { LRI, LRI_upper, LRI_lower };
+}
+
+computeAdaptiveLaguerre(data, day = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length; const ALF = new Array(len).fill(null);
+  if (len === 0 || typeof window.AdaptiveLaguerreFilter !== 'function') return { ALF };
+  const out = window.AdaptiveLaguerreFilter(highs, lows, closes, day);
+  const s1 = out.AdaptiveLaguerre || [];
+  for (let i = 0; i < len; i++) { const v = s1[i]; ALF[i] = (v != null && Number.isFinite(v)) ? v : null; }
+  return { ALF };
+}
+
+computeHighLowBands(data, day = 10, esp = 10) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length;
+  const TEMA = new Array(len).fill(null); const HighBand = new Array(len).fill(null); const LowBand = new Array(len).fill(null);
+  if (len === 0 || typeof window.HighLowBands !== 'function') return { TEMA, HighBand, LowBand };
+  const out = window.HighLowBands(highs, lows, closes, day, esp);
+  const s1 = out.TriangularEMA || []; const s2 = out.HighBand || []; const s3 = out.LowBand || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; TEMA[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; HighBand[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; LowBand[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { TEMA, HighBand, LowBand };
+}
+
+computeStollerBands(data, day = 10, esp = 9) {
+  const highs = data.map(d => d.high); const lows = data.map(d => d.low); const closes = data.map(d => d.close);
+  const len = closes.length;
+  const STARC_EMA = new Array(len).fill(null); const upper_STARC = new Array(len).fill(null); const lower_STARC = new Array(len).fill(null);
+  if (len === 0 || typeof window.StollerAverageRangeChannels !== 'function') return { STARC_EMA, upper_STARC, lower_STARC };
+  const out = window.StollerAverageRangeChannels(highs, lows, closes, day, esp);
+  const s1 = out.EMA || []; const s2 = out.upper_STARC || []; const s3 = out.lower_STARC || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; STARC_EMA[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; upper_STARC[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; lower_STARC[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { STARC_EMA, upper_STARC, lower_STARC };
+}
+
+computeMA_Envelope(data, esp = 9, kk = 3) {
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const ENV_EMA = new Array(len).fill(null); 
+  const ENV_upper = new Array(len).fill(null); 
+  const ENV_lower = new Array(len).fill(null);
+
+  if (len === 0 || typeof window.MA_Envelope !== 'function') 
+    return { ENV_EMA, ENV_upper, ENV_lower };
+  const out = window.MA_Envelope(closes, esp, kk);
+  const s1 = out.EMA || []; const s2 = out.upper || []; const s3 = out.lower || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; ENV_EMA[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    const v2 = s2[i]; ENV_upper[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; ENV_lower[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { ENV_EMA, ENV_upper, ENV_lower };
+}
+
+
+
+
 // ===================================LAST COMPUTED INDICATORS:===============================
+renderWilliamsPercentRange(chart, data, colors, seriesMap) {
+  if (!data || !data.WilliamsPctRange) return;
+  if (!seriesMap.has('WilliamsPctRange')) {
+    seriesMap.set('WilliamsPctRange', chart.addLineSeries({ 
+    color: colors.LINE1, 
+    lineWidth: 2, 
+    title: 'Williams %R', 
+    crosshairMarkerVisible: false, 
+    priceLineVisible: false }));
+  }
+  const WilliamsPctRangeData = this.seriesWithLeadInPadding(data.WilliamsPctRange, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('WilliamsPctRange').setData(WilliamsPctRangeData);
+}
+
+renderAlphaBetaMA(chart, data, colors, seriesMap) {
+  if (!data || !data.MA || !data.STK_close) return; 
+  if (!seriesMap.has('MA')) {
+    seriesMap.set('MA', chart.addLineSeries({ color: colors.LINE1,
+      lineWidth: 2,
+      title: 'MA',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false }));
+  }
+  if (!seriesMap.has('STK_close')) {
+    seriesMap.set('STK_close', chart.addLineSeries({ color: colors.LINE2,
+      lineWidth: 2,
+      title: 'Close Price',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false }));
+  }
+  const MAData = this.seriesWithLeadInPadding(data.MA, (v) => (v == null || isNaN(v)) ? null : v);
+  const STK_closeData = this.seriesWithLeadInPadding(data.STK_close, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('MA').setData(MAData);
+  seriesMap.get('STK_close').setData(STK_closeData);
+}
+
+
 
 renderFractalDimensionIndex(chart, data, colors, seriesMap) {
   if (!data || !data.FDI) return;
@@ -4916,7 +5613,7 @@ renderFractalDimensionIndex(chart, data, colors, seriesMap) {
     seriesMap.set('FDI', chart.addLineSeries({
       color: colors.LINE1,
       lineWidth: 2,
-      title: 'Fractal Dimension Index',
+      title: 'FDI',
       crosshairMarkerVisible: false,
       priceLineVisible: false,
     }));
@@ -4924,6 +5621,340 @@ renderFractalDimensionIndex(chart, data, colors, seriesMap) {
   const FDIData = this.seriesWithLeadInPadding(data.FDI, (v) => (v == null || isNaN(v)) ? null : v);
   seriesMap.get('FDI').setData(FDIData);
 }
+
+renderEfficiencyRatio(chart, data, colors, seriesMap) {
+  if (!data || !data.ER) return;
+  if (!seriesMap.has('ER')) {
+    seriesMap.set('ER', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'ER', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eER')) {
+    seriesMap.set('eER', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'eER Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('ER').setData(this.seriesWithLeadInPadding(data.ER, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eER').setData(this.seriesWithLeadInPadding(data.eER, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderAccuDistLine(chart, data, colors, seriesMap) {
+  if (!data || !data.ADL) return;
+  if (!seriesMap.has('ADL')) {
+    seriesMap.set('ADL', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Accum Dist', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eADL')) {
+    seriesMap.set('eADL', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('ADL').setData(this.seriesWithLeadInPadding(data.ADL, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eADL').setData(this.seriesWithLeadInPadding(data.eADL, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderZeroLagKD(chart, data, colors, seriesMap) {
+  // Prevent accidental collapse to 0-line when underlying indicator returns sparse/1-based arrays.
+  if (!data || !Array.isArray(data.ZeroLag_K) || !Array.isArray(data.ZeroLag_D)) return;
+
+  const normalize = (arr) => {
+    // Detect 1-based arrays (common in your Wang indicator code): first defined value at index 1.
+    // If arr[0] is null/undefined and arr[1] is finite, shift left.
+    if ((arr[0] == null || !Number.isFinite(arr[0])) && arr.length > 1 && Number.isFinite(arr[1])) {
+      const out = new Array(arr.length - 1).fill(null);
+      for (let i = 1; i < arr.length; i++) out[i - 1] = arr[i];
+      return out;
+    }
+    return arr;
+  };
+
+  const kArr = normalize(data.ZeroLag_K);
+  const dArr = normalize(data.ZeroLag_D);
+
+  if (!seriesMap.has('ZeroLag_K')) {
+    seriesMap.set('ZeroLag_K', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: '%K', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('ZeroLag_D')) {
+    seriesMap.set('ZeroLag_D', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: '%D', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+
+  seriesMap.get('ZeroLag_K').setData(this.seriesWithLeadInPadding(kArr, (v) => (v == null || !Number.isFinite(v)) ? null : v));
+  seriesMap.get('ZeroLag_D').setData(this.seriesWithLeadInPadding(dArr, (v) => (v == null || !Number.isFinite(v)) ? null : v));
+}
+
+renderWaveVolume(chart, data, colors, seriesMap) {
+  if (!data || !data.WaveVol) return;
+  if (!seriesMap.has('WaveVol')) {
+    seriesMap.set('WaveVol', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Wave Volume', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('WaveVol').setData(this.seriesWithLeadInPadding(data.WaveVol, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderElderForceIndex(chart, data, colors, seriesMap) {
+  if (!data || !data.EFI) return;
+  if (!seriesMap.has('EFI')) {
+    seriesMap.set('EFI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Elder Force', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eEFI')) {
+    seriesMap.set('eEFI', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('EFI').setData(this.seriesWithLeadInPadding(data.EFI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eEFI').setData(this.seriesWithLeadInPadding(data.eEFI, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderTimeSegVol(chart, data, colors, seriesMap) {
+  if (!data || !data.TimeSegVol) return;
+  if (!seriesMap.has('TimeSegVol')) {
+    seriesMap.set('TimeSegVol', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Time Seg Vol', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('TimeSegVol').setData(this.seriesWithLeadInPadding(data.TimeSegVol, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderTimeSegVolTP(chart, data, colors, seriesMap) {
+  if (!data || !data.TimeSegVol_TP) return;
+  if (!seriesMap.has('TimeSegVol_TP')) {
+    seriesMap.set('TimeSegVol_TP', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Time Seg Vol (TP)', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('TimeSegVol_TP').setData(this.seriesWithLeadInPadding(data.TimeSegVol_TP, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRSI_Mom(chart, data, colors, seriesMap) {
+  if (!data || !data.RSI_Mom) return;
+  if (!seriesMap.has('RSI_Mom')) {
+    seriesMap.set('RSI_Mom', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'RSI Momentum', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('RSI_Mom').setData(this.seriesWithLeadInPadding(data.RSI_Mom, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRSI_CenteredCumul(chart, data, colors, seriesMap) {
+  if (!data || !data.CenteredCumulRSI) return;
+  if (!seriesMap.has('CenteredCumulRSI')) {
+    seriesMap.set('CenteredCumulRSI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'RSI Centered Cumul', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('CenteredCumulRSI').setData(this.seriesWithLeadInPadding(data.CenteredCumulRSI, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderSchaffTrend(chart, data, colors, seriesMap) {
+  if (!data || !data.STC) return;
+  if (!seriesMap.has('STC')) {
+    seriesMap.set('STC', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Schaff Trend', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('STC').setData(this.seriesWithLeadInPadding(data.STC, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderFisherTransform(chart, data, colors, seriesMap) {
+  if (!data || !data.Fisher) return;
+  if (!seriesMap.has('Fisher')) {
+    seriesMap.set('Fisher', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Fisher', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('FisherSignal')) {
+    seriesMap.set('FisherSignal', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('Fisher').setData(this.seriesWithLeadInPadding(data.Fisher, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('FisherSignal').setData(this.seriesWithLeadInPadding(data.FisherSignal, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderAwesomeOsc(chart, data, colors, seriesMap) {
+  if (!data || !data.AwesomeOsc) return;
+  if (!seriesMap.has('AwesomeOsc')) {
+    seriesMap.set('AwesomeOsc', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Awesome Osc', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('AwesomeOsc').setData(this.seriesWithLeadInPadding(data.AwesomeOsc, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderChoppinessIdx(chart, data, colors, seriesMap) {
+  if (!data || !data.Choppiness) return;
+  if (!seriesMap.has('Choppiness')) {
+    seriesMap.set('Choppiness', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Choppiness', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('Choppiness').setData(this.seriesWithLeadInPadding(data.Choppiness, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderTSI(chart, data, colors, seriesMap) {
+  if (!data || !data.TSI) return;
+  if (!seriesMap.has('TSI')) {
+    seriesMap.set('TSI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'TSI', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('TSI_Signal')) {
+    seriesMap.set('TSI_Signal', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('TSI').setData(this.seriesWithLeadInPadding(data.TSI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('TSI_Signal').setData(this.seriesWithLeadInPadding(data.TSI_Signal, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRVI_Vol(chart, data, colors, seriesMap) {
+  if (!data || !data.RVI_Vol) return;
+  if (!seriesMap.has('RVI_Vol')) {
+    seriesMap.set('RVI_Vol', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'RVI', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eRVI_Vol')) {
+    seriesMap.set('eRVI_Vol', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('RVI_Vol').setData(this.seriesWithLeadInPadding(data.RVI_Vol, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eRVI_Vol').setData(this.seriesWithLeadInPadding(data.eRVI_Vol, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderREI(chart, data, colors, seriesMap) {
+  if (!data || !data.REI) return;
+  if (!seriesMap.has('REI')) {
+    seriesMap.set('REI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'REI', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eREI')) {
+    seriesMap.set('eREI', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('REI').setData(this.seriesWithLeadInPadding(data.REI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eREI').setData(this.seriesWithLeadInPadding(data.eREI, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRelVigorIndex(chart, data, colors, seriesMap) {
+  if (!data || !data.VigorRVI) return;
+  if (!seriesMap.has('VigorRVI')) {
+    seriesMap.set('VigorRVI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Vigor RVI', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('VigorSignal')) {
+    seriesMap.set('VigorSignal', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('VigorRVI').setData(this.seriesWithLeadInPadding(data.VigorRVI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('VigorSignal').setData(this.seriesWithLeadInPadding(data.VigorSignal, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderAroonOsc(chart, data, colors, seriesMap) {
+  if (!data || !data.AroonOsc) return;
+  if (!seriesMap.has('AroonOsc')) {
+    seriesMap.set('AroonOsc', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Aroon Osc', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('AroonOsc').setData(this.seriesWithLeadInPadding(data.AroonOsc, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderStdDevIndicator(chart, data, colors, seriesMap) {
+  if (!data || !data.SD) return;
+  if (!seriesMap.has('SD')) {
+    seriesMap.set('SD', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Std Dev', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('eSD')) {
+    seriesMap.set('eSD', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Signal', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('SD').setData(this.seriesWithLeadInPadding(data.SD, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('eSD').setData(this.seriesWithLeadInPadding(data.eSD, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRainbowOscillator(chart, data, colors, seriesMap) {
+  if (!data || !data.Rainbow) return;
+  if (!seriesMap.has('Rainbow')) {
+    seriesMap.set('Rainbow', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Rainbow Osc', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('Rainbow').setData(this.seriesWithLeadInPadding(data.Rainbow, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderRainbowMA(chart, data, colors, seriesMap) {
+  if (!data || !data.rma1) return;
+  if (!seriesMap.has('rma1')) {
+    seriesMap.set('rma1', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'MA1', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('rma2')) {
+    seriesMap.set('rma2', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'MA2', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('rma3')) {
+    seriesMap.set('rma3', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'MA3', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('rma4')) {
+    seriesMap.set('rma4', chart.addLineSeries({ color: colors.LINE4, lineWidth: 2, title: 'MA4', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('rma5')) {
+    seriesMap.set('rma5', chart.addLineSeries({ color: colors.LINE5, lineWidth: 2, title: 'MA5', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('rma')) {
+    seriesMap.set('rma', chart.addLineSeries({ color: colors.LINE6, lineWidth: 2, title: 'RMA', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('rma1').setData(this.seriesWithLeadInPadding(data.rma1, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('rma2').setData(this.seriesWithLeadInPadding(data.rma2, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('rma3').setData(this.seriesWithLeadInPadding(data.rma3, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('rma4').setData(this.seriesWithLeadInPadding(data.rma4, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('rma5').setData(this.seriesWithLeadInPadding(data.rma5, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('rma').setData(this.seriesWithLeadInPadding(data.rma, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderLinearReg(chart, data, colors, seriesMap) {
+  if (!data || !data.LRI) return;
+  if (!seriesMap.has('LRI')) {
+    seriesMap.set('LRI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'LR', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('LRI_upper')) {
+    seriesMap.set('LRI_upper', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Upper', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('LRI_lower')) {
+    seriesMap.set('LRI_lower', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'Lower', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('LRI').setData(this.seriesWithLeadInPadding(data.LRI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('LRI_upper').setData(this.seriesWithLeadInPadding(data.LRI_upper, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('LRI_lower').setData(this.seriesWithLeadInPadding(data.LRI_lower, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderLinearRegTP(chart, data, colors, seriesMap) {
+  if (!data || !data.LRI) return;
+  if (!seriesMap.has('LRI')) {
+    seriesMap.set('LRI', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'LR(TP)', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('LRI_upper')) {
+    seriesMap.set('LRI_upper', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Upper', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('LRI_lower')) {
+    seriesMap.set('LRI_lower', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'Lower', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('LRI').setData(this.seriesWithLeadInPadding(data.LRI, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('LRI_upper').setData(this.seriesWithLeadInPadding(data.LRI_upper, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('LRI_lower').setData(this.seriesWithLeadInPadding(data.LRI_lower, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderAdaptiveLaguerre(chart, data, colors, seriesMap) {
+  if (!data || !data.ALF) return;
+  if (!seriesMap.has('ALF')) {
+    seriesMap.set('ALF', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'Adaptive Laguerre', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('ALF').setData(this.seriesWithLeadInPadding(data.ALF, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderHighLowBands(chart, data, colors, seriesMap) {
+  if (!data || !data.TEMA) return;
+  if (!seriesMap.has('TEMA')) {
+    seriesMap.set('TEMA', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'TEMA', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('HighBand')) {
+    seriesMap.set('HighBand', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'High Band', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('LowBand')) {
+    seriesMap.set('LowBand', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'Low Band', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('TEMA').setData(this.seriesWithLeadInPadding(data.TEMA, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('HighBand').setData(this.seriesWithLeadInPadding(data.HighBand, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('LowBand').setData(this.seriesWithLeadInPadding(data.LowBand, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderStollerBands(chart, data, colors, seriesMap) {
+  if (!data || !data.STARC_EMA) return;
+  if (!seriesMap.has('STARC_EMA')) {
+    seriesMap.set('STARC_EMA', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'EMA', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('upper_STARC')) {
+    seriesMap.set('upper_STARC', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Upper STARC', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('lower_STARC')) {
+    seriesMap.set('lower_STARC', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'Lower STARC', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('STARC_EMA').setData(this.seriesWithLeadInPadding(data.STARC_EMA, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('upper_STARC').setData(this.seriesWithLeadInPadding(data.upper_STARC, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('lower_STARC').setData(this.seriesWithLeadInPadding(data.lower_STARC, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
+renderMA_Envelope(chart, data, colors, seriesMap) {
+  if (!data || !data.ENV_EMA) return;
+  if (!seriesMap.has('ENV_EMA')) {
+    seriesMap.set('ENV_EMA', chart.addLineSeries({ color: colors.LINE1, lineWidth: 2, title: 'EMA', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('ENV_upper')) {
+    seriesMap.set('ENV_upper', chart.addLineSeries({ color: colors.LINE2, lineWidth: 2, title: 'Upper', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  if (!seriesMap.has('ENV_lower')) {
+    seriesMap.set('ENV_lower', chart.addLineSeries({ color: colors.LINE3, lineWidth: 2, title: 'Lower', crosshairMarkerVisible: false, priceLineVisible: false }));
+  }
+  seriesMap.get('ENV_EMA').setData(this.seriesWithLeadInPadding(data.ENV_EMA, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('ENV_upper').setData(this.seriesWithLeadInPadding(data.ENV_upper, (v) => (v == null || isNaN(v)) ? null : v));
+  seriesMap.get('ENV_lower').setData(this.seriesWithLeadInPadding(data.ENV_lower, (v) => (v == null || isNaN(v)) ? null : v));
+}
+
 
 renderVolumeFlowIndicator(chart, data, colors, seriesMap) {
   if (!data || !data.VolFlowIndicator || !data.eVolFlowIndicator) return;
