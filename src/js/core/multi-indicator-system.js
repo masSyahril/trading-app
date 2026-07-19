@@ -2472,6 +2472,18 @@ class MultiIndicatorSystem {
           `;
         }
         break;
+      case 'AlphaBetaMA':
+        if (indicatorData) {
+          const trades = indicatorData.sum_Buy_Sell_times ?? 0;
+          const roi = indicatorData.sum_ROI != null ? indicatorData.sum_ROI.toFixed(2) : '0.00';
+          legendHTML = `
+            <span style="color: ${this.colors.LINE1}; margin-right: 8px;">● MA: ${getLastValue(indicatorData.MA)}</span>
+            <span style="color: ${this.colors.LINE2}; margin-right: 8px;">● Close: ${getLastValue(indicatorData.STK_close)}</span>
+            <span style="color: #94a3b8; margin-right: 8px;">| Trades: ${trades}</span>
+            <span style="color: ${indicatorData.sum_ROI >= 0 ? '#22c55e' : '#ef4444'};">ROI: ${roi}%</span>
+          `;
+        }
+        break;
       default:
         // For other indicators, show just the name
         legendHTML = `<span style="color: ${this.colors.LINE1};">● ${panel.indicatorType}</span>`;
@@ -5220,7 +5232,26 @@ computeAlphaBetaMA(data, ma_day = 10, alpha = 1, beta = 1) {
     const w2 = srcSTK_close[i];
     STK_close[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
   }
-  return { MA, STK_close };
+
+  // Count buy/sell transactions using the same logic as AlphaBetaMA
+  let sum_Buy_Sell_times = 0;
+  let sum_ROI = 0;
+  let BuyPrice = 0;
+  for (let i = ma_day + 2; i <= len; i++) {
+    if (MA[i] == null || MA[i-1] == null || MA[i-2] == null) continue;
+    if ((MA[i-1] < MA[i-2] && MA[i-1] < MA[i]) && (MA[i] > (1 + alpha / 100) * MA[i-1])) {
+      BuyPrice = closes[i] ?? 0;
+    } else if ((MA[i-1] > MA[i-2] && MA[i-1] > MA[i]) && (MA[i] < (1 - beta / 100) * MA[i-1])) {
+      if (BuyPrice !== 0) {
+        const SellPrice = closes[i] ?? 0;
+        sum_ROI += (SellPrice - BuyPrice) / BuyPrice * 100;
+        sum_Buy_Sell_times += 1;
+        BuyPrice = 0;
+      }
+    }
+  }
+
+  return { MA, STK_close, sum_Buy_Sell_times, sum_ROI };
 }
 
 // ===================================NEW INDICATORS (Wang prods lines 6145-8461):===========
