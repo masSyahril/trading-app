@@ -130,6 +130,28 @@ function computeREXOSC(K_high, K_low, K_close, esp) {
   return { REX, TVB };
 }
 
+function _rsi0Based(closes, period) {
+  const n = closes.length;
+  const rsi = new Array(n).fill(null);
+  if (n <= period) return rsi;
+  let U = 0, D = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d > 0) U += d; else D += -d;
+  }
+  rsi[period] = (U + D === 0) ? 100 : U / (U + D) * 100;
+  for (let i = period + 1; i < n; i++) {
+    const dNew = closes[i] - closes[i - 1];
+    if (dNew > 0) U += dNew; else D += -dNew;
+    const dLeave = closes[i - period] - closes[i - period - 1];
+    if (dLeave > 0) U -= dLeave; else D -= -dLeave;
+    if (U < 0 && Math.abs(U) < 1e-12) U = 0;
+    if (D < 0 && Math.abs(D) < 1e-12) D = 0;
+    rsi[i] = (U + D === 0) ? 100 : U / (U + D) * 100;
+  }
+  return rsi;
+}
+
 class MultiIndicatorSystem {
   static get PRICE_SCALE_ALIGN_WIDTH() { return PRICE_SCALE_ALIGN_WIDTH; }
   static get TIME_SCALE_RIGHT_OFFSET() { return TIME_SCALE_RIGHT_OFFSET; }
@@ -2453,9 +2475,13 @@ class MultiIndicatorSystem {
 
   computeDualRSI(data, periodA = 5, periodB = 10) {
     const closes = data.map(d => d.close);
-    const rsiA = computeRSI(closes, periodA);
-    const rsiB = computeRSI(closes, periodB);
-    
+    const rsiA = (typeof window !== 'undefined' && window.slidingWindowRSI)
+      ? window.slidingWindowRSI(closes, periodA)
+      : _rsi0Based(closes, periodA);
+    const rsiB = (typeof window !== 'undefined' && window.slidingWindowRSI)
+      ? window.slidingWindowRSI(closes, periodB)
+      : _rsi0Based(closes, periodB);
+
     return {
       rsiA: rsiA,
       rsiB: rsiB,
@@ -2482,14 +2508,12 @@ class MultiIndicatorSystem {
     const lows = data.map(d => d.low);
     const closes = data.map(d => d.close);
 
-    // Use WangIndicators if available
-    if (typeof window !== 'undefined' && window.WangIndicators && window.WangIndicators.computeKD) {
+    if (typeof window.KD_KD === 'function') {
+      const { KD_K, KD_D } = window.KD_KD(highs, lows, closes, period);
+      return { k: KD_K, d: KD_D };
+    }
+    if (window.WangIndicators?.computeKD) {
       const result = window.WangIndicators.computeKD(highs, lows, closes, period);
-      // Return arrays aligned with chartData (preserve nulls for alignment)
-      // The render function will filter out nulls when mapping to time series
-      const validK = result.k.filter(v => v !== null && !isNaN(v) && isFinite(v));
-      const validD = result.d.filter(v => v !== null && !isNaN(v) && isFinite(v));
-      console.log(`Wang KD computed: k length=${validK.length}, d length=${validD.length}, total=${result.k.length}`);
       return { k: result.k, d: result.d };
     }
 
@@ -2788,16 +2812,14 @@ class MultiIndicatorSystem {
 
   computeCoppockCurve(data, short_day = 10, long_day = 20, weight_day = 10) {
     const closes = data.map(d => d.close);
-    
-    if (!window.WangIndicators || !window.WangIndicators.computeCoppockCurve) {
-      console.error('WangIndicators.computeCoppockCurve not available');
-      return { coppock: [], ecoppock: [] };
+    if (typeof window.CoppockCurve === 'function') {
+      const { Coppock, eCoppock } = window.CoppockCurve(closes, short_day, long_day, weight_day);
+      return { coppock: Coppock, ecoppock: eCoppock };
     }
-    
-    const result = window.WangIndicators.computeCoppockCurve(closes, short_day, long_day, weight_day);
-    
-    // Return object with both coppock and ecoppock arrays (with nulls to maintain alignment)
-    return result;
+    if (window.WangIndicators?.computeCoppockCurve) {
+      return window.WangIndicators.computeCoppockCurve(closes, short_day, long_day, weight_day);
+    }
+    return { coppock: [], ecoppock: [] };
   }
 
   computeVolume(data, params = {}) {
@@ -2982,8 +3004,8 @@ class MultiIndicatorSystem {
 
   computeHMA(values, period) {
     if (!Array.isArray(values) || values.length < period || period <= 0) return [];
-    if (typeof window !== 'undefined' && window.computeHullMA) {
-      const { HMA } = window.computeHullMA(values, period);
+    if (typeof window !== 'undefined' && window.HullMA) {
+      const { HMA } = window.HullMA(values, period);
       return HMA;
     }
     const { HMA } = this._computeHullMAInline(values, period, 9);
@@ -3676,12 +3698,21 @@ class MultiIndicatorSystem {
   // ROC Indicator Computation
   computeROCIndicator(data, day1, day2) {
     const closes = data.map(d => d.close);
+    if (typeof window.ROC === 'function') {
+      const r1 = window.ROC(closes, day1, 9);
+      const r2 = window.ROC(closes, day2, 9);
+      return { ROC1: r1.ROC, ROC2: r2.ROC };
+    }
     return computeROC(closes, day1, day2);
   }
 
   // KST Indicator Computation
   computeKSTIndicator(data, day1, day2, day3, day4) {
     const closes = data.map(d => d.close);
+    if (typeof window.KST === 'function') {
+      const { KST, eKST } = window.KST(closes, day1, day2, day3, day4, 9);
+      return { KST, KSTma: eKST };
+    }
     return computeKST(closes, day1, day2, day3, day4);
   }
 
@@ -3691,12 +3722,18 @@ class MultiIndicatorSystem {
     const lows = data.map(d => d.low);
     const closes = data.map(d => d.close);
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+    if (typeof window.OBV === 'function') {
+      return window.OBV(highs, lows, closes, volumes, 9);
+    }
     return computeOBV(highs, lows, closes, volumes);
   }
 
   // ACC Indicator Computation
   computeACCIndicator(data, MTM_n, ACC_n) {
     const closes = data.map(d => d.close);
+    if (typeof window.Acceleration === 'function') {
+      return window.Acceleration(closes, MTM_n, ACC_n);
+    }
     return computeACC(closes, MTM_n, ACC_n);
   }
 
@@ -3705,6 +3742,9 @@ class MultiIndicatorSystem {
     const highs = data.map(d => d.high);
     const lows = data.map(d => d.low);
     const closes = data.map(d => d.close);
+    if (typeof window.WilliamAccuDist === 'function') {
+      return window.WilliamAccuDist(highs, lows, closes, 9);
+    }
     return computeWAD(highs, lows, closes);
   }
 
@@ -3714,24 +3754,39 @@ class MultiIndicatorSystem {
     const lows = data.map(d => d.low);
     const closes = data.map(d => d.close);
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+    if (typeof window.CostMA === 'function') {
+      const { CostMA } = window.CostMA(highs, lows, closes, volumes, day);
+      return { costma: CostMA };
+    }
     return { costma: computeCostMA(highs, lows, closes, volumes, day) };
   }
 
   // VROC Indicator Computation
   computeVROCIndicator(data, day1, day2) {
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+    if (typeof window.VolumeROC === 'function') {
+      const { VolROC, VolROCma } = window.VolumeROC(volumes, day1, day2);
+      return { VROC1: VolROC, VROC2: VolROCma };
+    }
     return computeVROC(volumes, day1, day2);
   }
 
   // BTI Indicator Computation
   computeBTIIndicator(data, day) {
     const closes = data.map(d => d.close);
+    if (typeof window.BTI === 'function') {
+      const { BTI } = window.BTI(closes, day);
+      return { bti: BTI };
+    }
     return { bti: computeBTI(closes, day) };
   }
 
   // DPO Indicator Computation
   computeDPOIndicator(data, MA_day) {
     const closes = data.map(d => d.close);
+    if (typeof window.DPO === 'function') {
+      return window.DPO(closes, MA_day, 9);
+    }
     return computeDPO(closes, MA_day);
   }
 
@@ -3739,7 +3794,16 @@ class MultiIndicatorSystem {
   computeEOMIndicator(data) {
     const highs = data.map(d => d.high);
     const lows = data.map(d => d.low);
+    const closes = data.map(d => d.close);
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+    if (typeof window.EOM_EMV === 'function') {
+      const { EOM_EMV, eEOM_EMV } = window.EOM_EMV(highs, lows, closes, volumes, 9);
+      // Wang sets EOM=0 when high==low (division by zero guard); replace with null so the
+      // chart renders a gap rather than a false zero spike at those candles.
+      const cleanEOM = EOM_EMV.map((v, i) => (highs[i] === lows[i] ? null : v));
+      const cleaneEOM = eEOM_EMV.map((v, i) => (highs[i] === lows[i] ? null : v));
+      return { EOM: cleanEOM, eEOM: cleaneEOM };
+    }
     return computeEOM(highs, lows, volumes);
   }
 
@@ -3747,6 +3811,9 @@ class MultiIndicatorSystem {
   computePVTIndicator(data) {
     const closes = data.map(d => d.close);
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
+    if (typeof window.PriceVolumTrend === 'function') {
+      return window.PriceVolumTrend(closes, volumes, 9);
+    }
     return computePVT(closes, volumes);
   }
 
@@ -3755,14 +3822,14 @@ class MultiIndicatorSystem {
     const highs = data.map(d => d.high);
     const lows = data.map(d => d.low);
     const closes = data.map(d => d.close);
-    
-    if (!window.WangIndicators || !window.WangIndicators.computeATR) {
-      console.error('WangIndicators.computeATR not available');
-      return { atr: [] };
+    if (typeof window.ATR === 'function') {
+      const { ATR } = window.ATR(highs, lows, closes, period);
+      return { atr: ATR };
     }
-    
-    const result = window.WangIndicators.computeATR(highs, lows, closes, period);
-    return result;
+    if (window.WangIndicators?.computeATR) {
+      return window.WangIndicators.computeATR(highs, lows, closes, period);
+    }
+    return { atr: [] };
   }
 
   // ADI (Accumulation/Distribution Impulse) Indicator Computation
@@ -3879,7 +3946,9 @@ class MultiIndicatorSystem {
     const high = data.map(d => d.high);
     const low = data.map(d => d.low);
     const close = data.map(d => d.close);
-    const result = computeREXOscillator(high, low, close, esp, parameters);
+    const result = (typeof window !== 'undefined' && window.REXOscillator)
+      ? window.REXOscillator(high, low, close, esp)
+      : computeREXOSC(high, low, close, esp);
     const toNull = (v) => (v != null && Number.isFinite(v) ? v : null);
     return {
       REX: result.REX.map(toNull),
@@ -3891,82 +3960,74 @@ class MultiIndicatorSystem {
   computeVRIndicator(data, period = 26, esp = 10) {
     const closes = data.map(d => d.close);
     const volumes = data.map(d => d.volume ?? d.vol ?? 0);
-
-    if (typeof window !== 'undefined' && window.computeVolRatio) {
-      const { VolRatio, eVolRatio } = window.computeVolRatio(closes, volumes, period, esp);
+    if (typeof window.VolRatio === 'function') {
+      const { VolRatio, eVolRatio } = window.VolRatio(closes, volumes, period, esp);
       return { vr: VolRatio, vrs: eVolRatio };
     }
-    if (!window.WangIndicators || !window.WangIndicators.computeVR) {
-      console.error('WangIndicators.computeVR not available');
-      return { vr: [], vrs: [] };
+    if (window.WangIndicators?.computeVR) {
+      return window.WangIndicators.computeVR(closes, volumes, period, esp);
     }
-    const result = window.WangIndicators.computeVR(closes, volumes, period, esp);
-    return result;
+    return { vr: [], vrs: [] };
   }
-
-  
 
   // Qstick Indicator Computation
   computeQstickIndicator(data, day1 = 10, day2 = 20) {
     const opens = data.map(d => d.open);
     const closes = data.map(d => d.close);
-    
-    if (typeof window.computeQstick === 'function') {
-      return window.computeQstick(opens, closes, day1, day2);
-    } else {
-      console.error('computeQstick function not available');
-      return { Qstick1: [], Qstick2: [] };
+    if (typeof window.Qstick === 'function') {
+      const r1 = window.Qstick(closes, opens, day1, 9);
+      const r2 = window.Qstick(closes, opens, day2, 9);
+      return { Qstick1: r1.Qstick, Qstick2: r2.Qstick };
     }
+    return { Qstick1: [], Qstick2: [] };
   }
 
+  // IMI Indicator Computation
   computeIMIIndicator(data, day1 = 10, day2 = 20) {
     const opens = data.map(d => d.open);
     const closes = data.map(d => d.close);
-    
-    if (typeof window.computeIMI === 'function') {
-      return window.computeIMI(opens, closes, day1, day2);
-    } else {
-      console.error('computeIMI function not available');
-      return { IMI1: [], IMI2: [] };
+    if (typeof window.IntradayMomentum === 'function') {
+      return window.IntradayMomentum(opens, closes, day1, day2);
     }
+    return { IMI1: [], IMI2: [] };
   }
 
   // M3 Indicator Computation
   computeM3Indicator(data, num = 9) {
     const closes = data.map(d => d.close);
-    
-    if (!window.WangIndicators || !window.WangIndicators.computeM3) {
-      console.error('WangIndicators.computeM3 not available');
-      return { m3: [], em3: [] };
+    if (typeof window.M3 === 'function') {
+      const { M3, eM3 } = window.M3(closes, num);
+      return { m3: M3, em3: eM3 };
     }
-    
-    const result = window.WangIndicators.computeM3(closes, num);
-    return result;
+    if (window.WangIndicators?.computeM3) {
+      return window.WangIndicators.computeM3(closes, num);
+    }
+    return { m3: [], em3: [] };
   }
 
   // DMA Indicator Computation
   computeDMAIndicator(data, short_day = 10, long_day = 20, ema_n = 9) {
     const closes = data.map(d => d.close);
-    
-    if (!window.WangIndicators || !window.WangIndicators.computeDMA) {
-      console.error('WangIndicators.computeDMA not available');
-      return { dma: [], ama: [] };
+    if (typeof window.DiffMA === 'function') {
+      const { DiffMA, eDiffMA } = window.DiffMA(closes, short_day, long_day, ema_n);
+      return { dma: DiffMA, ama: eDiffMA };
     }
-    
-    const result = window.WangIndicators.computeDMA(closes, short_day, long_day, ema_n);
-    return result;
+    if (window.WangIndicators?.computeDMA) {
+      return window.WangIndicators.computeDMA(closes, short_day, long_day, ema_n);
+    }
+    return { dma: [], ama: [] };
   }
 
   /**
    * Hull Moving Average (HMA) + eHMA — Prof Wang 2026-Jan-18
-   * Uses window.computeHullMA from Wang_design__HullMA_*.js when present; otherwise inline (same math).
+   * Uses window.HullMA from technical-indicators.prods__Wang__2026.js; otherwise inline (same math).
    */
   computeHullMAIndicator(data, day = 10, ema_n = 9) {
     const closes = data.map(d => d.close);
     if (!Array.isArray(closes) || closes.length < day) return { hma: [], ehma: [] };
 
-    if (typeof window !== 'undefined' && typeof window.computeHullMA === 'function') {
-      const { HMA, eHMA } = window.computeHullMA(closes, day, ema_n);
+    if (typeof window !== 'undefined' && typeof window.HullMA === 'function') {
+      const { HMA, eHMA } = window.HullMA(closes, day, ema_n);
       return { hma: HMA || [], ehma: eHMA || [] };
     }
 
@@ -3975,7 +4036,7 @@ class MultiIndicatorSystem {
   }
 
   /**
-   * HULLHMA (Wang) — same math as HULL_MA / window.computeHullMA, but this entry used a
+   * HULLHMA (Wang) — same math as HULL_MA / window.HullMA, but this entry used a
    * different API: compute returned { HMA, eHMA } while render expected data.hullma (bug).
    * We normalize to { hullma, ehullma } for renderHULLMA.
    */
@@ -4026,10 +4087,10 @@ computeBollingerBands4SDIndicator(data, MA_day=10, SD_day=20) {
   //return early if no data
   if(len == 0) return { line1: [], line2: [], line3: [] };
 
-  // Use window.computeBollinger4SD if available; otherwise return null lines
+  // Use window.computeBollinger4SD if available; otherwise fall back to local function
   const fn = (typeof window !== 'undefined' && window.computeBollinger4SD)
   ? window.computeBollinger4SD
-  : null;
+  : computeBollinger4SD;
   if (!fn) {
     return { line1, line2, line3 };
   }
@@ -4146,8 +4207,8 @@ computePVIpercentRiseFallIndicator(data, day = 10, esp = 10) {
 
   if (len === 0) return { line1: [], line2: [] };
 
-  const fn = (typeof window !== 'undefined' && window.computePVIpercentRiseFall)
-    ? window.computePVIpercentRiseFall
+  const fn = (typeof window !== 'undefined' && window.PVIpercentRiseFall)
+    ? window.PVIpercentRiseFall
     : null;
   if (!fn) {
     return { line1, line2 };
@@ -4175,8 +4236,8 @@ computePVIpercentRiseFallIndicator(data, day = 10, esp = 10) {
 
     if (len === 0) return { dema: [], ema: [] };
 
-    const fn = typeof window !== 'undefined' && typeof window.computeDEMA === 'function'
-      ? window.computeDEMA
+    const fn = typeof window !== 'undefined' && typeof window.DEMA === 'function'
+      ? window.DEMA
       : null;
     if (!fn) return { dema, ema };
 
@@ -4192,7 +4253,7 @@ computePVIpercentRiseFallIndicator(data, day = 10, esp = 10) {
     try {
       out = fn(STK_close, period);
     } catch (e) {
-      console.warn('computeDEMA (Wang):', e);
+      console.warn('DEMA (Wang):', e);
       return { dema, ema };
     }
 
@@ -4222,8 +4283,8 @@ computeAlligatorIndicator(data, day = 10) {
 
   if (len === 0) return { line1: [], line2: [], line3: [] };
   
-  const fn = (typeof window !== 'undefined' && window.computeAlligator)
-    ? window.computeAlligator
+  const fn = (typeof window !== 'undefined' && window.Alligator)
+    ? window.Alligator
     : null;
   if (!fn) {
     return { line1, line2, line3 };
@@ -4424,6 +4485,21 @@ computeGravityOscCOGIndicator(data, day = 10, esp = 9) {
     }
     return { ADR, eADR };
   }
+
+  computeVRMAIndicator(data, day1 = 5, day2 = 10) {
+    const closes = data.map(d => d.close);
+    const len = closes.length;
+    if (typeof window === 'undefined' || !window.VariantRateMA) {
+      console.error('window.VariantRateMA not available');
+      return { vrma1: new Array(len).fill(null), vrma2: new Array(len).fill(null) };
+    }
+    const out = window.VariantRateMA(closes, day1, day2);
+    return {
+      vrma1: out.VarRtMA1 || [],
+      vrma2: out.VarRtMA2 || []
+    };
+  }
+
 computePGOIndicator(data, day = 10, n_period = 14, esp = 9) {
   const highs = data.map(d => d.high);
   const lows = data.map(d => d.low);
@@ -7323,7 +7399,7 @@ renderBollingerBands4SD(chart, data, colors, seriesMap) {
     const eVolRSI = new Array(len).fill(null);
     if (len < 2 || period < 1) return { volRsi: VolRSI, eVolRsi: eVolRSI };
 
-    const fn = (typeof window !== 'undefined' && window.computeVolumeRSI) ? window.computeVolumeRSI : null;
+    const fn = (typeof window !== 'undefined' && window.VolumeRSI) ? window.VolumeRSI : null;
     if (fn) {
       const out = fn(close, vol, period, esp);
       return { volRsi: out.VolRSI, eVolRsi: out.eVolRSI };

@@ -64,3 +64,5 @@ function computeVolumeRSI(K_close, K_vol, RSI_day, esp) {
   // if RSI_day=10 then VolRSI and eVolRSI=11,12,...,2000.
   //drawing the VolRSI and eVolRSI figures in the small windows.
 }
+
+window.computeVolumeRSI = computeVolumeRSI;

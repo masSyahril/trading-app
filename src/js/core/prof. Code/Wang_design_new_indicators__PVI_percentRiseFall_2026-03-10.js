@@ -28,7 +28,7 @@ function computePVIpercentRiseFall(K_close, K_vol, day, esp) {
     if(K_close[i-day]>K_close[i-day-1]) {  //價格上漲
       sum_Up=sum_Up-(K_close[i-day]-K_close[i-day-1])/K_close[i-day-1]*K_vol[i-day]; }
     if(K_close[i-day]<K_close[i-day-1]) {  //價格下跌
-      sum_Dn=sum_Dn+(K_close[i-day-1]-K_close[i-day])/K_close[i-day-1]*K_vol[i-day]; }
+      sum_Dn=sum_Dn-(K_close[i-day-1]-K_close[i-day])/K_close[i-day-1]*K_vol[i-day]; }
     //再加新的
     if(K_close[i]>K_close[i-1]) {  //價格上漲
       sum_Up=sum_Up+(K_close[i]-K_close[i-1])/K_close[i-1]*K_vol[i]; }
