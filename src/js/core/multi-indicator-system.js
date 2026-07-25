@@ -14,7 +14,7 @@ function computeRandomWalkIndex(RWI_n, esp, high, low, close) {
     const tp3 = Math.abs(low[i] - close[i - 1]);
     TR[i] = Math.max(tp1, tp2, tp3);
   }
-
+    
   // 2) ATR as EMA of TR. Initialize ATR[1]=TR[1] if available
   if (len > 1) ATR[1] = TR[1];
   for (let i = 2; i < len; i++) {
@@ -191,6 +191,7 @@ class MultiIndicatorSystem {
 
     this.mainChartOverlays = new Map(); // Store MA overlays on main chart
     this.indicatorDefinitions = this.createIndicatorDefinitions();
+    this.viewMode = 'stacked'; // 'stacked' (all panels) or 'tabbed' (one panel at a time via #indicators-tabbar)
   }
 
   /**
@@ -1361,6 +1362,62 @@ class MultiIndicatorSystem {
           compute: (data, params) => this.computeAlphaBetaMA(data, params.ma_day, params.alpha, params.beta),
           render: (chart, data, colors, seriesMap) => this.renderAlphaBetaMA(chart, data, colors, seriesMap)
         },
+        LaguerreRSI: {
+          name: 'Laguerre RSI',
+          type: 'oscillator',
+          defaultParams: { gamma: 0.5, esp: 9 },
+          paramLabels: { gamma: 'Gamma', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeLaguerreRSI(data, params.gamma, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderLaguerreRSI(chart, data, colors, seriesMap)
+        },
+        InstantaneousTrendline: {
+          name: 'Instant Trend',
+          type: 'trend',
+          defaultParams: { alpha: 0.07 },
+          paramLabels: { alpha: 'Alpha' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeInstantaneousTrendline(data, params.alpha),
+          render: (chart, data, colors, seriesMap) => this.renderInstantaneousTrendline(chart, data, colors, seriesMap)
+        },
+        RSI_TP: {
+          name: 'RSI (Typical Price)',
+          type: 'oscillator',
+          defaultParams: { day: 10, esp: 9 },
+          paramLabels: { day: 'Period', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeRSI_TP(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderRSI_TP(chart, data, colors, seriesMap)
+        },
+
+        AdaptiveRSI: {
+          name: 'Adaptive RSI',
+          type: 'oscillator',
+          defaultParams: { esp: 9 },
+          paramLabels: { esp: 'Smooth' },
+          minPeriod: 48,
+          compute: (data, params) => this.computeAdaptiveRSI(data, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderAdaptiveRSI(chart, data, colors, seriesMap)
+        },
+        NewKD: {
+          name: 'New KD (3)',
+          type: 'oscillator',
+          defaultParams: { day: 10, esp: 9 },
+          paramLabels: { day: 'Period', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeNewKDW(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderNewKDW(chart, data, colors, seriesMap)
+        },
+        KD_K2D2:{
+          name: 'KD_K2D2',
+          type: 'oscillator',
+          defaultParams: { day: 10, esp: 9 },
+          paramLabels: { day: 'Period', esp: 'Smooth' },
+          minPeriod: 10,
+          compute: (data, params) => this.computeK2D2(data, params.day, params.esp),
+          render: (chart, data, colors, seriesMap) => this.renderK2D2(chart, data, colors, seriesMap)
+        },
+
 
     // last definition
     };
@@ -1529,13 +1586,20 @@ class MultiIndicatorSystem {
 
     const isMinimized = panelElement.classList.toggle('minimized');
 
+    // The settings popover is position:fixed and won't auto-hide when its
+    // panel collapses, so close it explicitly to avoid an orphaned floater
+    if (isMinimized) {
+      const popover = document.getElementById(`${panelId}-settings-popover`);
+      if (popover) popover.hidden = true;
+    }
+
     // Update button icon and class
     if (minimizeBtn) {
       const toggleIcon = minimizeBtn.querySelector('span') || minimizeBtn;
       if (toggleIcon.tagName === 'SPAN') {
-        toggleIcon.textContent = isMinimized ? '+' : '−';
+        toggleIcon.textContent = isMinimized ? '▲' : '▼';
       } else {
-        minimizeBtn.textContent = isMinimized ? '+' : '−';
+        minimizeBtn.textContent = isMinimized ? '▲' : '▼';
       }
       minimizeBtn.classList.toggle('minimized', isMinimized);
     }
@@ -1546,6 +1610,8 @@ class MultiIndicatorSystem {
       const hasMinimized = container.querySelector('.indicator-panel.minimized');
       container.classList.toggle('has-minimized', !!hasMinimized);
     }
+
+    this._updateIndicatorTimeAxisVisibility();
 
     // Re-render chart when maximized
     if (!isMinimized) {
@@ -1596,27 +1662,29 @@ class MultiIndicatorSystem {
     const panelHTML = `
       <div class="indicator-panel" id="${panelId}">
         <div class="indicator-header">
-          <select class="indicator-select" id="${panelId}-select">
-            ${Object.entries(this.indicatorDefinitions)
-              .sort((a, b) => a[1].name.localeCompare(b[1].name))
-              .map(([key, def]) => 
-                `<option value="${key}" ${key === defaultIndicator ? 'selected' : ''}>${def.name}</option>`
-              ).join('')}
-          </select>
-          <div class="indicator-params" id="${panelId}-params"></div>
+          <button class="indicator-select-btn" id="${panelId}-select-btn" title="Change indicator">
+            <span class="indicator-select-label">${(this.indicatorDefinitions[defaultIndicator] || {}).name || defaultIndicator}</span>
+            <span class="chevron-icon">▾</span>
+          </button>
           <div class="indicator-legend" id="${panelId}-legend"></div>
-          <div class="indicator-nav-controls">
-            <button class="nav-btn" id="${panelId}-pan-left" title="Pan Left">⟵</button>
-            <button class="nav-btn" id="${panelId}-zoom-out" title="Zoom Out">−</button>
-            <button class="nav-btn" id="${panelId}-zoom-in" title="Zoom In">+</button>
-            <button class="nav-btn" id="${panelId}-pan-right" title="Pan Right">⟶</button>
-          </div>
           <div class="panel-controls">
-            <button class="btn-minimize" id="${panelId}-minimize" title="Minimize/Maximize">−</button>
-            <button class="btn-remove-indicator" id="${panelId}-remove" title="Remove Indicator">×</button>
+            <button class="icon-btn" id="${panelId}-move-up" title="Move panel up">↑</button>
+            <button class="icon-btn" id="${panelId}-move-down" title="Move panel down">↓</button>
+            <button class="icon-btn" id="${panelId}-settings" title="Indicator settings">⚙</button>
+            <button class="icon-btn btn-maximize" id="${panelId}-maximize" title="Maximize panel">⛶</button>
+            <button class="btn-minimize" id="${panelId}-minimize" title="Minimize/Maximize"><span id="${panelId}-toggle">▼</span></button>
+            <button class="btn-remove-indicator" id="${panelId}-remove" title="Remove Indicator">✕</button>
           </div>
         </div>
         <div class="indicator-chart" id="${panelId}-chart"></div>
+        <div class="indicator-resize-handle" id="${panelId}-resize-handle" title="Drag to resize"></div>
+        <div class="indicator-settings-popover" id="${panelId}-settings-popover" hidden>
+          <div class="indicator-settings-popover-header">
+            <span>Settings</span>
+            <button class="popover-close" id="${panelId}-settings-close" title="Close">✕</button>
+          </div>
+          <div class="indicator-params" id="${panelId}-params"></div>
+        </div>
       </div>
     `;
 
@@ -1632,6 +1700,14 @@ class MultiIndicatorSystem {
       this.setupPanelEventHandlers(panelId);
       this.setupMinimizeHandler(panelId);
       this.setupRemoveHandler(panelId);
+      this.setupResizeHandle(panelId);
+      this._updateSectionFlexForPanelCount();
+      this._persistLayout();
+      setTimeout(() => {
+        this.updateAllReorderButtonsState();
+        this._refreshTabBarIfTabbed();
+        this._updateIndicatorTimeAxisVisibility();
+      }, 60);
     } else {
       console.error(`Failed to initialize panel: ${panelId}`);
     }
@@ -1667,7 +1743,10 @@ class MultiIndicatorSystem {
   // Remove indicator panel
   removePanel(panelId) {
     console.log(`🗑️ Removing indicator panel: ${panelId}`);
-    
+
+    const panelElementBefore = document.getElementById(panelId);
+    const wasMaximized = !!(panelElementBefore && panelElementBefore.classList.contains('panel-maximized'));
+
     const panel = this.panels.get(panelId);
     if (panel) {
       if (panel.chart) {
@@ -1693,8 +1772,401 @@ class MultiIndicatorSystem {
     } else {
       console.warn(`Panel element not found in DOM: ${panelId}`);
     }
-    
+
+    if (wasMaximized) {
+      const container = document.getElementById('indicators-container');
+      if (container) container.classList.remove('has-maximized');
+    }
+
+    this.updateAllReorderButtonsState();
+    this._refreshTabBarIfTabbed();
+    this._updateSectionFlexForPanelCount();
+    this._updateIndicatorTimeAxisVisibility();
+    this._persistLayout();
     console.log(`🗑️ Removed indicator panel: ${panelId}`);
+  }
+
+  // Drag-to-resize an individual panel's chart height. The chart element already
+  // has a ResizeObserver attached (see initializePanel) that calls chart.resize()
+  // automatically whenever its box size changes, so this only needs to mutate
+  // the element's height on drag — no explicit resize call needed here.
+  setupResizeHandle(panelId) {
+    const handle = document.getElementById(`${panelId}-resize-handle`);
+    const chartElement = document.getElementById(`${panelId}-chart`);
+    if (!handle || !chartElement) return;
+
+    const MIN_HEIGHT = 110; // keep the chart's own drag floor in step with .indicator-chart's CSS min-height
+    const MAX_HEIGHT = 800;
+    let dragging = false;
+    let startY = 0;
+    let startHeight = 0;
+
+    const onMouseMove = (e) => {
+      if (!dragging) return;
+      const newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startHeight + (e.clientY - startY)));
+      // .indicator-chart uses `flex: 1` (flex-basis: 0%) to fill its panel's
+      // remaining space, so plain `height` is ignored for sizing purposes —
+      // pin flex-basis to the dragged height instead (flex-grow/shrink: 0
+      // so it stops auto-filling once manually resized).
+      chartElement.style.setProperty('flex', `0 0 ${newHeight}px`, 'important');
+      chartElement.style.setProperty('height', `${newHeight}px`, 'important');
+      chartElement.style.setProperty('min-height', `${newHeight}px`, 'important');
+    };
+
+    const onMouseUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove('indicator-resizing');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      startY = e.clientY;
+      startHeight = chartElement.clientHeight;
+      document.body.classList.add('indicator-resizing');
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  }
+
+  // Swap a panel's DOM position with its previous/next sibling (direction: -1 up, 1 down)
+  movePanel(panelId, direction) {
+    const panelElement = document.getElementById(panelId);
+    if (!panelElement) return;
+    const container = panelElement.parentElement;
+    if (!container) return;
+
+    if (direction < 0) {
+      const prev = panelElement.previousElementSibling;
+      if (prev && prev.classList.contains('indicator-panel')) {
+        container.insertBefore(panelElement, prev);
+      }
+    } else {
+      const next = panelElement.nextElementSibling;
+      if (next && next.classList.contains('indicator-panel')) {
+        container.insertBefore(next, panelElement);
+      }
+    }
+
+    this.updateAllReorderButtonsState();
+    this._refreshTabBarIfTabbed();
+    this._updateIndicatorTimeAxisVisibility();
+    this._persistLayout();
+  }
+
+  // Disable the up-arrow on the first panel and the down-arrow on the last panel
+  updateReorderButtonsState(panelId) {
+    const panelElement = document.getElementById(panelId);
+    if (!panelElement) return;
+    const upBtn = document.getElementById(`${panelId}-move-up`);
+    const downBtn = document.getElementById(`${panelId}-move-down`);
+    const prev = panelElement.previousElementSibling;
+    const next = panelElement.nextElementSibling;
+    const isFirst = !prev || !prev.classList.contains('indicator-panel');
+    const isLast = !next || !next.classList.contains('indicator-panel');
+    if (upBtn) {
+      upBtn.disabled = isFirst;
+      upBtn.classList.toggle('disabled', isFirst);
+    }
+    if (downBtn) {
+      downBtn.disabled = isLast;
+      downBtn.classList.toggle('disabled', isLast);
+    }
+  }
+
+  updateAllReorderButtonsState() {
+    document.querySelectorAll('.indicator-panel').forEach(panelEl => {
+      this.updateReorderButtonsState(panelEl.id);
+    });
+  }
+
+  // Expand one panel to fill the whole indicators-container (~300px+), hiding
+  // its siblings entirely. Clicking the same button again restores everyone.
+  toggleMaximizePanel(panelId) {
+    const panelElement = document.getElementById(panelId);
+    const container = document.getElementById('indicators-container');
+    if (!panelElement || !container) return;
+
+    const wasMaximized = panelElement.classList.contains('panel-maximized');
+
+    // Only one panel can be maximized at a time - clear any previous one first
+    container.querySelectorAll('.indicator-panel.panel-maximized').forEach(p => {
+      p.classList.remove('panel-maximized');
+      const btn = document.getElementById(`${p.id}-maximize`);
+      if (btn) {
+        btn.textContent = '⛶';
+        btn.title = 'Maximize panel';
+        btn.classList.remove('active');
+      }
+    });
+
+    if (!wasMaximized) {
+      panelElement.classList.add('panel-maximized');
+      container.classList.add('has-maximized');
+      const btn = document.getElementById(`${panelId}-maximize`);
+      if (btn) {
+        btn.textContent = '🗗';
+        btn.title = 'Restore standard view';
+        btn.classList.add('active');
+      }
+    } else {
+      container.classList.remove('has-maximized');
+    }
+
+    this._updateIndicatorTimeAxisVisibility();
+
+    // Resize whatever's now visible once the CSS transition settles
+    setTimeout(() => {
+      container.querySelectorAll('.indicator-panel').forEach(p => {
+        const panelData = this.panels.get(p.id);
+        const chartEl = document.getElementById(`${p.id}-chart`);
+        if (panelData && panelData.chart && chartEl && chartEl.offsetParent !== null) {
+          try {
+            panelData.chart.resize(chartEl.clientWidth, chartEl.clientHeight);
+          } catch (e) {}
+        }
+      });
+    }, 350);
+  }
+
+  // Switch between 'stacked' (all panels rendered) and 'tabbed' (one panel
+  // full-height at a time, selected via #indicators-tabbar).
+  setViewMode(mode) {
+    const container = document.getElementById('indicators-container');
+    const tabbar = document.getElementById('indicators-tabbar');
+    if (!container) return;
+
+    this.viewMode = mode === 'tabbed' ? 'tabbed' : 'stacked';
+    container.classList.toggle('tabbed-view', this.viewMode === 'tabbed');
+    if (tabbar) tabbar.hidden = this.viewMode !== 'tabbed';
+
+    if (this.viewMode === 'tabbed') {
+      this.renderTabBar();
+    } else {
+      container.querySelectorAll('.indicator-panel').forEach(p => p.classList.remove('tab-active'));
+      this._updateIndicatorTimeAxisVisibility();
+      setTimeout(() => {
+        container.querySelectorAll('.indicator-panel').forEach(p => {
+          const panelData = this.panels.get(p.id);
+          const chartEl = document.getElementById(`${p.id}-chart`);
+          if (panelData && panelData.chart && chartEl) {
+            try {
+              panelData.chart.resize(chartEl.clientWidth, chartEl.clientHeight);
+            } catch (e) {}
+          }
+        });
+      }, 350);
+    }
+  }
+
+  // Rebuild the tab bar's buttons from the panels currently in the DOM (in
+  // their current order), preserving whichever tab is already active.
+  renderTabBar() {
+    const tabbar = document.getElementById('indicators-tabbar');
+    const container = document.getElementById('indicators-container');
+    if (!tabbar || !container) return;
+
+    const panelEls = Array.from(container.querySelectorAll('.indicator-panel'));
+    if (!panelEls.length) {
+      tabbar.innerHTML = '';
+      return;
+    }
+
+    const currentActive = container.querySelector('.indicator-panel.tab-active');
+    let activeId = currentActive ? currentActive.id : null;
+    if (!activeId || !panelEls.some(p => p.id === activeId)) {
+      activeId = panelEls[0].id;
+    }
+
+    tabbar.innerHTML = panelEls.map(p => {
+      const panelData = this.panels.get(p.id);
+      const def = panelData ? this.indicatorDefinitions[panelData.indicatorType] : null;
+      const name = def ? def.name : p.id;
+      const isActive = p.id === activeId;
+      return `<button type="button" class="indicator-tab-btn${isActive ? ' active' : ''}" data-panel-id="${p.id}">${name}</button>`;
+    }).join('');
+
+    tabbar.querySelectorAll('.indicator-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => this._activateTab(btn.dataset.panelId));
+    });
+
+    this._activateTab(activeId);
+  }
+
+  _activateTab(panelId) {
+    const container = document.getElementById('indicators-container');
+    const tabbar = document.getElementById('indicators-tabbar');
+    if (!container) return;
+
+    container.querySelectorAll('.indicator-panel').forEach(p => {
+      p.classList.toggle('tab-active', p.id === panelId);
+    });
+    if (tabbar) {
+      tabbar.querySelectorAll('.indicator-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.panelId === panelId);
+      });
+    }
+
+    this._updateIndicatorTimeAxisVisibility();
+
+    setTimeout(() => {
+      const panelData = this.panels.get(panelId);
+      const chartEl = document.getElementById(`${panelId}-chart`);
+      if (panelData && panelData.chart && chartEl) {
+        try {
+          panelData.chart.resize(chartEl.clientWidth, chartEl.clientHeight);
+        } catch (e) {}
+      }
+    }, 350);
+  }
+
+  _refreshTabBarIfTabbed() {
+    if (this.viewMode === 'tabbed') this.renderTabBar();
+  }
+
+  // Custom Y-axis "last value" badges with collision avoidance. Native
+  // lastValueVisible badges are disabled for every series (see the
+  // addLineSeries/addHistogramSeries wrapping in initializePanel) because
+  // lightweight-charts draws each one at its own exact price coordinate with
+  // no awareness of its neighbors - when two series' values are close (e.g.
+  // KD's %K/%D crossing), their badges land on top of each other. This
+  // rebuilds them as absolutely-positioned DOM badges, sorted by vertical
+  // position and pushed apart just enough to stay legible.
+  _renderYAxisBadges(panelId) {
+    const panel = this.panels.get(panelId);
+    if (!panel || !panel.series || !panel.seriesArrays) return;
+    const chartElement = document.getElementById(`${panelId}-chart`);
+    if (!chartElement) return;
+
+    let badgeLayer = document.getElementById(`${panelId}-y-badges`);
+    if (!badgeLayer) {
+      badgeLayer = document.createElement('div');
+      badgeLayer.id = `${panelId}-y-badges`;
+      badgeLayer.className = 'y-axis-badges';
+      chartElement.appendChild(badgeLayer);
+    }
+
+    const entries = [];
+    panel.series.forEach((series) => {
+      const arr = panel.seriesArrays.get(series);
+      const point = arr && arr.length ? arr[arr.length - 1] : null;
+      if (!point) return;
+      const value = point.value !== undefined ? point.value : point.close;
+      if (value == null || !isFinite(value)) return;
+      let y = null;
+      try { y = series.priceToCoordinate(value); } catch (e) {}
+      if (y == null || !isFinite(y)) return;
+      let color = '#94a3b8';
+      try { color = series.options().color || color; } catch (e) {}
+      entries.push({ y, value, color });
+    });
+
+    if (!entries.length) {
+      badgeLayer.innerHTML = '';
+      return;
+    }
+
+    entries.sort((a, b) => a.y - b.y);
+    const MIN_GAP = 19; // badges render ~16px tall; this leaves a couple of px of visible clearance
+    for (let i = 1; i < entries.length; i++) {
+      const minY = entries[i - 1].y + MIN_GAP;
+      if (entries[i].y < minY) entries[i].y = minY;
+    }
+
+    badgeLayer.innerHTML = entries.map(e => `<span class="y-axis-badge" style="top:${e.y}px; background:${e.color};">${e.value.toFixed(2)}</span>`).join('');
+  }
+
+  // Only the bottom-most panel that's actually showing its chart keeps its
+  // x-axis (date) labels - every other stacked panel hides them, since the
+  // synced time scale means every panel already lines up under the same
+  // dates anyway. "Bottom-most" is recomputed among whichever panels are
+  // currently visible, so maximize/tabbed/minimize/reorder all stay correct.
+  _updateIndicatorTimeAxisVisibility() {
+    const container = document.getElementById('indicators-container');
+    if (!container) return;
+
+    const panelEls = Array.from(container.querySelectorAll('.indicator-panel')).filter(el => {
+      return getComputedStyle(el).display !== 'none' && !el.classList.contains('minimized');
+    });
+
+    panelEls.forEach((el, idx) => {
+      const isLastVisible = idx === panelEls.length - 1;
+      const panel = this.panels.get(el.id);
+      if (panel && panel.chart) {
+        try {
+          panel.chart.timeScale().applyOptions({ visible: isLastVisible });
+        } catch (e) {}
+      }
+    });
+
+    // The main chart only needs its own date row when there's no indicator
+    // panel below to show one instead - otherwise that's two date axes for
+    // one timeline. Falls back to showing it whenever every panel is
+    // minimized/removed, so a date axis is always visible somewhere.
+    try {
+      const mainChart = window.TradeFlowChart && window.TradeFlowChart.getChart && window.TradeFlowChart.getChart();
+      if (mainChart) mainChart.timeScale().applyOptions({ visible: panelEls.length === 0 });
+    } catch (e) {}
+  }
+
+  // #chart stays fixed at flex:3 (see stock-market/index.html); #indicators-section's
+  // own flex-grow is set to the live panel count so each panel keeps an even
+  // ~1-share of it (flex:3 chart vs flex:n indicators => n panels each get
+  // ~1/(3+n) of the viewport). Fewer panels means a smaller total weight for
+  // indicators-section, so the chart and the remaining panels naturally expand
+  // to fill the freed space instead of the indicators area staying pinned at 50%.
+  _updateSectionFlexForPanelCount() {
+    const section = document.getElementById('indicators-section');
+    const container = document.getElementById('indicators-container');
+    if (!section || !container) return;
+
+    const n = container.querySelectorAll('.indicator-panel').length;
+    if (n <= 0) {
+      section.style.flex = '0 0 auto';
+      section.style.minHeight = '0';
+    } else {
+      section.style.flex = `${n} 1 0%`;
+      section.style.minHeight = '';
+    }
+  }
+
+  // Chart layout persistence - saves which indicators are active (in their
+  // current DOM/reorder order), plus each one's own parameters, so a page
+  // reload restores the same setup. The host page opts in with a storage key
+  // (see stock-app.prod.js's setupIndicatorSystem) rather than this running
+  // unconditionally, since not every page embedding this class wants it.
+  enableLayoutPersistence(storageKey) {
+    this._layoutStorageKey = storageKey;
+  }
+
+  _persistLayout() {
+    if (!this._layoutStorageKey) return;
+    this.saveLayout(this._layoutStorageKey);
+  }
+
+  saveLayout(storageKey) {
+    try {
+      const container = document.getElementById('indicators-container');
+      if (!container) return;
+      const layout = Array.from(container.querySelectorAll('.indicator-panel'))
+        .map(el => this.panels.get(el.id))
+        .filter(Boolean)
+        .map(panel => ({ indicatorType: panel.indicatorType, params: panel.params }));
+      localStorage.setItem(storageKey, JSON.stringify(layout));
+    } catch (e) {}
+  }
+
+  loadLayout(storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) && parsed.length ? parsed : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   initializePanel(panelId, indicatorType) {
@@ -1706,13 +2178,11 @@ class MultiIndicatorSystem {
     }
     console.log(`Chart element found:`, chartElement);
     
-    // Always ensure chart element has proper dimensions and display
-    chartElement.style.width = '100%';
-    chartElement.style.height = '180px';
-    chartElement.style.minHeight = '150px';
+    // Size comes from the CSS flex layout (.indicator-chart flex:1), not a fixed
+    // inline pixel height - a hardcoded height/min-height here would silently
+    // override the responsive flex sizing regardless of the panel's real space.
     chartElement.style.display = 'block';
     chartElement.style.position = 'relative';
-    chartElement.style.overflow = 'hidden';
     console.log(`Chart element dimensions set: ${chartElement.offsetWidth}x${chartElement.offsetHeight}`);
 
     // Create chart
@@ -1778,17 +2248,64 @@ class MultiIndicatorSystem {
       chart.priceScale('right').applyOptions({ minimumWidth: PRICE_SCALE_ALIGN_WIDTH });
     } catch (e) {}
 
+    // Every indicator series gets its native last-value badge disabled and its
+    // full data array tracked in `seriesArrays`, regardless of which of the
+    // 120+ indicator definitions creates it - this build of the library has
+    // no series.data() getter, so tracking it here (once, generically) is the
+    // only way to read values back later for: the custom collision-avoided
+    // Y-axis badges in _renderYAxisBadges (native badges have no such
+    // avoidance and stack illegibly when two series' values are close), and
+    // the unified crosshair tooltip in _updateUnifiedTooltip (which needs a
+    // series' value at an arbitrary hovered time, not just its latest one).
+    const seriesArrays = new Map();
+    ['addLineSeries', 'addHistogramSeries', 'addAreaSeries', 'addBarSeries', 'addBaselineSeries'].forEach(factoryName => {
+      if (typeof chart[factoryName] !== 'function') return;
+      const original = chart[factoryName].bind(chart);
+      chart[factoryName] = (options = {}) => {
+        const series = original({ ...options, lastValueVisible: false });
+        const originalSetData = series.setData.bind(series);
+        series.setData = (data) => {
+          if (Array.isArray(data)) seriesArrays.set(series, data);
+          return originalSetData(data);
+        };
+        const originalUpdate = series.update.bind(series);
+        series.update = (bar) => {
+          if (bar) {
+            const arr = seriesArrays.get(series) || [];
+            const idx = arr.findIndex(d => d.time === bar.time);
+            if (idx >= 0) arr[idx] = bar; else arr.push(bar);
+            seriesArrays.set(series, arr);
+          }
+          return originalUpdate(bar);
+        };
+        return series;
+      };
+    });
+
     // Create panel object with deep parameter cloning
     const defaultParams = this.indicatorDefinitions[indicatorType].defaultParams || {};
     const panel = {
       id: panelId,
       chart: chart,
+      seriesArrays,
       indicatorType: indicatorType,
       series: new Map(),
       params: JSON.parse(JSON.stringify(defaultParams)) // Deep clone to ensure isolation
     };
 
     this.panels.set(panelId, panel);
+
+    // Synced-crosshair overlay line for this panel (see _broadcastCrosshairTime)
+    const xLine = document.createElement('div');
+    xLine.id = `${panelId}-xline`;
+    xLine.className = 'crosshair-sync-line';
+    chartElement.appendChild(xLine);
+
+    // Broadcast this panel's hovered time to the main chart and every other
+    // panel so the crosshair stays vertically in sync across all of them.
+    chart.subscribeCrosshairMove((param) => {
+      this._broadcastCrosshairTime(param && param.time != null ? param.time : null, chart);
+    });
 
     // Setup enhanced resize observer for better zoom handling
     const resizeObserver = new ResizeObserver((entries) => {
@@ -1800,6 +2317,7 @@ class MultiIndicatorSystem {
           panel.resizeTimeout = setTimeout(() => {
             try {
               chart.resize(width, height);
+              this._renderYAxisBadges(panelId);
               console.log(`🔄 Resized ${panelId}: ${width}x${height}`);
             } catch (error) {
               console.warn(`Failed to resize ${panelId}:`, error.message);
@@ -1820,6 +2338,7 @@ class MultiIndicatorSystem {
       if (w > 0 && h > 0) {
         try {
           chart.resize(w, h);
+          this._renderYAxisBadges(panelId);
           console.log(`🔄 Initial resize ${panelId}: ${w}x${h}`);
         } catch (error) {
           console.warn(`Failed initial resize ${panelId}:`, error.message);
@@ -1842,68 +2361,55 @@ class MultiIndicatorSystem {
   setupPanelEventHandlers(panelId) {
     // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
-      const select = document.getElementById(`${panelId}-select`);
+      const selectBtn = document.getElementById(`${panelId}-select-btn`);
       const settings = document.getElementById(`${panelId}-settings`);
+      const maximizeBtn = document.getElementById(`${panelId}-maximize`);
+      const moveUpBtn = document.getElementById(`${panelId}-move-up`);
+      const moveDownBtn = document.getElementById(`${panelId}-move-down`);
       const panelPanLeft = document.getElementById(`${panelId}-pan-left`);
       const panelPanRight = document.getElementById(`${panelId}-pan-right`);
       const panelZoomIn = document.getElementById(`${panelId}-zoom-in`);
       const panelZoomOut = document.getElementById(`${panelId}-zoom-out`);
 
-      if (select) {
-        // Get current panel to check indicator type
-        const panel = this.panels.get(panelId);
-        const currentIndicatorType = panel ? panel.indicatorType : select.value;
-        
-        // Remove any existing listeners by cloning
-        const currentValue = select.value;
-        const newSelect = select.cloneNode(true);
-        newSelect.value = currentValue; // Preserve current selection
-        select.parentNode.replaceChild(newSelect, select);
-        
-        // Use both change and input events for better compatibility
-        const handleChange = (e) => {
+      if (selectBtn) {
+        selectBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          e.stopImmediatePropagation();
-          const newValue = e.target.value;
-          const currentPanel = this.panels.get(panelId);
-          const currentType = currentPanel ? currentPanel.indicatorType : currentIndicatorType;
-          
-          console.log(`🔄 Select change event for ${panelId}: ${currentType} -> ${newValue}`);
-          
-          if (newValue && newValue !== currentType) {
-            try {
-              this.changeIndicator(panelId, newValue);
-              console.log(`✅ Successfully changed indicator for ${panelId} to ${newValue}`);
-            } catch (error) {
-              console.error(`❌ Error changing indicator for ${panelId}:`, error);
-              // Revert select value on error
-              setTimeout(() => {
-                e.target.value = currentType;
-              }, 0);
-            }
-          } else {
-            console.log(`⚠️ No change needed: ${newValue} === ${currentType}`);
-          }
-        };
-        
-        newSelect.addEventListener('change', handleChange);
-        // Also listen to input for immediate feedback
-        newSelect.addEventListener('input', (e) => {
-          // Just log, don't change yet - wait for change event
-          console.log(`📝 Select input for ${panelId}: ${e.target.value}`);
+          this.openIndicatorPicker(panelId);
         });
-        
-        console.log(`✅ Select handler attached for ${panelId}, current value: ${currentValue}, panel type: ${currentIndicatorType}`);
       } else {
-        console.warn(`⚠️ Select element not found: ${panelId}-select`);
+        console.warn(`⚠️ Select button not found: ${panelId}-select-btn`);
       }
 
+      if (moveUpBtn) {
+        moveUpBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.movePanel(panelId, -1);
+        });
+      }
+
+      if (moveDownBtn) {
+        moveDownBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.movePanel(panelId, 1);
+        });
+      }
+
+      this.updateReorderButtonsState(panelId);
+
       if (settings) {
-        settings.addEventListener('click', () => {
+        settings.addEventListener('click', (e) => {
+          e.stopPropagation();
           this.showSettingsDialog(panelId);
         });
       }
-      
+
+      if (maximizeBtn) {
+        maximizeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleMaximizePanel(panelId);
+        });
+      }
+
       // Setup indicator panel navigation controls
     const panel = this.panels.get(panelId);
     if (!panel) return;
@@ -2113,6 +2619,7 @@ class MultiIndicatorSystem {
       }
     });
     panel.series.clear();
+    if (panel.seriesArrays) panel.seriesArrays.clear();
 
     // Update panel with deep parameter cloning
     panel.indicatorType = newIndicatorType;
@@ -2121,6 +2628,10 @@ class MultiIndicatorSystem {
 
     // Update UI
     this.updateParametersDisplay(panelId);
+    const labelSpan = document.querySelector(`#${panelId}-select-btn .indicator-select-label`);
+    if (labelSpan) labelSpan.textContent = this.indicatorDefinitions[newIndicatorType].name;
+    this._refreshTabBarIfTabbed();
+    this._persistLayout();
 
     // Recompute and render ONLY THIS PANEL - use updateSinglePanel to prevent cascade
     if (this.chartData.length > 0) {
@@ -2218,7 +2729,8 @@ class MultiIndicatorSystem {
           
           // Update only this specific panel - NO OTHER PANELS OR MAIN CHART
           this.updateSinglePanel(panelId);
-          
+          this._persistLayout();
+
           // Clear the flag after update
           this.isParameterUpdate = false;
           
@@ -2237,7 +2749,12 @@ class MultiIndicatorSystem {
     this.updateLegendDisplay(panelId);
   }
 
-  updateLegendDisplay(panelId, indicatorData = null) {
+  // `atIndex`, when given, shows the value at that bar (e.g. the one under a
+  // synced crosshair hover) instead of the most recent one - see
+  // _updateLegendsForHoverTime, which is how the unified tooltip gets
+  // correctly-labeled values per indicator type without duplicating this
+  // switch statement's formatting logic.
+  updateLegendDisplay(panelId, indicatorData = null, atIndex = null) {
     const panel = this.panels.get(panelId);
     if (!panel) return;
 
@@ -2247,12 +2764,24 @@ class MultiIndicatorSystem {
     // Build legend with current values
     let legendHTML = '';
 
-    // Get last values from indicator data
+    // Get the value at `atIndex` (or the last one if not given) from indicator data.
+    // Many indicators' compute() output is shorter than this.chartData (the
+    // lead-in period is simply absent, not null-padded) and gets right-aligned
+    // against chartData at render time (see seriesWithLeadInPadding) - so an
+    // atIndex meant for chartData has to be shifted by that same length
+    // difference before indexing into these raw (possibly shorter) arrays.
     const getLastValue = (data) => {
       if (!data) return null;
       if (Array.isArray(data)) {
-        const lastVal = data[data.length - 1];
-        return lastVal != null ? lastVal.toFixed(2) : '-';
+        let idx;
+        if (atIndex != null) {
+          const offset = this.chartData.length - data.length;
+          idx = atIndex - offset;
+        } else {
+          idx = data.length - 1;
+        }
+        const val = idx >= 0 && idx < data.length ? data[idx] : null;
+        return val != null ? val.toFixed(2) : '-';
       }
       return null;
     };
@@ -2484,6 +3013,24 @@ class MultiIndicatorSystem {
           `;
         }
         break;
+      case 'ARBR':
+      case 'SYARBR':
+        if (indicatorData) {
+          legendHTML = `
+            <span style="color: ${this.colors.LINE1}; margin-right: 10px;">● AR: ${getLastValue(indicatorData.ar)}</span>
+            <span style="color: ${this.colors.LINE2}; margin-right: 10px;">● BR: ${getLastValue(indicatorData.br)}</span>
+          `;
+        }
+        break;
+      case 'VOLUME':
+        if (indicatorData) {
+          const volMAValue = indicatorData.volMA ? getLastValue(indicatorData.volMA) : null;
+          legendHTML = `
+            <span style="color: ${this.colors.VOLUME}; margin-right: 10px;">● Volume: ${getLastValue(indicatorData.volumes)}</span>
+            ${volMAValue != null ? `<span style="color: #f59e0b;">● VolMA: ${volMAValue}</span>` : ''}
+          `;
+        }
+        break;
       default:
         // For other indicators, show just the name
         legendHTML = `<span style="color: ${this.colors.LINE1};">● ${panel.indicatorType}</span>`;
@@ -2537,10 +3084,12 @@ class MultiIndicatorSystem {
       
       // Render ONLY this indicator - no side effects
       definition.render(panel.chart, indicatorData, this.colors, panel.series);
-      
+
       // Update legend with current values
+      panel.lastIndicatorData = indicatorData;
       this.updateLegendDisplay(panelId, indicatorData);
-      
+      this._renderYAxisBadges(panelId);
+
       console.log(`✓ Panel ${panelId} updated independently`);
     } catch (error) {
       console.error(`Error updating ${panel.indicatorType} indicator:`, error);
@@ -2580,9 +3129,11 @@ class MultiIndicatorSystem {
       
       // Render indicator
       definition.render(panel.chart, indicatorData, this.colors, panel.series);
-      
+
       // Update legend with current values
+      panel.lastIndicatorData = indicatorData;
       this.updateLegendDisplay(panelId, indicatorData);
+      this._renderYAxisBadges(panelId);
     } catch (error) {
       console.error(`Error updating ${panel.indicatorType} indicator:`, error);
     }
@@ -2696,9 +3247,10 @@ class MultiIndicatorSystem {
     console.log(`✅ Zoom sync setup for ${panelId || 'main chart'}`);
   }
 
-  setMainTimeScale(timeScale, mainChart = null) {
+  setMainTimeScale(timeScale, mainChart = null, mainSeries = null) {
     this.mainTimeScale = timeScale;
     this.mainChart = mainChart;
+    if (mainSeries) this.mainSeries = mainSeries;
 
     // Setup main chart zoom sync
     if (timeScale && this.syncEnabled) {
@@ -2714,6 +3266,151 @@ class MultiIndicatorSystem {
     if (this.mainChart && this.chartData && this.chartData.length > 0) {
       this.updateMAOverlays();
     }
+
+    this._setupMainCrosshairSync();
+    this.setupMainSplitter();
+  }
+
+  // Drag handle between #main-chart-panel and #indicators-section, letting
+  // the user manually rebalance the split (in addition to the automatic
+  // panel-count-driven ratio and each panel's own individual resize handle).
+  setupMainSplitter() {
+    if (this._mainSplitterWired) return;
+    const handle = document.getElementById('main-splitter');
+    const mainPanel = document.getElementById('main-chart-panel');
+    const indicatorsSection = document.getElementById('indicators-section');
+    if (!handle || !mainPanel || !indicatorsSection) return;
+    this._mainSplitterWired = true;
+
+    const MIN_MAIN = 200;
+    const MIN_INDICATORS = 110;
+    let dragging = false;
+    let startY = 0;
+    let startMainHeight = 0;
+    let startIndicatorsHeight = 0;
+
+    const onMouseMove = (e) => {
+      if (!dragging) return;
+      const dy = e.clientY - startY;
+      let newMain = startMainHeight + dy;
+      let newIndicators = startIndicatorsHeight - dy;
+      if (newMain < MIN_MAIN) {
+        newIndicators -= (MIN_MAIN - newMain);
+        newMain = MIN_MAIN;
+      }
+      if (newIndicators < MIN_INDICATORS) {
+        newMain -= (MIN_INDICATORS - newIndicators);
+        newIndicators = MIN_INDICATORS;
+      }
+      mainPanel.style.setProperty('flex', `0 0 ${Math.max(MIN_MAIN, newMain)}px`, 'important');
+      indicatorsSection.style.setProperty('flex', `0 0 ${Math.max(MIN_INDICATORS, newIndicators)}px`, 'important');
+    };
+
+    const onMouseUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove('main-splitter-dragging');
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      dragging = true;
+      startY = e.clientY;
+      startMainHeight = mainPanel.getBoundingClientRect().height;
+      startIndicatorsHeight = indicatorsSection.getBoundingClientRect().height;
+      document.body.classList.add('main-splitter-dragging');
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  }
+
+  // This build of lightweight-charts (3.8.0) has no setCrosshairPosition/
+  // clearCrosshairPosition on IChartApi and no series.data() getter (verified
+  // empirically - both are undefined at runtime), so a synced crosshair can't
+  // be driven through the "official" cross-chart API. Instead each chart gets
+  // a thin absolutely-positioned overlay line (created alongside the chart -
+  // see initializePanel/the #chart markup) that's repositioned via
+  // timeScale().timeToCoordinate(time), which IS available on this build.
+  _getSyncLineEl(chart) {
+    if (chart === this.mainChart) return document.getElementById('main-chart-xline');
+    for (const panel of this.panels.values()) {
+      if (panel.chart === chart) return document.getElementById(`${panel.id}-xline`);
+    }
+    return null;
+  }
+
+  // Push a shared crosshair time across the main chart and every indicator
+  // panel so hovering any one of them highlights the same vertical position
+  // on all the others. `sourceChart` is skipped (it already has its own
+  // native crosshair from the user's actual mouse position).
+  _broadcastCrosshairTime(time, sourceChart) {
+    const positionLine = (chart) => {
+      if (!chart || chart === sourceChart) return;
+      const lineEl = this._getSyncLineEl(chart);
+      if (!lineEl) return;
+      let x = null;
+      if (time != null) {
+        try { x = chart.timeScale().timeToCoordinate(time); } catch (e) { x = null; }
+      }
+      if (x == null) {
+        lineEl.style.display = 'none';
+      } else {
+        lineEl.style.display = 'block';
+        lineEl.style.left = `${x}px`;
+      }
+    };
+
+    positionLine(this.mainChart);
+    this.panels.forEach(panel => positionLine(panel.chart));
+
+    this._updateUnifiedTooltip(time);
+    if (window.TradeFlowChart && typeof window.TradeFlowChart.showTooltipForTime === 'function') {
+      window.TradeFlowChart.showTooltipForTime(time);
+    }
+  }
+
+  // Unified tooltip: reuses updateLegendDisplay's existing per-indicator-type
+  // switch statement (already knows the correct label/formatting for every
+  // one of the 120+ indicator types) by asking it to render the HOVERED
+  // bar's values instead of the latest one, then mirrors each panel's
+  // (already-labeled, already-colored) legend HTML into one consolidated row
+  // next to the main OHLCV legend. Fed by _broadcastCrosshairTime, so it
+  // updates from a hover on the main chart OR any indicator panel alike, and
+  // as a side effect each panel's own header legend also live-updates to the
+  // hovered bar - reverting to the latest bar once the mouse leaves.
+  _updateUnifiedTooltip(time) {
+    const row = document.getElementById('indicator-tooltip-row');
+
+    if (time == null) {
+      this.panels.forEach((panel, panelId) => {
+        if (panel.lastIndicatorData) this.updateLegendDisplay(panelId, panel.lastIndicatorData);
+      });
+      if (row) row.innerHTML = '';
+      return;
+    }
+
+    const atIndex = this.chartData.findIndex(c => c.time === time);
+    if (atIndex === -1) return;
+
+    const parts = [];
+    this.panels.forEach((panel, panelId) => {
+      if (!panel.lastIndicatorData) return;
+      this.updateLegendDisplay(panelId, panel.lastIndicatorData, atIndex);
+      const legendEl = document.getElementById(`${panelId}-legend`);
+      if (legendEl && legendEl.innerHTML.trim()) parts.push(legendEl.innerHTML);
+    });
+
+    if (row) row.innerHTML = parts.join('<span style="color:#334155;margin:0 8px;">|</span>');
+  }
+
+  _setupMainCrosshairSync() {
+    if (this._mainCrosshairSyncWired || !this.mainChart || typeof this.mainChart.subscribeCrosshairMove !== 'function') return;
+    this._mainCrosshairSyncWired = true;
+    this.mainChart.subscribeCrosshairMove((param) => {
+      this._broadcastCrosshairTime(param && param.time != null ? param.time : null, this.mainChart);
+    });
   }
 
   /**
@@ -5054,25 +5751,6 @@ computeAdaptiveMAIndicator(data, day = 10, esp = 9) {
   return { AdaptiveMA};
 }
 
-computeDeMarkerIndicator(data, day = 10) {
-  const highs  = data.map(d => d.high);
-  const lows   = data.map(d => d.low);
-  const closes = data.map(d => d.close);
-  const len = highs.length;
-  const DeMarker = new Array(len).fill(null);
-  if (len === 0) return { DeMarker: [] };
-
-  const fn = (typeof window !== 'undefined' && window.DeMarker) ? window.DeMarker : null;
-  if (!fn) return { DeMarker };
-
-  const out = fn(highs, lows, closes, day);
-  const srcDeMarker = out && out.DeMarker ? out.DeMarker : [];
-  for (let i = 0; i < len; i++) {
-    const w1 = srcDeMarker[i + 1];  // Wang uses 1-based sparse arrays; index i+1 = bar i
-    DeMarker[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
-  }
-  return { DeMarker };
-}
 
 computeWilliamsVolatilityChannelIndicator(data, day = 10, esp = 9) {
   const highs = data.map(d => d.high);
@@ -5253,6 +5931,9 @@ computeAlphaBetaMA(data, ma_day = 10, alpha = 1, beta = 1) {
 
   return { MA, STK_close, sum_Buy_Sell_times, sum_ROI };
 }
+
+
+
 
 // ===================================NEW INDICATORS (Wang prods lines 6145-8461):===========
 
@@ -5596,10 +6277,312 @@ computeMA_Envelope(data, esp = 9, kk = 3) {
   return { ENV_EMA, ENV_upper, ENV_lower };
 }
 
+computeDeMarkerIndicator(data, day = 10) {
+  const highs  = data.map(d => d.high);
+  const lows   = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = highs.length;
+  const DeMarker = new Array(len).fill(null);
+  if (len === 0) return { DeMarker: [] };
 
+  const fn = (typeof window !== 'undefined' && window.DeMarker) ? window.DeMarker : null;
+  if (!fn) return { DeMarker };
+
+  const out = fn(highs, lows, closes, day);
+  const srcDeMarker = out && out.DeMarker ? out.DeMarker : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcDeMarker[i + 1];  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    DeMarker[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+  }
+  return { DeMarker };
+}
+
+computeLaguerreRSI(data, gamma = 0.5, esp = 9) {
+  const closes = data.map(d => d.close);
+  const len = closes.length; 
+  const LaguerreRSI = new Array(len).fill(null); 
+  const eLaguerreRSI = new Array(len).fill(null);
+  if(len === 0) return { LaguerreRSI, eLaguerreRSI };
+
+  const fn = (typeof window !== 'undefined' && window.LaguerreRSI) ? window.LaguerreRSI : null;
+  if (!fn) return { LaguerreRSI, eLaguerreRSI };
+
+  const out = fn(closes, gamma * 10, esp);
+  const srcLaguerreRSI = out && out.LaguerreRSI ? out.LaguerreRSI : [];
+  const src_eLaguerreRSI = out && out.eLaguerreRSI ? out.eLaguerreRSI : [];
+  for (let i = 0; i < len; i++) {
+    const w1 = srcLaguerreRSI[i ];  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    const w2 = src_eLaguerreRSI[i ]; 
+    LaguerreRSI[i] = (w1 != null && Number.isFinite(w1)) ? w1 : null;
+    eLaguerreRSI[i] = (w2 != null && Number.isFinite(w2)) ? w2 : null;
+  } 
+  return { LaguerreRSI, eLaguerreRSI };
+}
+
+computeInstantaneousTrendline(data, alpha = 0.07) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const IT = new Array(len).fill(null);
+  const Trigger = new Array(len).fill(null);
+  if (len === 0 || typeof window.InstantaneousTrendline !== 'function') return { IT, Trigger };
+
+  const out = window.InstantaneousTrendline(highs, lows, closes, alpha * 100);
+  const s1 = out.IT || [];
+  const s2 = out.Trigger || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i ];  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    const v2 = s2[i ]; 
+    IT[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;
+    Trigger[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { IT, Trigger };
+}
+
+computeRSI_TP(data, RSI_day = 10, esp = 9) {
+  const highs = data.map(d => d.high); 
+  const lows = data.map(d => d.low); 
+  const closes = data.map(d => d.close);
+  const len = closes.length; 
+  const RSI_TP = new Array(len).fill(null);
+  if (len === 0 || typeof window.RSI_TP !== 'function') return { RSI_TP };
+  const out = window.RSI_TP(highs, lows, closes, RSI_day, esp);
+  const s1 = out.RSI || [];
+  for (let i = 0; i < len; i++) {
+    const v = s1[i];  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    RSI_TP[i] = (v != null && Number.isFinite(v)) ? v : null;
+  }
+  return { RSI_TP };
+}
+
+computeAdaptiveRSI(data, esp = 9) {
+  const closes = data.map(d => d.close);
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const len = closes.length;
+  const AdaptiveRSI = new Array(len).fill(null);
+  const eAdaptiveRSI = new Array(len).fill(null);
+  if (len === 0 || typeof window.AdaptiveRSI !== 'function') return { AdaptiveRSI, eAdaptiveRSI };
+  const out = window.AdaptiveRSI(highs, lows, closes, esp);
+  const s1 = out.Adaptive_RSI || [];
+  const s2 = out.eAdaptive_RSI || [];
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; AdaptiveRSI[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    const v2 = s2[i]; eAdaptiveRSI[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+  }
+  return { AdaptiveRSI, eAdaptiveRSI };
+}
+
+computeNewKDW(data, KD_day = 10, esp = 9) {
+
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const KD_K = new Array(len).fill(null);
+  const KD_D = new Array(len).fill(null);
+  const enewD = new Array(len).fill(null);
+  if (len === 0 || typeof window.NewKD !== 'function') return { KD_K, KD_D, enewD };
+  const out = window.NewKD(highs, lows, closes, KD_day, esp);
+  const s1 = out.newK || [];
+  const s2 = out.newD || [];
+  const s3 = out.enewD || [];
+  
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; KD_K[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    const v2 = s2[i]; KD_D[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null;
+    const v3 = s3[i]; enewD[i] = (v3 != null && Number.isFinite(v3)) ? v3 : null;
+  }
+  return { KD_K, KD_D, enewD };
+}
+
+
+computeK2D2(data, KD_day = 10 , esp = 9) {
+  const highs = data.map(d => d.high);
+  const lows = data.map(d => d.low);
+  const closes = data.map(d => d.close);
+  const len = closes.length;
+  const K2 = new Array(len).fill(null);
+  const D2 = new Array(len).fill(null);
+  if (len === 0 || typeof window.KD_K2D2 !== 'function') return { K2, D2 };
+  const out = window.KD_K2D2(highs, lows, closes, KD_day, esp);
+  const s1 = out.KD_K2 || [];
+  const s2 = out.KD_D2 || [];
+
+  for (let i = 0; i < len; i++) {
+    const v1 = s1[i]; K2[i] = (v1 != null && Number.isFinite(v1)) ? v1 : null;  // Wang uses 1-based sparse arrays; index i+1 = bar i
+    const v2 = s2[i]; D2[i] = (v2 != null && Number.isFinite(v2)) ? v2 : null ;
+  }
+  return{K2, D2};
+
+}
 
 
 // ===================================LAST COMPUTED INDICATORS:===============================
+
+renderK2D2(chart, data, colors, seriesMap){
+  if(!data || !data.K2) return;
+  if(!seriesMap.has('K2')) {
+    seriesMap.set('K2', chart.addLineSeries({
+      color: colors.LINE3,
+      lineWidth: 2,
+      itle: 'K2',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if(!seriesMap.has('D2')) {
+    seriesMap.set('D2', chart.addLineSeries({
+      color: colors.LINE6,
+      lineWidth: 2,
+      itle: 'D2',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  } 
+  const K2_Data = this.seriesWithLeadInPadding(data.K2, (v) => (v == null || isNaN(v)) ? null : v);
+  const D2_Data = this.seriesWithLeadInPadding(data.D2, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('K2').setData(K2_Data);
+  seriesMap.get('D2').setData(D2_Data);
+
+}
+
+renderNewKDW(chart, data, colors, seriesMap) {
+  if (!data || !data.KD_K) return;
+  if (!seriesMap.has('KD_K')) {
+    seriesMap.set('KD_K', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'KD_K',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('KD_D')) {
+    seriesMap.set('KD_D', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'KD_D',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('enewD')) {
+    seriesMap.set('enewD', chart.addLineSeries({
+      color: colors.LINE3,
+      lineWidth: 2,
+      title: 'enewD',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const KD_KData = this.seriesWithLeadInPadding(data.KD_K, (v) => (v == null || isNaN(v)) ? null : v);
+  const KD_DData = this.seriesWithLeadInPadding(data.KD_D, (v) => (v == null || isNaN(v)) ? null : v);
+  const enewDData = this.seriesWithLeadInPadding(data.enewD, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('KD_K').setData(KD_KData);
+  seriesMap.get('KD_D').setData(KD_DData);
+  seriesMap.get('enewD').setData(enewDData);
+}
+
+renderAdaptiveRSI(chart, data, colors, seriesMap) {
+  if (!data || !data.AdaptiveRSI) return;
+  if (!seriesMap.has('AdaptiveRSI')) {
+    seriesMap.set('AdaptiveRSI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Adaptive RSI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eAdaptiveRSI')) {
+    seriesMap.set('eAdaptiveRSI', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eAdaptive RSI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const AdaptiveRSIData = this.seriesWithLeadInPadding(data.AdaptiveRSI, (v) => (v == null || isNaN(v)) ? null : v);
+  const eAdaptiveRSIData = this.seriesWithLeadInPadding(data.eAdaptiveRSI, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('AdaptiveRSI').setData(AdaptiveRSIData);
+  seriesMap.get('eAdaptiveRSI').setData(eAdaptiveRSIData);
+}
+
+renderRSI_TP(chart, data, colors, seriesMap) {
+  if (!data || !data.RSI_TP) return;
+  if (!seriesMap.has('RSI_TP')) {
+    seriesMap.set('RSI_TP', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'RSI_TP',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const RSI_TPData = this.seriesWithLeadInPadding(data.RSI_TP, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('RSI_TP').setData(RSI_TPData);
+}
+
+
+renderInstantaneousTrendline(chart, data, colors, seriesMap) {
+  if(!data || !data.IT) return;
+  if(!seriesMap.has('IT')) {
+    seriesMap.set('IT', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'IT',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if(!seriesMap.has('Trigger')) {
+    seriesMap.set('Trigger', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'Trigger',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const ITData = this.seriesWithLeadInPadding(data.IT, (v) => (v == null || isNaN(v)) ? null : v);
+  const TriggerData = this.seriesWithLeadInPadding(data.Trigger, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('IT').setData(ITData);
+  seriesMap.get('Trigger').setData(TriggerData);
+}
+
+
+
+renderLaguerreRSI(chart, data, colors, seriesMap) {
+  if (!data || !data.LaguerreRSI) return;
+  if (!seriesMap.has('LaguerreRSI')) {
+    seriesMap.set('LaguerreRSI', chart.addLineSeries({
+      color: colors.LINE1,
+      lineWidth: 2,
+      title: 'Laguerre RSI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  if (!seriesMap.has('eLaguerreRSI')) {
+    seriesMap.set('eLaguerreRSI', chart.addLineSeries({
+      color: colors.LINE2,
+      lineWidth: 2,
+      title: 'eLaguerre RSI',
+      crosshairMarkerVisible: false,
+      priceLineVisible: false,
+    }));
+  }
+  const LaguerreRSIData = this.seriesWithLeadInPadding(data.LaguerreRSI, (v) => (v == null || isNaN(v)) ? null : v);
+  const eLaguerreRSIData = this.seriesWithLeadInPadding(data.eLaguerreRSI, (v) => (v == null || isNaN(v)) ? null : v);
+  seriesMap.get('LaguerreRSI').setData(LaguerreRSIData);
+  seriesMap.get('eLaguerreRSI').setData(eLaguerreRSIData);
+}
+
+
+
 renderWilliamsPercentRange(chart, data, colors, seriesMap) {
   if (!data || !data.WilliamsPctRange) return;
   if (!seriesMap.has('WilliamsPctRange')) {
@@ -8319,20 +9302,164 @@ renderBollingerBands4SD(chart, data, colors, seriesMap) {
     this.renderMultiLine(chart, data, colors, seriesMap, ['volma'], ['VolMA']);
   }
 
+  // Floating settings popover — houses the parameter controls that used to be
+  // always-visible in the header (see updateParametersDisplay, which renders
+  // into the popover's own #${panelId}-params container unchanged).
   showSettingsDialog(panelId) {
-    // Simple settings dialog - could be enhanced with a modal
     const panel = this.panels.get(panelId);
     if (!panel) return;
 
-    const definition = this.indicatorDefinitions[panel.indicatorType];
-    let message = `${definition.name} Settings:\n\n`;
-    
-    Object.entries(panel.params).forEach(([key, value]) => {
-      const label = definition.paramLabels[key] || key;
-      message += `${label}: ${value}\n`;
+    const popover = document.getElementById(`${panelId}-settings-popover`);
+    const gearBtn = document.getElementById(`${panelId}-settings`);
+    if (!popover || !gearBtn) return;
+
+    // Only one settings popover open at a time
+    document.querySelectorAll('.indicator-settings-popover').forEach(p => {
+      if (p !== popover) p.hidden = true;
     });
 
-    alert(message + '\nUse the input fields in the panel header to modify parameters.');
+    if (!popover.hidden) {
+      popover.hidden = true;
+      return;
+    }
+
+    this.updateParametersDisplay(panelId);
+
+    popover.hidden = false;
+    const rect = gearBtn.getBoundingClientRect();
+    const popoverWidth = popover.offsetWidth || 260;
+    const popoverHeight = popover.offsetHeight || 200;
+    const fitsBelow = rect.bottom + 6 + popoverHeight <= window.innerHeight - 8;
+    popover.style.top = fitsBelow
+      ? `${rect.bottom + 6}px`
+      : `${Math.max(8, rect.top - popoverHeight - 6)}px`;
+    popover.style.left = `${Math.max(8, Math.min(rect.right - popoverWidth, window.innerWidth - popoverWidth - 8))}px`;
+
+    const closeBtn = document.getElementById(`${panelId}-settings-close`);
+    if (closeBtn && !closeBtn._wired) {
+      closeBtn._wired = true;
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        popover.hidden = true;
+      });
+    }
+
+    if (!popover._outsideClickWired) {
+      popover._outsideClickWired = true;
+      document.addEventListener('click', (e) => {
+        if (popover.hidden) return;
+        if (popover.contains(e.target) || e.target === gearBtn || gearBtn.contains(e.target)) return;
+        popover.hidden = true;
+      });
+    }
+  }
+
+  // ─── Indicator picker modal ─────────────────────────────────────────────
+  // One shared modal instance reused across every panel; groups the ~120
+  // indicator definitions by their existing `type` field (no new
+  // categorization data needed) and supports live search by name/key.
+  openIndicatorPicker(panelId) {
+    this._pickerTargetPanelId = panelId;
+    this._ensureIndicatorPickerModal();
+    const modal = this._pickerModal;
+    const searchInput = modal.querySelector('.indicator-picker-search');
+    searchInput.value = '';
+    this._renderIndicatorPickerList('');
+    modal.hidden = false;
+    setTimeout(() => searchInput.focus(), 30);
+  }
+
+  _ensureIndicatorPickerModal() {
+    if (this._pickerModal) return;
+
+    this._pickerCategoryLabels = {
+      trend: 'Trend',
+      momentum: 'Momentum',
+      oscillator: 'Oscillators',
+      volume: 'Volume',
+      volatility: 'Volatility',
+    };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'indicator-picker-overlay';
+    overlay.hidden = true;
+    overlay.innerHTML = `
+      <div class="indicator-picker-modal">
+        <div class="indicator-picker-header">
+          <input type="text" class="indicator-picker-search" placeholder="Search indicators…" />
+          <button type="button" class="indicator-picker-close" title="Close">✕</button>
+        </div>
+        <div class="indicator-picker-body"></div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const closeModal = () => { overlay.hidden = true; };
+    overlay.querySelector('.indicator-picker-close').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !overlay.hidden) closeModal();
+    });
+
+    const searchInput = overlay.querySelector('.indicator-picker-search');
+    searchInput.addEventListener('input', () => {
+      this._renderIndicatorPickerList(searchInput.value);
+    });
+
+    this._pickerModal = overlay;
+  }
+
+  _renderIndicatorPickerList(term) {
+    const modal = this._pickerModal;
+    if (!modal) return;
+    const body = modal.querySelector('.indicator-picker-body');
+    const q = (term || '').trim().toLowerCase();
+
+    const byCategory = {};
+    Object.entries(this.indicatorDefinitions).forEach(([key, def]) => {
+      if (q && !def.name.toLowerCase().includes(q) && !key.toLowerCase().includes(q)) return;
+      const cat = def.type || 'other';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push([key, def]);
+    });
+
+    const order = ['trend', 'momentum', 'oscillator', 'volume', 'volatility'];
+    const cats = Object.keys(byCategory).sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+
+    if (!cats.length) {
+      body.innerHTML = `<div class="indicator-picker-empty">No indicators match "${term}"</div>`;
+      return;
+    }
+
+    body.innerHTML = cats.map(cat => {
+      const label = this._pickerCategoryLabels[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
+      const items = byCategory[cat].slice().sort((a, b) => a[1].name.localeCompare(b[1].name));
+      return `
+        <div class="indicator-picker-category">
+          <div class="indicator-picker-category-label">${label}</div>
+          ${items.map(([key, def]) => `<button type="button" class="indicator-picker-item" data-key="${key}">${def.name}</button>`).join('')}
+        </div>
+      `;
+    }).join('');
+
+    body.querySelectorAll('.indicator-picker-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        const panelId = this._pickerTargetPanelId;
+        if (panelId && key) {
+          this.changeIndicator(panelId, key);
+        }
+        this._pickerModal.hidden = true;
+      });
+    });
   }
 
   // Update MA overlays on main chart

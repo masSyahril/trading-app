@@ -1,0 +1,369 @@
+/*
+ * TradeFlow dark theme — TradingView-inspired palette as CSS custom properties.
+ * Values adapted from tryout-stock/css/tradingview-style.css (up/down colors changed
+ * to the TradeFlow spec: #26a69a / #ef5350).
+ */
+:root {
+  --tf-bg: #131722;
+  --tf-bg-panel: #1e222d;
+  --tf-bg-hover: #2a2e39;
+  --tf-border: #2a2e39;
+  --tf-border-bright: #363c4e;
+  --tf-text: #d1d4dc;
+  --tf-text-muted: #787b86;
+  --tf-up: #26a69a;
+  --tf-down: #ef5350;
+  --tf-accent: #2962ff;
+}
+
+body {
+  background: var(--tf-bg);
+  color: var(--tf-text);
+}
+
+header {
+  background: var(--tf-bg-panel) !important;
+  border-color: var(--tf-border) !important;
+}
+
+#sidebar {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+}
+
+#sidebar .border-slate-700,
+#sidebar .border-b {
+  border-color: var(--tf-border) !important;
+}
+
+#watchlist li {
+  border-color: var(--tf-border) !important;
+}
+
+#watchlist li:hover {
+  background: var(--tf-bg-hover) !important;
+}
+
+#watchlist li.bg-slate-800 {
+  background: var(--tf-bg-hover) !important;
+}
+
+main,
+#chart {
+  background: var(--tf-bg) !important;
+}
+
+.draw-tool-btn,
+#draw-clear-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--tf-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.draw-tool-btn:hover,
+#draw-clear-btn:hover {
+  background: var(--tf-bg-hover);
+  color: var(--tf-text);
+}
+
+.draw-tool-btn.active {
+  background: rgba(41, 98, 255, 0.15);
+  color: var(--tf-accent);
+}
+
+/* Tools dropdown popover (drawing tools palette) - reuses .draw-tool-btn/#draw-clear-btn
+   for click-handling hooks in drawing-tools.js, but lays them out as a vertical
+   labeled list instead of the old always-visible icon-only rail. */
+#tools-menu {
+  background: var(--tf-bg-panel) !important;
+  border-color: var(--tf-border) !important;
+}
+
+.tools-menu-item {
+  width: 100% !important;
+  height: auto !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  padding: 6px 10px !important;
+  font-size: 12px;
+  border-radius: 6px !important;
+  white-space: nowrap;
+}
+
+.tools-menu-item-danger {
+  color: #f87171;
+}
+
+.tools-menu-item-danger:hover {
+  background: rgba(239, 83, 80, 0.12) !important;
+  color: #fca5a5;
+}
+
+#expand-sidebar {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+}
+
+#chart {
+  border-color: var(--tf-border) !important;
+}
+
+/* Solid always-visible control panel (not a semi-transparent overlay) so its
+   buttons read as a distinct toolbar rather than floating over the chart. */
+#chart-toolbar {
+  background: var(--tf-bg-panel) !important;
+  border-color: var(--tf-border) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.toolbar-btn {
+  border: 1px solid transparent;
+}
+
+.toolbar-btn:hover {
+  border-color: var(--tf-border-bright) !important;
+  background: var(--tf-bg-hover) !important;
+}
+
+.toolbar-btn.active {
+  border-color: var(--tf-accent) !important;
+}
+
+/* Overlay legend wrapper: OHLCV row + unified indicator-tooltip row stacked in
+   normal flow (see index.html) with a real background so the text never sits
+   directly, illegibly, on top of candlestick bars/grid lines. */
+#chart-overlay-legend {
+  background: rgba(19, 23, 34, 0.6);
+  padding: 4px 8px;
+  max-width: calc(100% - 64px); /* keep clear of the right-hand price-scale column (56px + slack) */
+}
+
+/* The per-row wrapper divs built by MultiIndicatorSystem hardcode
+   white-space:nowrap (fine for a panel's own narrow header legend); inside
+   this wider overlay it needs to wrap instead of overflowing past the chart
+   or the price-scale column - !important is required to beat the inline style. */
+#indicator-tooltip-row > div {
+  white-space: normal !important;
+}
+
+#ohlc-legend {
+  color: var(--tf-text);
+}
+
+#ohlc-legend .ohlc-label {
+  color: var(--tf-text-muted);
+}
+
+#ohlc-legend .ohlc-up {
+  color: var(--tf-up);
+}
+
+#ohlc-legend .ohlc-down {
+  color: var(--tf-down);
+}
+
+#indicators-section {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+}
+
+#indicators-section .bg-slate-800 {
+  background: var(--tf-bg-panel) !important;
+}
+
+.text-emerald-400,
+.text-green-500 {
+  color: var(--tf-up) !important;
+}
+
+.text-red-400,
+.text-red-500 {
+  color: var(--tf-down) !important;
+}
+
+/* ─── Order panel ────────────────────────────────────────────────────────── */
+#order-panel {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+}
+
+#expand-order-panel {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+}
+
+.order-type-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tf-text-muted);
+  background: var(--tf-bg-panel);
+  border: 1px solid var(--tf-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.order-type-tab:hover {
+  border-color: var(--tf-border-bright);
+  color: var(--tf-text);
+}
+
+.order-type-tab.active {
+  background: rgba(41, 98, 255, 0.15);
+  border-color: var(--tf-accent);
+  color: #60a5fa;
+}
+
+.order-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--tf-text-muted);
+}
+
+.order-field input,
+.order-field select {
+  background: var(--tf-bg);
+  border: 1px solid var(--tf-border);
+  border-radius: 6px;
+  color: var(--tf-text);
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.order-field input:focus,
+.order-field select:focus {
+  outline: none;
+  border-color: var(--tf-up);
+}
+
+/* ─── Portfolio / account drawer ─────────────────────────────────────────── */
+#bottom-drawer {
+  background: var(--tf-bg) !important;
+  border-color: var(--tf-border) !important;
+  transition: height 0.15s ease;
+}
+
+#bottom-drawer.collapsed {
+  height: 34px !important;
+}
+
+#bottom-drawer.collapsed > .flex-1 {
+  display: none;
+}
+
+#bottom-drawer.collapsed #drawer-collapse-btn i {
+  transform: rotate(180deg);
+}
+
+.drawer-tab {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tf-text-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.drawer-tab:hover {
+  background: var(--tf-bg-hover);
+}
+
+.drawer-tab.active {
+  background: var(--tf-bg-panel);
+  border-color: var(--tf-border-bright);
+  color: var(--tf-text);
+}
+
+.drawer-badge {
+  background: var(--tf-border-bright);
+  color: #cbd5e1;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+#bottom-drawer table {
+  border-collapse: collapse;
+}
+
+#bottom-drawer table th {
+  text-align: left;
+  color: var(--tf-text-muted);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--tf-border);
+  position: sticky;
+  top: 0;
+  background: var(--tf-bg);
+}
+
+#bottom-drawer table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--tf-border);
+  color: var(--tf-text);
+  white-space: nowrap;
+}
+
+.drawer-empty {
+  text-align: center !important;
+  color: var(--tf-text-muted);
+  padding: 16px !important;
+}
+
+.pnl-positive { color: var(--tf-up) !important; }
+.pnl-negative { color: var(--tf-down) !important; }
+
+.drawer-action-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--tf-border);
+  background: var(--tf-bg-panel);
+  color: var(--tf-text);
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.drawer-action-btn:hover {
+  border-color: var(--tf-border-bright);
+  background: var(--tf-bg-hover);
+}
+
+.drawer-action-danger {
+  color: #fca5a5;
+  border-color: rgba(239, 83, 80, 0.4);
+}
+
+.drawer-action-danger:hover {
+  background: rgba(239, 83, 80, 0.12);
+}
+
+.drawer-stat-label {
+  font-size: 11px;
+  color: var(--tf-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.drawer-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tf-text);
+  margin-top: 2px;
+}
