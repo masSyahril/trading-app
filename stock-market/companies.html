@@ -8,42 +8,53 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../src/css/styles.css" />
+    <link rel="stylesheet" href="companies-theme.css" />
   </head>
   <body>
     <div class="app">
       <header class="topbar">
         <div class="brand">TradeLite</div>
-        <div class="search"></div>
         <div class="actions">
-          <a href="./" class="secondary" title="Back to stock trading">Back</a>
+          <a href="./" class="secondary" title="Back to stock trading">← Back</a>
         </div>
       </header>
 
-      <main class="main" style="padding: 16px;">
+      <main class="main">
         <div class="panel">
           <div class="panel-title">Major Companies</div>
-          <div style="margin-bottom: 12px; display:flex; gap:12px; align-items:center; flex-wrap: wrap;">
-            <div>
+
+          <div class="toolbar">
+            <div class="file-picker">
               <input id="file-input" type="file" accept=".csv,.xlsx,.xls,text/csv" />
+              <label for="file-input" class="file-label">Choose File</label>
+              <span id="file-name" class="file-name">No file chosen</span>
               <button id="import" class="primary">Import CSV</button>
             </div>
+            <button id="load-sample" class="secondary" title="Populate the table with mock stock data">Load Sample Data</button>
             <button id="refresh" class="secondary">Refresh</button>
             <button id="clear-local" class="secondary" title="Remove locally imported data">Clear Local Data</button>
-            <small style="opacity:0.8">Import your Nasdaq CSVs to populate this list. We’ll compute MACD in the chart.</small>
+            <small class="helper-text">Import your Nasdaq CSVs to populate this list, or load sample data for an instant preview. We’ll compute MACD in the chart.</small>
           </div>
-          <table class="table" id="companies-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Name</th>
-                <th>Last</th>
-                <th>Prev Close</th>
-                <th>Change</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+
+          <div class="search-bar">
+            <input id="search-input" type="text" placeholder="Filter by symbol or name…" aria-label="Filter companies" />
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="companies-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Name</th>
+                  <th>Last</th>
+                  <th>Prev Close</th>
+                  <th>Change</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </main>
 

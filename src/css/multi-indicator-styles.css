@@ -9,18 +9,20 @@
   overflow: visible !important; /* Changed from hidden to visible for better responsiveness */
   display: flex;
   flex-direction: column;
-  /* Bigger default height for better visibility at 100% zoom */
-  min-height: 200px !important;
-  flex: 1 1 auto; /* Allow panels to shrink/grow but maintain minimum */
-  flex-basis: auto;
+  /* ~24px compact header + ~110px chart canvas so 3 active panels (each an
+     even flex:1 share) land around 120-134px total, fitting alongside the
+     main chart without scrolling on typical viewports. #indicators-container
+     still scrolls (overflow-y: auto) as a fallback on very short viewports. */
+  min-height: 134px;
+  flex: 1 1 0%;
 }
 
-/* When minimized, take minimal space */
+/* Collapsed: shrink to a 32px header-only bar showing just the title + live values */
 .indicator-panel.minimized {
-  flex: 0 0 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-  height: 40px !important;
+  flex: 0 0 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  height: 32px !important;
 }
 
 .indicator-panel.minimized .indicator-chart {
@@ -31,18 +33,12 @@
   display: none !important;
 }
 
-.indicator-panel.minimized .indicator-nav-controls {
-  display: none !important;
-}
-
 .indicator-panel.minimized .indicator-legend {
-  display: none !important;
+  display: flex !important; /* keep visible: shows live values (e.g. "MACD: 1.40") while collapsed */
 }
 
-.indicator-panel.minimized .indicator-select {
-  font-size: 0.75rem !important;
-  padding: 4px 8px !important;
-  min-width: 100px !important;
+.indicator-panel.minimized .icon-btn {
+  display: none !important; /* hide reorder/settings while collapsed; only title, live values, toggle and close remain */
 }
 
 .indicator-panel:hover {
@@ -53,20 +49,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  /* Right padding clears the main chart's price-scale column (56px, see
+     MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) so the action icon cluster
+     doesn't end flush against the same x-position where the Y-axis price
+     labels render in the chart canvas just below this header. */
+  padding: 2px 60px 2px 8px;
   background: #1e293b;
   border-bottom: 1px solid #334155;
-  min-height: 40px;
-  flex-wrap: wrap;
+  min-height: 24px;
+  max-height: 24px;
+  flex-wrap: nowrap;
   gap: 8px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .indicator-panel.minimized .indicator-header {
-  min-height: 40px !important;
-  max-height: 40px !important;
-  height: 40px !important;
-  padding: 8px 12px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  height: 32px !important;
+  padding: 4px 12px !important;
   cursor: pointer;
   flex-shrink: 0;
   overflow: hidden;
@@ -105,6 +107,48 @@
   padding: 8px;
 }
 
+.indicator-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s ease;
+}
+
+.indicator-select-btn:hover {
+  border-color: #475569;
+  background: #1e293b;
+}
+
+.indicator-select-btn:focus-visible {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.indicator-select-btn .chevron-icon {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.indicator-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .indicator-params {
   display: flex;
   align-items: center;
@@ -131,9 +175,9 @@
 .indicator-param input {
   background: #0f172a;
   border: 1px solid #334155;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #e2e8f0;
-  padding: 4px 8px;
+  padding: 2px 8px;
   font-size: 0.75rem;
   width: 50px;
   text-align: center;
@@ -176,29 +220,67 @@
 
 .panel-controls {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   align-items: center;
   margin-left: auto;
   position: relative;
   z-index: 10;
   pointer-events: auto;
+  /* Subtle until the user hovers this panel - keeps the header visually
+     quiet while still being fully clickable at low opacity. */
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+
+.indicator-panel:hover .panel-controls,
+.indicator-panel:focus-within .panel-controls {
+  opacity: 1;
+}
+
+.icon-btn {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  user-select: none;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+.icon-btn:disabled,
+.icon-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .btn-minimize {
   background: #0f172a;
   border: 1px solid #334155;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #94a3b8;
   cursor: pointer;
-  padding: 4px 8px;
-  font-size: 0.9rem;
+  padding: 2px 5px;
+  font-size: 0.7rem;
   font-weight: 600;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
+  min-width: 18px;
+  height: 18px;
   user-select: none;
   pointer-events: auto !important;
   z-index: 10;
@@ -220,24 +302,360 @@
 .btn-remove-indicator {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 4px;
+  border-radius: 6px;
   color: #ef4444;
   cursor: pointer;
-  padding: 4px 8px;
-  font-size: 0.9rem;
+  padding: 2px 5px;
+  font-size: 0.7rem;
   font-weight: 600;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 28px;
+  min-width: 18px;
+  height: 18px;
   user-select: none;
 }
 
 .btn-remove-indicator:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
+}
+
+/* ─── Synced crosshair overlay line ──────────────────────────────────────── */
+/* Repositioned via JS (timeToCoordinate) on every chart except the one the
+   mouse is actually over, whose own native crosshair already shows. See
+   MultiIndicatorSystem._broadcastCrosshairTime. */
+.crosshair-sync-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed rgba(230, 237, 243, 0.5);
+  pointer-events: none;
+  z-index: 4;
+  display: none;
+}
+
+/* ─── Custom Y-axis "last value" badges (collision-avoided) ─────────────── */
+/* Native per-series lastValueVisible badges are disabled (see
+   MultiIndicatorSystem.initializePanel) and replaced with these, which get
+   pushed apart in JS (_renderYAxisBadges) whenever two series' values are
+   close enough to otherwise overlap. */
+.y-axis-badges {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 56px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.y-axis-badge {
+  position: absolute;
+  right: 2px;
+  transform: translateY(-50%);
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: #0b0f14;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* ─── Drag-to-resize handle ──────────────────────────────────────────────── */
+/* Absolutely positioned overlay strip (not in normal flow) so it doesn't add
+   to the panel's content height — .indicator-panel's min-height is fixed via
+   !important and won't grow to accommodate an in-flow addition. */
+.indicator-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 6;
+}
+
+.indicator-resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: #334155;
+  transition: background 0.15s ease;
+}
+
+.indicator-resize-handle:hover::after {
+  background: #64748b;
+}
+
+.indicator-panel.minimized .indicator-resize-handle {
+  display: none !important;
+}
+
+body.indicator-resizing {
+  cursor: ns-resize;
+  user-select: none;
+}
+
+/* ─── Maximize / Restore ─────────────────────────────────────────────────── */
+/* While a panel is maximized, every sibling panel is hidden entirely so the
+   maximized one can claim the whole indicators-container height. */
+#indicators-container.has-maximized .indicator-panel:not(.panel-maximized) {
+  display: none !important;
+}
+
+.indicator-panel.panel-maximized {
+  flex: 1 1 0% !important;
+  min-height: 300px !important;
+}
+
+.btn-maximize.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+/* ─── Tabbed view ────────────────────────────────────────────────────────── */
+#indicators-tabbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+#indicators-tabbar[hidden] {
+  display: none;
+}
+
+.indicator-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.indicator-tab-btn:hover {
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+.indicator-tab-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+/* In tabbed mode only the active tab's panel renders, at full container height */
+#indicators-container.tabbed-view .indicator-panel:not(.tab-active) {
+  display: none !important;
+}
+
+#indicators-container.tabbed-view .indicator-panel.tab-active {
+  flex: 1 1 auto !important;
+  min-height: 260px !important;
+}
+
+/* Per-panel maximize is redundant with tabbed view's own full-height single-panel display */
+#indicators-container.tabbed-view .btn-maximize {
+  display: none;
+}
+
+/* The tab bar itself already names and switches between indicators, so each
+   panel's own "change indicator" selector would just be a second, duplicate
+   control showing the same name right underneath the active tab. */
+#indicators-container.tabbed-view .indicator-select-btn {
+  display: none;
+}
+
+#view-toggle-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+/* ─── Settings popover ───────────────────────────────────────────────────── */
+.indicator-settings-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 260px;
+  max-width: calc(100vw - 16px);
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font-size: 0.8rem;
+}
+
+.indicator-settings-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #334155;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.indicator-settings-popover .popover-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.indicator-settings-popover .popover-close:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.indicator-settings-popover .indicator-params {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-left: 0;
+}
+
+.indicator-settings-popover .indicator-param {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ─── Indicator picker modal ─────────────────────────────────────────────── */
+.indicator-picker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(2, 6, 23, 0.7);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.indicator-picker-modal {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.indicator-picker-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.indicator-picker-search {
+  flex: 1;
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.indicator-picker-search:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.indicator-picker-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.indicator-picker-close:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.indicator-picker-body {
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.indicator-picker-category {
+  margin-bottom: 10px;
+}
+
+.indicator-picker-category-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  padding: 6px 8px 4px;
+}
+
+.indicator-picker-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.indicator-picker-item:hover {
+  background: #334155;
+}
+
+.indicator-picker-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
 }
 
 /* Ensure indicator container can scroll smoothly */
@@ -265,9 +683,11 @@
 
 /* Align time axis with main chart: same effective width, no extra padding */
 .indicator-chart {
-  /* Bigger height for better visibility of data/lines - responsive at 100% zoom */
-  height: 200px !important;
-  min-height: 180px !important;
+  /* Height comes from flex:1 sharing whatever the panel has left after its
+     header — overridden inline (with !important) by the per-panel drag-resize
+     handle. 110px keeps line/histogram detail legible at the panel's ~28px
+     header + ~110px chart = ~138px default total. */
+  min-height: 110px;
   width: 100% !important;
   flex: 1;
   background: #020617;
@@ -292,72 +712,24 @@
   .indicator-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 4px;
+    padding: 4px 10px;
+    min-height: 0;
+    max-height: none; /* stacked columns need more than 28px - only the desktop single-row header is capped */
   }
-  
-  .indicator-select {
-    width: 100%;
-  }
-  
+
   .indicator-params {
     margin-left: 0;
     justify-content: center;
     width: 100%;
   }
-  
+
   .indicator-chart {
-    height: 140px;
-    min-height: 120px;
+    min-height: 100px;
   }
-  
+
   .panel-controls {
     width: 100%;
     justify-content: flex-end;
-  }
-}
-
-/* Zoom Responsiveness - Fixed for 100% zoom visibility */
-@media (min-zoom: 1.0) {
-  .indicator-chart {
-    height: 200px !important;
-    min-height: 180px !important;
-  }
-  
-  .indicator-panel:not(.minimized) {
-    min-height: 200px !important;
-  }
-}
-
-@media (min-zoom: 1.25) {
-  .indicator-chart {
-    height: 220px !important;
-    min-height: 200px !important;
-  }
-  
-  .indicator-panel:not(.minimized) {
-    min-height: 220px !important;
-  }
-}
-
-@media (min-zoom: 1.5) {
-  .indicator-chart {
-    height: 240px !important;
-    min-height: 220px !important;
-  }
-  
-  .indicator-panel:not(.minimized) {
-    min-height: 240px !important;
-  }
-}
-
-@media (max-zoom: 0.75) {
-  .indicator-chart {
-    height: 180px !important; /* Larger at 75% zoom for better visibility */
-    min-height: 160px !important;
-  }
-  
-  .indicator-panel:not(.minimized) {
-    min-height: 180px !important; /* Ensure panels are tall enough */
   }
 }

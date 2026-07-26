@@ -861,15 +861,15 @@ window.StochasticOSC = StochasticOSC;
 //===designed by Prof Wang, 2025-Oct-29===modified on 2026-April-07==
 //Williams %R 威廉指標(William’s Overbought/Oversold Index)。
 //WilliamR=(Hn-Ct)/(Hn-Ln)*100.
-function WilliamR(STK_close, WR_day) {
-  //STK_close=STK_close,  WR_day=10,15,... 天數
+function WilliamR(STK_high, STK_low, STK_close, WR_day) {
+  //STK_high, STK_low, STK_close,  WR_day=10,15,... 天數
   const WilliamR=[];
-  for(let i=1; i<STK_close.length-WR_day+1; i++) { // i=1 to 2000-10+1=1991
-    let Max_high=0; 
+  for(let i=0; i<STK_close.length-WR_day+1; i++) { // i=0 to 2000-10+1=1991
+    let Max_high=0;
     let Min_low=9999;   // initial value can not be zero
-    for(j=i; j<=WR_day+i-1; j++) {
-      if (STK_high[j]>Max_high); Max_high=STK_high[j];
-      if (STK_low[j]<Min_low); Min_low=STK_low[j];  
+    for(let j=i; j<=WR_day+i-1; j++) {
+      if (STK_high[j]>Max_high) Max_high=STK_high[j];
+      if (STK_low[j]<Min_low) Min_low=STK_low[j];
     }
     if(Max_high==Min_low) {
       WilliamR[WR_day+i-1]=100; }
@@ -1066,7 +1066,7 @@ function VolAccuDistOsc(STK_high, STK_low, STK_close, STK_vol, esp) {  //原名�
     if (STK_high[i]-STK_low[i]==0) {
       VolAccuDistOsc[i]=0;  }
     else {
-      VolAccuDistOsc[i]=(2*STK_close[i]-STK_low[i]-STK_high[i])/(STK_high[i]-STK_low[i])*STK_vol;
+      VolAccuDistOsc[i]=(2*STK_close[i]-STK_low[i]-STK_high[i])/(STK_high[i]-STK_low[i])*STK_vol[i];
     }
     if(i==1) {  //i=1,初值=VolAccuDistOsc(1)。
       eVolAccuDistOsc[i]=VolAccuDistOsc[i]; }
@@ -1088,11 +1088,10 @@ window.VolAccuDistOsc = VolAccuDistOsc;
 function HighLowOsc(STK_high, STK_low, STK_close, esp) {  //原名稱:HLO
   // Menu Name=High Low Oscillator  === esp=9, 平滑化因子
   const HLO=[], eHLO=[];   //自創新指標，eHLO[]為平滑化後的數值。
-  const TR=0;     //True Range, TR
   HLO[1]=50;      //HLO(1)初值=50,適當否？
   eHLO[1]=50;     //eHLO(1)初值=50,適當否？
   for(let i=2; i<STK_close.length; i++) {  //i=2 to 2000
-    TR=max(STK_high[i]-STK_low[i], STK_high[i]-STK_close[i-1], Math.abs(STK_low[i]-STK_close[i-1]));
+    const TR=Math.max(STK_high[i]-STK_low[i], STK_high[i]-STK_close[i-1], Math.abs(STK_low[i]-STK_close[i-1]));
     HLO[i]=(STK_high[i]-STK_close[i-1])/TR*100;
     eHLO[i]=(esp-1)/(esp+1)*eHLO[i-1]+2/(esp+1)*HLO[i];  //自創新指標
     //eHLO[]是HLO[]的平滑化，即：(n-1)/(n+1)*昨+(2/(n+1)*今
@@ -8489,6 +8488,7 @@ function WilliamsPercentRange(STK_high, STK_low, STK_close, WPR_day) {
   // if WPR_day=10, then WilliamsPctRange[]=10 to 2000.
 }
 window.WilliamsPercentRange = WilliamsPercentRange;
+//----------------------------------------------------------------------
 
 //===designed by Prof Wang, 2026-July-18==================================
 //Follow-The-Way Strategy,完全自行創新投資哲學 
@@ -8533,10 +8533,209 @@ function AlphaBetaMA(STK_high, STK_low, STK_close, ma_day, alpha, beta) {
   // TypicalPrice[]=1 to 2000, if ma_day=10, then MA[]=10 to 2000.
 }
 window.AlphaBetaMA = AlphaBetaMA;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang,原2026-March-30設計==新設計2026-July-21===
+//Laguerre RSI = Laguerre Relative Strength Index,   <No.132>
+//由Laguerre filter設計的RSI, 由Prof Wang設計, 2026-March-30. 
+//指數平滑移動平均的參數:exponential smoothing parameter(esp)
+function LaguerreRSI(STK_close, Gamma_value, esp) {
+  // Menu Name: Laguerre RSI   //esp=9,10,...
+  // gamma=0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99
+  // Laguerre filter的四個變數L0, L1, L2, L3的前一個值
+  if(Gamma_value>=10) { Gamma_value=9.9; } //控制在 0.5<=Gamma<=0.99
+  if(Gamma_value<=5)  { Gamma_value=5;   }
+  let Gamma=Gamma_value/10;
+  let cum_Up=0; let cum_Down=0;    //計算上漲/下跌動能
+  let L0; let L1; let L2; let L3;
+  let L0prev; let L1prev; let L2prev; let L3prev;
+  L0prev=STK_close[1]; L1prev=STK_close[1];  //Laguerre filter的第一個變數L0=0 
+  L2prev=STK_close[1]; L3prev=STK_close[1];  //Laguerre filter的第四個變數L3=0
+  const LaguerreRSI=[];     //Laguerre RSI=2 to 2000
+  const eLaguerreRSI=[];    //自創, =2 to 2000
+  for(let i=2; i<=STK_close.length; i++) {   //i=2 to 2000 
+    L0=(1-Gamma)*STK_close[i]+Gamma*L0prev;  //Laguerre filter的第一個變數L0
+    L1=-Gamma*L0+L0prev+Gamma*L1prev;        //Laguerre filter的第二個變數L1
+    L2=-Gamma*L1+L1prev+Gamma*L2prev;        //Laguerre filter的第三個變數L2
+    L3=-Gamma*L2+L2prev+Gamma*L3prev;        //Laguerre filter的第四個變數L3
+    // 計算上漲/下跌動能。下列二式簡潔扼要！
+    cum_Up=Math.max(L0-L1,0)+Math.max(L1-L2,0)+Math.max(L2-L3,0);
+    cum_Down=Math.max(L1-L0,0)+Math.max(L2-L1,0)+Math.max(L3-L2,0);
+    // Calculate Laguerre RSI
+    if((cum_Up+cum_Down)===0) {
+      LaguerreRSI[i]=0; }
+    else {
+      LaguerreRSI[i]=cum_Up/(cum_Up+cum_Down)*100;
+    }
+    if(i===2) {                          //自創的eLaguerreRSI[], =2 to 2000
+      eLaguerreRSI[i]=LaguerreRSI[i]; }  // initial value
+    else {
+      eLaguerreRSI[i]=(esp-1)/(esp+1)*eLaguerreRSI[i-1]+2/(esp+1)*LaguerreRSI[i];
+    }
+    //在second time: 設定Laguerre filter的四個變數L0, L1, L2, L3的前一個值
+    L0prev=L0; L1prev=L1; L2prev=L2; L3prev=L3;
+  }
+  return { LaguerreRSI, eLaguerreRSI };
+  //Plot these indicator figures in a small window.
+  //LaguerreRSI[], eLaguerreRSI[]=2 to 2000.
+}
+window.LaguerreRSI = LaguerreRSI;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-July-21==================================
+//Instantaneous Trendline瞬時趨勢線。自行找資料設計。
+//Instantaneous Trendline(瞬時趨勢線，簡稱 ITrend)是由John F. Ehlers提出的低延遲趨勢濾波器。
+//比Moving Average更低lag、即時估計市場趨勢、減少phase delay、更快偵測轉折、同時保持平滑 
+function InstantaneousTrendline(STK_high, STK_low, STK_close, Alpha_value) {
+  // Menu Name: Inst Trend     //alpha= 0.05~0.2
+  //以TP=TypicalPrice替代MedianPrice=(H+L)/2.
+  const TP=[];      //TypicalPrice=[]; //=1 to 2000
+  for(let i=1; i<STK_high.length; i++) {  //i=1 to 2000
+    TP[i]=(STK_high[i]+STK_low[i]+6*STK_close[i])/8;
+  }
+  if(Alpha_value<=5)  { Alpha_value=5; }  //控制alpha= 0.05~0.2
+  if(Alpha_value>=20) { Alpha_value=20; }
+  let Alpha=Alpha_value/100;  //alpha= 0.05~0.2
+  let A=Alpha;   //因為Alpha太長了,以A替代
+  //Calculate IT[]=InstTrend[]
+  const IT=[];       //InstTrend=[]; //=1 to 2000
+  const Trigger=[];  //Trigger Line交易訊號。Trigger(k)=2*IT(k)-IT(k-2)
+  IT[1]=TP[1];   IT[2]=TP[2];  //initial values
+  for(let i=3; i<STK_high.length; i++) {    //i=3 to 2000
+    IT[i]=(A-A*A/4)*TP[i]+0.5*(A*A)*TP[i-1]-(A-0.75*A*A)*TP[i-2]+2*(1-A)*IT[i-1]-((1-A)**2)*IT[i-2];
+    Trigger[i]=2*IT[i]-IT[i-2];
+  }
+  return { IT, Trigger };
+  // drawing these figures in the small windows.
+  // IT[]=1 to 2000.  Trigger[]=3 to 2000
+}
+window.InstantaneousTrendline = InstantaneousTrendline;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-July-23==================================
+//傳統RSI(Relative Strength Index)
+//此程式是完整的RSI設計，2026-Feb-24原設計以收盤價為主，
+// 2026-07-23改版以Typical Price取代收盤價。程式設計理念也改變。
+// 指數平滑移動平均的參數:exponential smoothing parameter(esp)
+function RSI_TP(STK_high, STK_low, STK_close, RSI_day, esp) {
+  // Menu Name: RSI(Typical Price)     //RSI_day=10,..., esp=9,...
+  const TP=[]; //TP[]=TypicalPrice=[]; //=1 to 2000,以TypicalPrice取代Close
+  for(let i=1; i<=STK_high.length; i++) {  //i=1 to 2000
+    TP[i]=(STK_high[i]+STK_low[i]+6*STK_close[i])/8;
+  }
+  // First calculate RSI
+  const RSI=[], eRSI=[];
+  const dif=[];   //dif=今收盤-昨收盤
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
+    dif[i]=TP[i]-TP[i-1];                   //dif[]=2 to 2000
+  }
+  //compute the first RSI[]. if day=10, RSI[]=11 to 2000.
+  let sum_Up;   //最近 n 日收盤價漲幅之和
+  let sum_Dn;   //最近 n 日收盤價跌幅之和
+  for(let i=RSI_day+1; i<=STK_close.length; i++) {  //=11 to 2000
+    sum_Up=0;  sum_Dn=0;   //每一輪都要歸0.
+    for(let j=i-RSI_day+1; j<=i; j++) {  //j=2 to 11
+      if(dif[j] > 0) {
+        sum_Up = sum_Up + dif[j]; }   //收盤價漲幅之和
+      else {
+        //sum_Dn = sum_Dn - dif[j];  //此式是正確的，一定要用負號
+        sum_Dn=sum_Dn+Math.abs(dif[j]);   //收盤價跌幅之和
+      }
+    }
+    if((sum_Up+sum_Dn) === 0) {  //if RSI_day=10 then first =RSI[11]
+      RSI[i]=100; }
+    else {
+      RSI[i]=sum_Up/(sum_Up+sum_Dn)*100;
+    }
+    if(i===RSI_day+1) {
+      eRSI[RSI_day+1]=RSI[RSI_day+1] }  //eRSI的初值=eRSI[11]
+    else {
+      eRSI[i]=(esp-1)/(esp+1)*eRSI[i-1]+2/(esp+1)*RSI[i];
+    }
+  }
+  return { RSI, eRSI };
+  // if RSI_day=10 then RSI[], eRSI[]=11,12,...,2000.
+  // drawing the RSI[], eRSI[] figures in the small windows.
+}
+window.RSI_TP = RSI_TP;
+//----------------------------------------------------------------------
+
+//===designed by Prof Wang, 2026-July-24==================================
+// Adaptive RSI(自適應相對強弱指數)是將傳統RSI(Relative Strength Index)
+// 與Adaptive Cycle Detection(自適應週期偵測)結合的指標。
+//RSI的計算週期不固定，而是隨市場的主循環(Dominant Cycle)自動調整。
+//Adaptive RSI並沒有唯一的標準公式，不同作者(如John Ehlers、TradingView社群
+// 、MetaStock等}有不同實作方式
+// 指數平滑移動平均的參數:exponential smoothing parameter(esp)
+function AdaptiveRSI(STK_high, STK_low, STK_close, esp) {
+  // Menu Name: Adaptive RSI   //esp=3, 5.   RSI_day是動態的,沒有固定的值.
+  const TP=[];  //TP[]=TypicalPrice=[]; //=1 to 2000, 以TypicalPrice取代Close
+  for(let i=1; i<=STK_high.length; i++) {  //i=1 to 2000
+    TP[i]=(STK_high[i]+STK_low[i]+6*STK_close[i])/8;
+  }
+  // First 計算價格變化, dif=P(t)-P(t-1)
+  const dif=[];   //dif=今收盤-昨收盤=今TP-昨TP
+  for(let i=2; i<=STK_close.length; i++) {  //i=2 to 2000
+    dif[i]=TP[i]-TP[i-1];                   //dif[]=2 to 2000
+  }
+  //Calculate Q(t)
+  const Q=[];  //Quadrature, Q[]=7 to 2000
+  for(let i=7; i<=STK_close.length; i++) { //i=7 to 2000
+    Q[i]=0.0962*TP[i]+0.5769*TP[i-2]-0.5769*TP[i-4]-0.0962*TP[i-6];
+  }
+  //Calculate Re[], Im[], 相位差=atan(Im[]/Re[]), I(t)=TP(t-3)
+  //Re[]=I(t)*I(t-1)+Q(t)*Q(t-1),  Im[]=I(t)*Q(t-1)-Q(t)*I(t-1)
+  const Re=[], Im=[], dif_phase=[];  //=8 to 2000
+  const DC=[]; //主循環週期:Dominant Cycle(DC), DC(t)=360/dif_phase
+  const Period=[]; //Adaptive RSI週期: Period=DC/2,每一天都重新決定RSI長度(週期)
+  for(let i=8; i<=STK_close.length; i++) {  //i=8 to 2000
+    Re[i]=TP[i-3]*TP[i-4]+Q[i]*Q[i-1];    //=I(t)*I(t-1)+Q(t)*Q(t-1)
+    Im[i]=TP[i-3]*Q[i-1]-Q[i]*TP[i-4];    //=I(t)*Q(t-1)-Q(t)*I(t-1)
+    dif_phase[i]=Math.atan(Im[i]/Re[i]);  //相位差=atan(Im[]/Re[])
+    //主循環週期:Dominant Cycle(DC), DC(t)=360/dif_phase, 10≤DC(t)≤48
+    DC[i]=360/dif_phase[i];
+    if(DC[i]<10) { DC[i]=10; }  //10≤DC(t)≤48
+    if(DC[i]>48) { DC[i]=48; }  //10≤DC(t)≤48
+    // 5.Adaptive RSI週期: Period[]=DC[]/2, 每一天都重新決定RSI長度(週期)
+    Period[i]=Math.round(DC[i]/2);  //四捨五入. =8 to 2000
+  }
+  //Calculate Adaptive RSI, 通常再加EMA
+  //because 10≤DC(t)≤48, so i=48 to 2000
+  const Adaptive_RSI=[], eAdaptive_RSI=[]; //Adaptive RSI通常再加EMA.=48 to 2000
+  let sum_Up;      //最近 n 日收盤價漲幅之和
+  let sum_Dn;      //最近 n 日收盤價跌幅之和
+  let RSI_Period;  //要計算RSI的時間長度,例如10天。
+  for(let i=48; i<=STK_close.length; i++) {  //i=48 to 2000
+    RSI_Period=Period[i];  //ex. RSI_Period=Period[48]=10
+    sum_Up=0;  sum_Dn=0;   //每一輪都要歸0.
+    for(let j=i-RSI_Period+1; j<=i; j++) { //j=48-10+1=39 to 48
+      if(dif[j] > 0) {
+        sum_Up = sum_Up + dif[j]; }   //收盤價漲幅之和
+      else {
+        sum_Dn=sum_Dn+Math.abs(dif[j]);   //收盤價跌幅之和
+      }
+    }
+    if((sum_Up+sum_Dn) === 0) {
+      Adaptive_RSI[i]=100; }
+    else {
+      Adaptive_RSI[i]=sum_Up/(sum_Up+sum_Dn)*100;
+    }
+    if(i===48) {
+      eAdaptive_RSI[i]=Adaptive_RSI[i] } //eAdaptive_RSI的初值=Adaptive_RSI[48]
+    else {
+      eAdaptive_RSI[i]=(esp-1)/(esp+1)*eAdaptive_RSI[i-1]+2/(esp+1)*Adaptive_RSI[i];
+    }
+  }
+  return { Adaptive_RSI, eAdaptive_RSI };
+  // drawing these figures in the small windows.
+  // these indicators[]=48 to 2000.
+}
+window.AdaptiveRSI = AdaptiveRSI;
+//----------------------------------------------------------------------
 
 
 
-
+//----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------

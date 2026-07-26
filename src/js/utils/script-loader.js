@@ -1,6 +1,10 @@
 /* TradeLite Script Loader - Beautiful Loading System */
 
 class ScriptLoader {
+  // One value per page load, shared by every script tag it creates, so a
+  // plain refresh always fetches fresh files instead of a stale cached copy.
+  static _cacheBust = Date.now();
+
   constructor(containerId = 'script-loading-indicator') {
     this.scripts = [];
     this.loadedScripts = new Set();
@@ -405,7 +409,9 @@ class ScriptLoader {
   loadScript(src) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = src;
+      // Cache-bust on every page load so edited indicator/chart scripts take
+      // effect on a plain refresh instead of silently serving a stale cached copy.
+      script.src = src + (src.includes('?') ? '&' : '?') + 'v=' + ScriptLoader._cacheBust;
       script.onload = resolve;
       script.onerror = reject;
       document.head.appendChild(script);

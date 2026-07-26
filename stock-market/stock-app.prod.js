@@ -19,7 +19,7 @@
   let localCandles = loadLS(STOCK_LS_KEYS.localCandles, {});
 
   let currentSymbol = watchlist[0] || "AAPL";
-  let timeframe = DEFAULT_TIMEFRAME;
+  let timeframe = loadLS("stock_timeframe", DEFAULT_TIMEFRAME);
 
   // Live prices for symbols in watchlist
   const lastPrice = {};
@@ -32,6 +32,7 @@
   let chart = null;
   let candleSeries = null;
   let chartData = [];
+  let chartStyle = loadLS('stock_chart_style', 'candles'); // 'candles' | 'line' | 'area'
 
   // Multi-Indicator System
   let indicatorSystem = null;
@@ -316,7 +317,7 @@
 
     if (result.type === 'bb') {
       const p = getOverlayParam(id);
-      const opts = { lineWidth: 1, lineStyle: 2, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const opts = { lineWidth: 2.5, lineStyle: 2, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
       const s1 = chart.addLineSeries({ ...opts, color: def.color, title: `BB+(${p})` });
       const s2 = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 0, title: `BB(${p})` });
       const s3 = chart.addLineSeries({ ...opts, color: def.color, title: `BB-(${p})` });
@@ -326,7 +327,7 @@
       overlaySeries[id] = [s1, s2, s3];
     } else if (result.type === 'wvc') {
       const p    = getOverlayParam(id);
-      const opts = { lineWidth: 1, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const opts = { lineWidth: 2.5, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
       const sUpper  = chart.addLineSeries({ ...opts, color: def.colorUpper || def.color, lineStyle: 2, title: `WVC+(${p})` });
       const sMiddle = chart.addLineSeries({ ...opts, color: def.color,                   lineStyle: 0, title: `WVC(${p})`  });
       const sLower  = chart.addLineSeries({ ...opts, color: def.colorLower || def.color, lineStyle: 2, title: `WVC-(${p})` });
@@ -338,7 +339,7 @@
       if (!result.long || !result.short) return;
       const p    = getOverlayParam(id);
       const lbl  = def.label || id;
-      const opts = { lineWidth: 1.5, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const opts = { lineWidth: 2.5, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
       const sLong  = chart.addLineSeries({ ...opts, color: def.colorLong  || '#4ade80', lineStyle: 0, title: `${lbl}-Long(${p})`  });
       const sShort = chart.addLineSeries({ ...opts, color: def.colorShort || '#f87171', lineStyle: 0, title: `${lbl}-Short(${p})` });
       sLong .setData(nonNull(result.long));
@@ -347,7 +348,7 @@
     } else if (result.type === 'donchian') {
       if (!result.upper || !result.lower) return;
       const p    = getOverlayParam(id);
-      const opts = { lineWidth: 1, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
+      const opts = { lineWidth: 2.5, priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true };
       const sUpper  = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 2, title: `DC+(${p})` });
       const sMiddle = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 0, title: `DC(${p})`  });
       const sLower  = chart.addLineSeries({ ...opts, color: def.color, lineStyle: 2, title: `DC-(${p})` });
@@ -359,7 +360,7 @@
       if (!result.data) return;
       const pts = nonNull(result.data);
       if (!pts.length) return;
-      const s = chart.addLineSeries({ color: def.color, lineWidth: 1, title: getOverlayTitle(id), priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true });
+      const s = chart.addLineSeries({ color: def.color, lineWidth: 2.5, title: getOverlayTitle(id), priceLineVisible: false, crosshairMarkerVisible: false, lastValueVisible: true });
       s.setData(pts);
       overlaySeries[id] = [s];
     }
@@ -555,6 +556,7 @@
       setupIndicatorSystem();
       setupChartControls();
       setupOverlayDropdown();
+      setupChartStyleDropdown();
 
       renderWatchlist();
       syncSymbolHeader();
@@ -563,7 +565,42 @@
       loadCandlesAndDisplay(currentSymbol, timeframe);
 
       setInterval(updateMarketIndicators, 30000);
+
+      exposeTradeFlowChart();
     }, 100);
+  }
+
+  // Public seam: chart/candleSeries/chartData are private to this IIFE, so a companion
+  // script (drawing-tools.js) reaches them only through this deliberately small surface.
+  const symbolChangeListeners = [];
+  const resizeListeners = [];
+
+  function notifySymbolChange() {
+    symbolChangeListeners.forEach(cb => { try { cb(currentSymbol); } catch (e) {} });
+  }
+
+  function exposeTradeFlowChart() {
+    window.TradeFlowChart = {
+      getChart: () => chart,
+      getCandleSeries: () => candleSeries,
+      getIndicatorSystem: () => indicatorSystem,
+      getChartData: () => chartData,
+      getCurrentSymbol: () => currentSymbol,
+      // Last known price for ANY watchlist symbol, not just the one currently
+      // charted - this is what renderWatchlist() itself reads from, so it's
+      // kept live for every symbol even while a different one is on-screen.
+      getLastPrice: (symbol) => lastPrice[symbol],
+      getWatchlist: () => watchlist.slice(),
+      onSymbolChange(cb) { if (typeof cb === 'function') symbolChangeListeners.push(cb); },
+      onResize(cb) { if (typeof cb === 'function') resizeListeners.push(cb); },
+      // Lets other modules (e.g. indicator crosshair-sync) drive the OHLCV
+      // legend by time, not just the main chart's own crosshair move.
+      showTooltipForTime(time) {
+        if (time == null) { renderOhlcLegend(null); return; }
+        const bar = chartData.find(c => c.time === time);
+        renderOhlcLegend(bar || null);
+      },
+    };
   }
   
   function initializeDOMElements() {
@@ -575,6 +612,7 @@
       chart: document.getElementById("chart"),
       tfButtons: Array.from(document.querySelectorAll(".tab-btn")),
       indicatorCount: document.getElementById("indicator-count"),
+      ohlcLegend: document.getElementById("ohlc-legend"),
     };
   }
   
@@ -609,15 +647,25 @@
     }
 
     if (el.tfButtons && el.tfButtons.length > 0) {
+      const setActiveTfButton = (tf) => {
+        el.tfButtons.forEach((b) => {
+          const isActive = b.getAttribute("data-tf") === tf;
+          b.classList.toggle("active", isActive);
+          b.classList.toggle("text-blue-400", isActive);
+          b.classList.toggle("bg-slate-700/50", isActive);
+          b.classList.toggle("font-bold", isActive);
+          b.classList.toggle("text-slate-400", !isActive);
+        });
+      };
+      // Restore whichever timeframe was persisted (defaults to the "5D" tab
+      // marked active in the HTML, which may not match a restored value).
+      setActiveTfButton(timeframe);
+
       el.tfButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
-          el.tfButtons.forEach((b) => {
-            b.classList.remove("active", "text-blue-400", "bg-slate-700/50", "font-bold");
-            b.classList.add("text-slate-400");
-          });
-          btn.classList.add("active", "text-blue-400", "bg-slate-700/50", "font-bold");
-          btn.classList.remove("text-slate-400");
           timeframe = btn.getAttribute("data-tf");
+          setActiveTfButton(timeframe);
+          saveLS("stock_timeframe", timeframe);
           loadCandlesAndDisplay(currentSymbol, timeframe);
         });
       });
@@ -716,11 +764,12 @@
 
   function focusSymbol(sym) {
     if (!sym || !isStockSymbol(sym)) return;
-    
+
     currentSymbol = sym;
     syncSymbolHeader();
     highlightActiveWatchlist();
     loadCandlesAndDisplay(currentSymbol, timeframe);
+    notifySymbolChange();
   }
 
   function syncSymbolHeader() {
@@ -816,14 +865,13 @@
     for (const symbol of watchlist) {
       try {
         await updateSymbolPrice(symbol);
+        renderWatchlist();
+        syncSymbolHeader();
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         // Silently fail
       }
     }
-
-    renderWatchlist();
-    syncSymbolHeader();
   }
 
   async function updateSymbolPrice(symbol) {
@@ -856,16 +904,9 @@
     const local = localCandles[symbol];
     if (local && local.length) {
       chartData = local.slice().sort((a, b) => a.time - b.time);
-      const chartCandles = chartData.map(c => ({
-        time: c.time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close
-      }));
-      
+
       if (candleSeries) {
-        candleSeries.setData(chartCandles);
+        applyChartStyleData(chartData);
         setTimeout(() => {
           if (chartData.length > 0) {
             const dataMax = chartData.length - 1;
@@ -902,8 +943,8 @@
           }));
           
           if (candleSeries) {
-            candleSeries.setData(chartData.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
-            
+            applyChartStyleData(chartData);
+
             setTimeout(() => {
               if (chartData.length > 0) {
                 const dataMax = chartData.length - 1;
@@ -964,7 +1005,7 @@
     }
 
     if (candleSeries) {
-      candleSeries.setData(chartData);
+      applyChartStyleData(chartData);
       setTimeout(() => {
         if (chartData.length > 0) {
           const dataMax = chartData.length - 1;
@@ -1002,18 +1043,26 @@
       if (!el.chart) {
         throw new Error('Chart container element not found');
       }
-      
+
+      const theme = {
+        bg: readThemeVar('--tf-bg', '#131722'),
+        text: readThemeVar('--tf-text', '#d1d4dc'),
+        border: readThemeVar('--tf-border', '#2a2e39'),
+        up: readThemeVar('--tf-up', '#26a69a'),
+        down: readThemeVar('--tf-down', '#ef5350'),
+      };
+
       chart = LightweightCharts.createChart(el.chart, {
         layout: {
-          background: { color: "#020617" },
-          textColor: "#e2e8f0",
+          background: { color: theme.bg },
+          textColor: theme.text,
         },
         grid: {
-          vertLines: { color: "#1e293b" },
-          horzLines: { color: "#1e293b" },
+          vertLines: { color: theme.border },
+          horzLines: { color: theme.border },
         },
         rightPriceScale: {
-          borderColor: "#334155",
+          borderColor: theme.border,
           minimumWidth: (typeof MultiIndicatorSystem !== 'undefined' && MultiIndicatorSystem.PRICE_SCALE_ALIGN_WIDTH) || 56,
           scaleMargins: {
             top: 0,
@@ -1021,7 +1070,7 @@
           },
         },
         timeScale: {
-          borderColor: "#334155",
+          borderColor: theme.border,
           timeVisible: true,
           secondsVisible: false,
           rightOffset: 8,
@@ -1052,13 +1101,13 @@
         chart.priceScale('right').applyOptions({ minimumWidth: alignW, scaleMargins: { top: 0, bottom: 0 } });
       } catch (e) {}
 
-      candleSeries = chart.addCandlestickSeries({
-        upColor: "#10b981",
-        downColor: "#ef4444",
-        borderUpColor: "#10b981",
-        borderDownColor: "#ef4444",
-        wickUpColor: "#10b981",
-        wickDownColor: "#ef4444",
+      candleSeries = createSeriesForStyle(chartStyle, theme.up, theme.down);
+
+      chart.subscribeCrosshairMove((param) => {
+        const bar = (param && param.time)
+          ? chartData.find(c => c.time === param.time)
+          : (chartData.length ? chartData[chartData.length - 1] : null);
+        renderOhlcLegend(bar);
       });
 
       const resizeObserver = new ResizeObserver((entries) => {
@@ -1072,6 +1121,7 @@
                 if (indicatorSystem && typeof indicatorSystem.syncIndicatorChartWidths === 'function') {
                   indicatorSystem.syncIndicatorChartWidths(el.chart);
                 }
+                resizeListeners.forEach(cb => { try { cb(width, height); } catch (e) {} });
               } catch (error) {}
             }, 100);
           }
@@ -1086,6 +1136,148 @@
     }
   }
 
+  // Repopulate the main series from the in-memory chartData array, mapped to whatever
+  // shape the active chartStyle's series type expects. No API re-fetch.
+  function applyChartStyleData(data) {
+    if (!candleSeries || !data) return;
+    if (chartStyle === 'line' || chartStyle === 'area') {
+      candleSeries.setData(data.map(c => ({ time: c.time, value: c.close })));
+    } else {
+      candleSeries.setData(data.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
+    }
+    renderOhlcLegend(data.length ? data[data.length - 1] : null);
+  }
+
+  function formatVolumeShort(vol) {
+    if (!isFinite(vol)) return "—";
+    if (vol >= 1e9) return (vol / 1e9).toFixed(2) + "B";
+    if (vol >= 1e6) return (vol / 1e6).toFixed(2) + "M";
+    if (vol >= 1e3) return (vol / 1e3).toFixed(2) + "K";
+    return String(vol);
+  }
+
+  function renderOhlcLegend(bar) {
+    if (!el.ohlcLegend) return;
+    if (!bar) {
+      el.ohlcLegend.innerHTML = "";
+      return;
+    }
+    const cls = bar.close >= bar.open ? "ohlc-up" : "ohlc-down";
+    const vol = bar.volume != null ? formatVolumeShort(bar.volume) : null;
+    el.ohlcLegend.innerHTML = `
+      <span><span class="ohlc-label">O</span> <span class="${cls}">${bar.open.toFixed(2)}</span></span>
+      <span><span class="ohlc-label">H</span> <span class="${cls}">${bar.high.toFixed(2)}</span></span>
+      <span><span class="ohlc-label">L</span> <span class="${cls}">${bar.low.toFixed(2)}</span></span>
+      <span><span class="ohlc-label">C</span> <span class="${cls}">${bar.close.toFixed(2)}</span></span>
+      ${vol != null ? `<span><span class="ohlc-label">Vol</span> <span class="${cls}">${vol}</span></span>` : ""}
+    `;
+  }
+
+  function createSeriesForStyle(style, up, down) {
+    const accent = readThemeVar('--tf-accent', '#2962ff');
+    if (style === 'line') {
+      return chart.addLineSeries({ color: accent, lineWidth: 2 });
+    }
+    if (style === 'area') {
+      return chart.addAreaSeries({
+        lineColor: accent,
+        topColor: 'rgba(41, 98, 255, 0.35)',
+        bottomColor: 'rgba(41, 98, 255, 0.03)',
+        lineWidth: 2,
+      });
+    }
+    return chart.addCandlestickSeries({
+      upColor: up,
+      downColor: down,
+      borderUpColor: up,
+      borderDownColor: down,
+      wickUpColor: up,
+      wickDownColor: down,
+    });
+  }
+
+  function setChartStyle(style) {
+    if (!chart || style === chartStyle) return;
+
+    const up = readThemeVar('--tf-up', '#26a69a');
+    const down = readThemeVar('--tf-down', '#ef5350');
+
+    try { chart.removeSeries(candleSeries); } catch (e) {}
+    candleSeries = createSeriesForStyle(style, up, down);
+    if (indicatorSystem) indicatorSystem.mainSeries = candleSeries;
+
+    chartStyle = style;
+    saveLS('stock_chart_style', style);
+    applyChartStyleData(chartData);
+  }
+
+  function setupChartStyleDropdown() {
+    const toggleBtn = document.getElementById('chart-style-btn');
+    if (!toggleBtn) return;
+
+    const STYLES = [
+      { id: 'candles', label: 'Candles' },
+      { id: 'line', label: 'Line' },
+      { id: 'area', label: 'Area' },
+    ];
+
+    const panel = document.createElement('div');
+    panel.id = 'chart-style-panel';
+    panel.style.cssText = [
+      'position:fixed',
+      'z-index:9999',
+      'background:#0f172a',
+      'border:1px solid #334155',
+      'border-radius:8px',
+      'padding:6px',
+      'min-width:130px',
+      'box-shadow:0 12px 40px rgba(0,0,0,.7)',
+      'display:none',
+    ].join(';');
+    document.body.appendChild(panel);
+
+    function render() {
+      panel.innerHTML = STYLES.map(s => `
+        <div class="cs-row" data-id="${s.id}" style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:12px;color:${s.id === chartStyle ? '#e2e8f0' : '#94a3b8'};background:${s.id === chartStyle ? 'rgba(41,98,255,0.15)' : 'transparent'}">
+          ${s.label}
+        </div>
+      `).join('');
+
+      panel.querySelectorAll('.cs-row').forEach(row => {
+        row.addEventListener('mouseover', () => { if (row.dataset.id !== chartStyle) row.style.background = 'rgba(255,255,255,.05)'; });
+        row.addEventListener('mouseout', () => { if (row.dataset.id !== chartStyle) row.style.background = 'transparent'; });
+        row.addEventListener('click', () => {
+          setChartStyle(row.dataset.id);
+          toggleBtn.innerHTML = `${STYLES.find(s => s.id === row.dataset.id).label} <span style="font-size:10px;line-height:1">▾</span>`;
+          panel.style.display = 'none';
+          render();
+        });
+      });
+    }
+    render();
+
+    toggleBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const rect = toggleBtn.getBoundingClientRect();
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? 'block' : 'none';
+      if (open) {
+        panel.style.top = (rect.bottom + 5) + 'px';
+        panel.style.left = rect.left + 'px';
+      }
+    });
+
+    document.addEventListener('click', e => {
+      if (!panel.contains(e.target) && e.target !== toggleBtn) panel.style.display = 'none';
+    });
+
+    // Reflect a persisted non-default style in the toggle button's label on boot
+    if (chartStyle !== 'candles') {
+      const cur = STYLES.find(s => s.id === chartStyle);
+      if (cur) toggleBtn.innerHTML = `${cur.label} <span style="font-size:10px;line-height:1">▾</span>`;
+    }
+  }
+
   function setupIndicatorSystem() {
     try {
       if (typeof MultiIndicatorSystem === 'undefined') {
@@ -1094,18 +1286,29 @@
       }
       indicatorSystem = new MultiIndicatorSystem();
       if (chart) {
-        indicatorSystem.setMainTimeScale(chart.timeScale(), chart);
+        indicatorSystem.setMainTimeScale(chart.timeScale(), chart, candleSeries);
       }
-      
-      // Create exactly 3 default indicators (always show 3)
-      const defaultIndicators = ['MACD', 'STOCH', 'VOLUME'];
+      indicatorSystem.enableLayoutPersistence('stock_indicator_layout');
+
+      // Restore the previously-saved indicator list + their own parameters if
+      // one exists, otherwise fall back to the 3 defaults (always show 3).
+      const MAX_INDICATORS = 5;
+      const savedLayout = indicatorSystem.loadLayout('stock_indicator_layout');
+      const layout = savedLayout
+        ? savedLayout.slice(0, MAX_INDICATORS)
+        : ['MACD', 'STOCH', 'VOLUME'].map(indicatorType => ({ indicatorType, params: null }));
+
       const container = document.getElementById('indicators-container');
-      
+
       if (container) {
-        defaultIndicators.forEach((indicator, index) => {
+        layout.forEach((entry, index) => {
           const panelId = `indicator-panel-${index}`;
           panelIds.push(panelId);
-          indicatorSystem.createIndicatorPanel(panelId, 'indicators-container', indicator);
+          const panel = indicatorSystem.createIndicatorPanel(panelId, 'indicators-container', entry.indicatorType);
+          if (panel && entry.params) {
+            panel.params = { ...panel.params, ...entry.params };
+            indicatorSystem.updateParametersDisplay(panelId);
+          }
         });
         updateIndicatorCount();
         if (el.chart && typeof indicatorSystem.syncIndicatorChartWidths === 'function') {
@@ -1115,9 +1318,9 @@
       }
 
       setupAddIndicatorButton();
-      
+      setupViewToggleButton();
+
       // Override removePanel to update button state
-      const MAX_INDICATORS = 5;
       const originalRemovePanel = indicatorSystem.removePanel.bind(indicatorSystem);
       indicatorSystem.removePanel = function(panelId) {
         originalRemovePanel(panelId);
@@ -1192,6 +1395,22 @@
           addBtn.title = `Maximum ${MAX_INDICATORS} indicators reached`;
         }
       }
+    });
+  }
+
+  function setupViewToggleButton() {
+    const toggleBtn = document.getElementById('view-toggle-btn');
+    const label = document.getElementById('view-toggle-label');
+    if (!toggleBtn || !indicatorSystem) return;
+
+    toggleBtn.addEventListener('click', () => {
+      const nextMode = indicatorSystem.viewMode === 'tabbed' ? 'stacked' : 'tabbed';
+      indicatorSystem.setViewMode(nextMode);
+      if (label) label.textContent = nextMode === 'tabbed' ? 'Tabs' : 'Stacked';
+      toggleBtn.classList.toggle('active', nextMode === 'tabbed');
+      toggleBtn.title = nextMode === 'tabbed'
+        ? 'Switch to stacked view (show all indicators)'
+        : 'Switch to tabbed view (one indicator at a time)';
     });
   }
 
@@ -1359,6 +1578,15 @@
   function formatStockPrice(price) {
     if (!isFinite(price)) return "—";
     return `$${price.toFixed(2)}`;
+  }
+
+  function readThemeVar(name, fallback) {
+    try {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return val || fallback;
+    } catch {
+      return fallback;
+    }
   }
 
   function saveLS(key, val) {

@@ -6,7 +6,25 @@
   const clearBtn = document.getElementById('clear-local');
   const fileInput = document.getElementById('file-input');
   const importBtn = document.getElementById('import');
+  const loadSampleBtn = document.getElementById('load-sample');
+  const fileNameEl = document.getElementById('file-name');
+  const searchInput = document.getElementById('search-input');
   const LS_KEY_WATCHLIST = 'tl_watchlist';
+
+  const COMPANY_NAMES = {
+    AAPL: 'Apple Inc.',
+    TSLA: 'Tesla, Inc.',
+    NVDA: 'NVIDIA Corporation',
+    MSFT: 'Microsoft Corporation',
+    GOOGL: 'Alphabet Inc.',
+    AMZN: 'Amazon.com, Inc.',
+    META: 'Meta Platforms, Inc.',
+    NFLX: 'Netflix, Inc.',
+  };
+
+  const SAMPLE_BASE_PRICE = { AAPL: 325, TSLA: 380, NVDA: 207, MSFT: 390 };
+
+  let filterText = '';
 
   function loadLocal() {
     try {
@@ -26,33 +44,71 @@
     return v.toFixed(6);
   }
 
+  function emptyStateRow(title, desc, icon) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    td.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">${icon}</div>
+        <div class="empty-title">${title}</div>
+        <div class="empty-desc">${desc}</div>
+      </div>
+    `;
+    tr.appendChild(td);
+    return tr;
+  }
+
   function renderFromLocal() {
     const local = loadLocal();
-    const symbols = Object.keys(local).sort();
+    const allSymbols = Object.keys(local).sort();
     tbody.innerHTML = '';
-    if (!symbols.length) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = '<td colspan="6" style="opacity:.8">No local data yet. Import a CSV above.</td>';
-      tbody.appendChild(tr);
+
+    if (!allSymbols.length) {
+      tbody.appendChild(emptyStateRow(
+        'No local data yet',
+        'Import a Nasdaq CSV/Excel file above, or click "Load Sample Data" for an instant preview with AAPL, TSLA, NVDA, and MSFT.',
+        '📭'
+      ));
       return;
     }
+
+    const term = filterText.trim().toLowerCase();
+    const symbols = term
+      ? allSymbols.filter(sym => {
+          const name = (COMPANY_NAMES[sym] || 'Local import').toLowerCase();
+          return sym.toLowerCase().includes(term) || name.includes(term);
+        })
+      : allSymbols;
+
+    if (!symbols.length) {
+      tbody.appendChild(emptyStateRow(
+        `No matches for "${filterText.trim()}"`,
+        'Try a different symbol or company name.',
+        '🔍'
+      ));
+      return;
+    }
+
     for (const sym of symbols) {
       const arr = (local[sym] || []).slice().sort((a,b)=>a.time-b.time);
       const n = arr.length;
       const last = n ? arr[n-1].close : NaN;
       const prev = n>1 ? arr[n-2].close : last;
       const chg = (isFinite(last) && isFinite(prev) && prev) ? ((last - prev)/prev)*100 : NaN;
+      const chgClass = !isFinite(chg) ? 'price-flat' : (chg >= 0 ? 'price-up' : 'price-down');
+      const chgText = isFinite(chg) ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : '—';
       const tr = document.createElement('tr');
       tr.dataset.sym = sym;
       tr.innerHTML = `
-        <td>${sym}</td>
-        <td>Local import</td>
+        <td class="sym">${sym}</td>
+        <td>${COMPANY_NAMES[sym] || 'Local import'}</td>
         <td>${fmtPrice(last)}</td>
         <td>${fmtPrice(prev)}</td>
-        <td style=\"color:${chg>=0?'#ef4444':'#22c55e'}\">${isFinite(chg)?chg.toFixed(2)+'%':'—'}</td>
-        <td>
-          <a href=\"./index.html?symbol=${encodeURIComponent(sym)}\" class=\"secondary\">Open</a>
-          <button class=\"remove\" data-del=\"${sym}\">Delete</button>
+        <td class="${chgClass}">${chgText}</td>
+        <td class="actions-cell">
+          <a href="./index.html?symbol=${encodeURIComponent(sym)}" class="secondary">Open</a>
+          <button class="remove" data-del="${sym}">Delete</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -197,6 +253,11 @@
     return csv;
   }
 
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileNameEl.textContent = file ? file.name : 'No file chosen';
+  });
+
   importBtn.addEventListener('click', async () => {
     const file = fileInput.files && fileInput.files[0];
     if (!file) { alert('Choose a CSV or Excel file first.'); return; }
@@ -259,6 +320,47 @@
   clearBtn.addEventListener('click', () => {
     if (!confirm('Clear all locally imported data?')) return;
     saveLocal({});
+    renderFromLocal();
+  });
+
+  // Sample data: generates a short mock OHLCV history per symbol using a simple
+  // random walk, in the same shape importCSV() produces, for an instant preview.
+  function generateSampleCandles(basePrice) {
+    const now = Math.floor(Date.now() / 1000);
+    const oneDay = 24 * 60 * 60;
+    const candles = [];
+    let price = basePrice;
+    for (let i = 30; i >= 0; i--) {
+      const time = now - i * oneDay;
+      const volatility = basePrice * 0.03;
+      const change = (Math.random() - 0.5) * volatility;
+      const open = price;
+      const high = price + Math.random() * volatility * 0.5;
+      const low = price - Math.random() * volatility * 0.5;
+      price = Math.max(low, Math.min(high, price + change));
+      candles.push({
+        time,
+        open,
+        high,
+        low,
+        close: price,
+        volume: Math.floor(Math.random() * 10000000) + 1000000,
+      });
+    }
+    return candles;
+  }
+
+  loadSampleBtn.addEventListener('click', () => {
+    const local = loadLocal();
+    for (const sym of Object.keys(SAMPLE_BASE_PRICE)) {
+      local[sym] = generateSampleCandles(SAMPLE_BASE_PRICE[sym]);
+    }
+    saveLocal(local);
+    renderFromLocal();
+  });
+
+  searchInput.addEventListener('input', () => {
+    filterText = searchInput.value;
     renderFromLocal();
   });
 
